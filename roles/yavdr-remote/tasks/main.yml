@@ -1,0 +1,34 @@
+---
+
+# This role is used to set up the yaVDR remote control configuration.
+
+- name: install yavdr-remote
+  tag: install
+  apt:
+      name: yavdr-remote
+      state: present
+
+- name: install lirc
+  tag: install
+  apt:
+      name: lircd
+      state: present
+  when:
+      - install_lircd is defined and install_lircd
+
+- name: install eventlircd
+  tag: install
+  apt:
+      name: eventlircd
+      state: present
+  when:
+      install_eventlircd is defined and install_eventlircd
+
+# TODO: upload lircd2uinput package to PPA
+#- name: install lircd2uinput
+#  tag: install
+#  apt:
+#      name: lircd2uinput
+#      state: present
+#  when:
+#      install_eventlircd is defined and install_eventlircd

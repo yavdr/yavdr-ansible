@@ -1,0 +1,60 @@
+---
+# this playbook sets up a graphical user session for a yaVDR installation
+
+- name: install xorg packages
+  apt:
+      name: "{{ item }}"
+      state: present
+      install_recommends: no
+  with_items:
+      - openbox
+      - xlogin
+      - xorg
+      - xserver-xorg-input-all
+      - xserver-xorg-video-all
+      - xterm
+
+- name: create /etc/yavdr
+  file:
+        path: /etc/yavdr
+        state: directory
+        mode: 0755
+
+- name: check if /etc/yavdr/autoinstalled exists
+  stat: path=/etc/yavdr/autoinstalled
+  register: ubuntu_drivers_autoinstalled
+
+- name: install drivers using ubuntu-drivers autodetection
+  shell: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+  when: not ubuntu_drivers_autoinstalled.stat.exists
+
+- name: set up .xinitrc for user vdr
+  template:
+      src: 'templates/.xinitrc.j2'
+      dest: '/var/lib/vdr/.xinitrc'
+      mode: 0755
+      owner: vdr
+      group: vdr
+
+- name: create directories for desktop session
+  file:
+      state: directory
+      owner: vdr
+      group: vdr
+      mode: 0644
+      path: '{{ item }}'
+  with_items:
+      - /var/lib/vdr/.config/openbox/
+
+- name: set up autostart for openbox
+  template:
+      src: 'templates/autostart.j2'
+      dest: '/var/lib/vdr/.config/openbox/autostart'
+      mode: 0755
+      owner: vdr
+      group: vdr
+
+- name: enable xlogin@vt7.service
+  service:
+      name: xlogin@vdr.service
+      enabled: yes

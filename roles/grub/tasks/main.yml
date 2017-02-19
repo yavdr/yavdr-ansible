@@ -1,0 +1,15 @@
+- name: custom grub configuration for timeout and reboot halt
+  template:
+    src: templates/50_custom.j2
+    dest: /etc/grub.d/50_custom
+    mode: '0775'
+  notify: [ 'Update GRUB' ]
+
+- name: let the system boot quietly
+  lineinfile:
+      dest: /etc/default/grub
+      state: present
+      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
+      line: '\1quiet nosplash"'
+      backrefs: yes
+  notify: [ 'Update GRUB' ]

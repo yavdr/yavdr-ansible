@@ -1,0 +1,98 @@
+---
+# this playbook sets up a minimum yaVDR installation
+#
+# You can customize the following variables:
+# repositories.sources: a list of package repositories to use
+# vdr: a dictionary with several customization options for the vdr-configuration.
+# See defaults/main.yml for a complete reference
+
+- name: prevent installation of recommended packages
+  blockinfile:
+      dest: /etc/apt/apt.conf.d/90norecommends
+      create: yes
+      state: present
+      marker: "// *** {mark} ANSIBLE MANAGED BLOCK ***"
+      block: |
+          // Recommends are as of now still abused in many packages
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
+
+- name: add yaVDR PPAs
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: yes
+  with_items: '{{ repositories.sources }}'
+
+- name: upgrade existing packages
+  apt:
+      upgrade: dist
+      update_cache: yes
+
+- name: install basic packages
+  apt:
+      name: '{{ item }}'
+      state: present
+      install_recommends: no
+  with_items:
+      - anacron
+      - at
+      - bash-completion
+      - biosdevname
+      - linux-firmware
+      - psmisc
+      - software-properties-common
+      - ssh
+      - ubuntu-drivers-common
+      - vdr
+      - vdr-plugin-dbus2vdr
+      - vdrctl
+      - vim
+      - w-scan
+      - wget
+      - wpasupplicant
+      - usbutils
+      - xfsprogs
+      #- yavdr-firmware
+
+
+- name: create vdr recdir
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ vdr.recdir }}'
+
+- name: set option to use hide-first-recording-level patch
+  blockinfile:
+      dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+      create: true
+      block: |
+          [vdr]
+          --hide-first-recording-level
+  when:
+      vdr.hide_first_recording_level
+
+- name: create local dir in recdir
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ vdr.recdir }}/local'
+  when:
+      vdr.hide_first_recording_level
+
+- name: create directories for media files
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ item }}'
+  with_items:
+      - /srv/videos
+      - /srv/music
+      - /srv/picture
+      - /srv/backups
