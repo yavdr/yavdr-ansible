@@ -1,0 +1,192 @@
+#+OPTIONS: ^:nil
+* Installing and configuring yaVDR with Ansible
+This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
+
+* Playbooks
+To set up a fully-featured yaVDR installation you can use the yavdr07.yml Playbook:
+#+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes :exports none
+  ---
+  # this playbook sets up a fully featured yaVDR 0.7 installation
+#+END_SRC
+#+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes
+  - name: basic setup for PPAs, packages etc.
+    hosts: yavdr-full
+    become: true
+    roles:
+         - yavdr-common
+         - yavdr-network
+         - yavdr-xorg
+         - grub
+#+END_SRC
+
+* Hosts
+This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
+
+#+BEGIN_SRC conf :tangle hosts :mkdirp yes
+  [yavdr-full]
+  localhost connection=local
+
+  [yavdr-headless]
+
+  [yavdr-client]
+
+#+END_SRC
+* Roles
+** yavdr-common
+This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
+*** Variables
+Several variables can be set to customize the configuration.
+
+**** Repositories
+You can provide a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+  branch: unstable
+  repositories:
+      - 'ppa:yavdr/main'
+      - 'ppa:yavdr/unstable-main'
+      - 'ppa:yavdr/{{branch}}-vdr'
+      - 'ppa:yavdr/{{branch}}-kodi'
+      - 'ppa:yavdr/{{branch}}-yavdr'
+#+END_SRC
+**** Drivers
+Using autodetection to automatically install drivers can be very useful but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+drivers:
+    sundtek: auto
+    ddvb-dkms: auto
+#+END_SRC
+**** Additional Packages
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+  extra_packages:
+      - vim
+      - tree
+      - w-scan
+#+END_SRC
+**** VDR
+This section allows you to set the recording directory, the user and group that runs the vdr and it's home directory.
+ - user :: the vdr user name
+ - group :: the main group for the user vdr
+ - uid :: the user id for the user vdr
+ - gid :: the group id for the group vdr
+ - home :: the home directory for the user vdr
+ - recdir :: the recording directory used by VDR
+ - hide_first_recording_level :: let vdr hide the first directory level of it's recording directory so the content of multiple directories is shown merged together
+ - safe_dirnames :: replace special characters which are not compatible with Windows file systems and Samba shares
+ - override_vdr_charset :: workaround for channels with weird EPG encodings, e.g. Sky
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+vdr:
+    user: vdr
+    group: vdr
+    uid: 666
+    gid: 666
+    home: /var/lib/vdr
+    recdir: /srv/vdr/video
+    hide_first_recording_level: true
+    safe_dirnames: true
+    override_vdr_charset: false
+#+END_SRC
+*** Tasks
+yavdr-common executes the following tasks:
+**** Disable default installation of recommended packages
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none
+---
+# This playbook sets up the basic packages an directories for a yaVDR installation
+#+END_SRC
+
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+- name: apt| prevent installation of recommended packages
+  blockinfile:
+      dest: /etc/apt/apt.conf.d/90norecommends
+      create: yes
+      state: present
+      marker: "// *** {mark} ANSIBLE MANAGED BLOCK ***"
+      block: |
+          // Recommends are as of now still abused in many packages
+          APT::Install-Recommends "0";
+          APT::Install-Suggests "0";
+#+END_SRC
+**** Setting up the package repositories
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+- name: add yaVDR PPAs
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: yes
+  with_items: '{{ repositories }}'
+
+- name: upgrade existing packages
+  apt:
+      upgrade: dist
+      update_cache: yes
+#+END_SRC
+**** Installing essential packages
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+- name: install basic packages
+  apt:
+      name: '{{ item }}'
+      state: present
+      install_recommends: no
+  with_items:
+      - anacron
+      - at
+      - bash-completion
+      - biosdevname
+      - linux-firmware
+      - psmisc
+      - software-properties-common
+      - ssh
+      - ubuntu-drivers-common
+      - vdr
+      - vdr-plugin-dbus2vdr
+      - vdrctl
+      - wget
+      - wpasupplicant
+      - usbutils
+      - xfsprogs
+#+END_SRC
+**** Set up the VDR directories
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+- name: create vdr recdir
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ vdr.recdir }}'
+
+- name: set option to use hide-first-recording-level patch
+  blockinfile:
+      dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+      create: true
+      block: |
+          [vdr]
+          --hide-first-recording-level
+  when:
+      vdr.hide_first_recording_level
+
+- name: create local dir in recdir
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ vdr.recdir }}/local'
+  when:
+      vdr.hide_first_recording_level
+#+END_SRC
+**** Set up the directories for files in /srv
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+- name: create directories for media files
+  file:
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: 0775
+      dest: '{{ item }}'
+  with_items:
+      - /srv/videos
+      - /srv/music
+      - /srv/picture
+      - /srv/backups
+#+END_SRC
+

@@ -1,10 +1,6 @@
+
 ---
-# this playbook sets up a minimum yaVDR installation
-#
-# You can customize the following variables:
-# repositories.sources: a list of package repositories to use
-# vdr: a dictionary with several customization options for the vdr-configuration.
-# See defaults/main.yml for a complete reference
+# This playbook sets up the basic packages an directories for a yaVDR installation
 
 - name: apt| prevent installation of recommended packages
   blockinfile:
@@ -22,7 +18,7 @@
       repo: '{{ item }}'
       state: present
       update_cache: yes
-  with_items: '{{ repositories.sources }}'
+  with_items: '{{ repositories }}'
 
 - name: upgrade existing packages
   apt:
@@ -47,14 +43,10 @@
       - vdr
       - vdr-plugin-dbus2vdr
       - vdrctl
-      - vim
-      - w-scan
       - wget
       - wpasupplicant
       - usbutils
       - xfsprogs
-      #- yavdr-firmware
-
 
 - name: create vdr recdir
   file:
