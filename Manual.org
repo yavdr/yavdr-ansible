@@ -1,61 +1,115 @@
+# -*- mode: org; -*-
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
+
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
 #+OPTIONS: ^:nil
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
 * Playbooks
-To set up a fully-featured yaVDR installation you can use the yavdr07.yml Playbook:
-#+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes :exports none
-  ---
-  # this playbook sets up a fully featured yaVDR 0.7 installation
-#+END_SRC
+To set up a fully-featured yaVDR installation you can use the ~yavdr07.yml~ Playbook:
 #+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes
-  - name: basic setup for PPAs, packages etc.
-    hosts: yavdr-full
-    become: true
-    roles:
-         - yavdr-common
-         - yavdr-network
-         - yavdr-xorg
-         - grub
+---
+# file: yavdr07.yml
+# this playbook sets up a complete yaVDR 0.7 installation
+
+- name: set up yaVDR
+  hosts: all
+  become: true
+  roles:
+     - yavdr-common
+     - vdr
+     - yavdr-network
+     - yavdr-xorg
+     - yavdr-remote
+     - grub
 #+END_SRC
 
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
 #+BEGIN_SRC conf :tangle hosts :mkdirp yes
-  [yavdr-full]
-  localhost connection=local
+[yavdr-full]
+#localhost connection=local
+192.168.1.116
 
-  [yavdr-headless]
+[yavdr-headless]
 
-  [yavdr-client]
+[yavdr-client]
 
+#+END_SRC
+* Group Variables
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes :exports none
+ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
+
+branch: unstable
+ppa_owner: 'ppa:yavdr'
+repositories:
+  - '{{ ppa_owner }}/main'
+  - '{{ ppa_owner }}/unstable-main'
+  - '{{ ppa_owner }}/{{branch}}-vdr'
+  - '{{ ppa_owner }}/{{branch}}-yavdr'
+  - '{{ ppa_owner }}/{{branch}}-kodi'
+
+drivers:
+  sundtek: auto
+  ddvb-dkms: auto
+
+vdr:
+  user: vdr
+  group: vdr
+  uid: 666
+  gid: 666
+  home: /var/lib/vdr
+  recdir: /srv/vdr/video
+  hide_first_recording_level: false
+  safe_dirnames: true
+  override_vdr_charset: false
+
+vdr_plugins:
+  - vdr-plugin-devstatus
+  - vdr-plugin-markad
+  - vdr-plugin-restfulapi
+  - vdr-plugin-softhddevice
+
+extra_packages:
+  - vim
+  - tree
+  - w-scan
 #+END_SRC
 * Roles
 ** yavdr-common
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
-*** Variables
+*** default variables
 Several variables can be set to customize the configuration.
 
 **** Repositories
-You can provide a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
+You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
-  branch: unstable
-  repositories:
-      - 'ppa:yavdr/main'
-      - 'ppa:yavdr/unstable-main'
-      - 'ppa:yavdr/{{branch}}-vdr'
-      - 'ppa:yavdr/{{branch}}-kodi'
-      - 'ppa:yavdr/{{branch}}-yavdr'
+---
+# file: roles/yavdr-common/defaults/main.yml
+
+branch: unstable
+repositories:
+  - 'ppa:yavdr/main'
+  - 'ppa:yavdr/unstable-main'
+  - 'ppa:yavdr/{{branch}}-vdr'
+  - 'ppa:yavdr/{{branch}}-kodi'
+  - 'ppa:yavdr/{{branch}}-yavdr'
 #+END_SRC
 **** Drivers
-Using autodetection to automatically install drivers can be very useful but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
+Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
 drivers:
-    sundtek: auto
-    ddvb-dkms: auto
+  sundtek: auto
+  ddvb-dkms: auto
 #+END_SRC
 **** Additional Packages
+Add additional packages you would like to have on your installation to this list
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
   extra_packages:
       - vim
@@ -81,20 +135,20 @@ vdr:
     gid: 666
     home: /var/lib/vdr
     recdir: /srv/vdr/video
-    hide_first_recording_level: true
+    hide_first_recording_level: false
     safe_dirnames: true
     override_vdr_charset: false
 #+END_SRC
-*** Tasks
+*** tasks
 yavdr-common executes the following tasks:
 **** Disable default installation of recommended packages
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none
 ---
 # This playbook sets up the basic packages an directories for a yaVDR installation
 #+END_SRC
-
+This configuration file prevents apt to automatically install all recommended dependencies when installing packages:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
-- name: apt| prevent installation of recommended packages
+- name: apt | prevent automatic installation of recommended packages
   blockinfile:
       dest: /etc/apt/apt.conf.d/90norecommends
       create: yes
@@ -121,72 +175,246 @@ yavdr-common executes the following tasks:
 #+END_SRC
 **** Installing essential packages
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
-- name: install basic packages
+- name: apt | install basic packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - anacron
+    - at
+    - bash-completion
+    - biosdevname
+    - linux-firmware
+    - psmisc
+    - software-properties-common
+    - ssh
+    - ubuntu-drivers-common
+    - wget
+    - wpasupplicant
+    - usbutils
+    - xfsprogs
+#+END_SRC
+** vdr
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+---
+# file: roles/vdr/tasks/main.yml
+
+- name: apt | install basic vdr packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - vdr
+    - vdrctl
+    - vdr-plugin-dbus2vdr
+
+- name: create vdr recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0775
+    dest: '{{ vdr.recdir }}'
+
+- name: set option to use hide-first-recording-level patch
+  blockinfile:
+    dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+    create: true
+    block: |
+      [vdr]
+      --hide-first-recording-level
+  when:
+    vdr.hide_first_recording_level
+
+- name: create local dir in recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0775'
+    dest: '{{ vdr.recdir }}/local'
+  when:
+    vdr.hide_first_recording_level
+
+- name: install additional vdr plugins
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    '{{ vdr_plugins }}'
+#+END_SRC
+*** Set up the directories for files in /srv
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml
+- name: create directories for media files
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0777
+    dest: '{{ item }}'
+  with_items:
+    - /srv/videos
+    - /srv/music
+    - /srv/picture
+    - /srv/backups
+#+END_SRC
+
+** yavdr-network
+*** default variables
+
+#+BEGIN_SRC yaml :tangle roles/yavdr-network/main.yml :mkdirp yes
+install_avahi: true
+install_epgd: true
+install_mariadb: true
+install_nfs_client: true
+install_nfs_server: true
+install_samba_client: true
+install_samba_server: true
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/yavdr-network/tasks/main.yml :mkdirp yes
+---
+# this playbook sets up network services for a yaVDR installation
+#
+- name: install network packages
   apt:
       name: '{{ item }}'
       state: present
       install_recommends: no
   with_items:
-      - anacron
-      - at
-      - bash-completion
+      - avahi-daemon
+      - avahi-utils
       - biosdevname
-      - linux-firmware
-      - psmisc
-      - software-properties-common
-      - ssh
-      - ubuntu-drivers-common
-      - vdr
-      - vdr-plugin-dbus2vdr
-      - vdrctl
-      - wget
-      - wpasupplicant
-      - usbutils
-      - xfsprogs
-#+END_SRC
-**** Set up the VDR directories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
-- name: create vdr recdir
-  file:
-      state: directory
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-      mode: 0775
-      dest: '{{ vdr.recdir }}'
+      - ethtool
+      - nfs-common
+      - vdr-addon-avahi-linker
+      - wakeonlan
 
-- name: set option to use hide-first-recording-level patch
-  blockinfile:
-      dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
-      create: true
-      block: |
-          [vdr]
-          --hide-first-recording-level
-  when:
-      vdr.hide_first_recording_level
-
-- name: create local dir in recdir
-  file:
-      state: directory
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-      mode: 0775
-      dest: '{{ vdr.recdir }}/local'
-  when:
-      vdr.hide_first_recording_level
-#+END_SRC
-**** Set up the directories for files in /srv
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
-- name: create directories for media files
-  file:
-      state: directory
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-      mode: 0775
-      dest: '{{ item }}'
+- name: install and configure nfs-kernel-server
+  apt:
+      name: "{{ item }}"
+      state: present
+      install_recommends: no
   with_items:
-      - /srv/videos
-      - /srv/music
-      - /srv/picture
-      - /srv/backups
-#+END_SRC
+      - nfs-kernel-server
+  when:
+      - '{{ install_nfs_server }}'
 
+# Does this really work? We need a way to check if an interface supports WOL - Python Skript?
+# - name: check WOL capabilities of network interfaces
+#   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
+#   register: wol
+#   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
+  
+#+END_SRC
+** yavdr-remote
+*** default variables
+*** tasks
+*** templates
+*** files
+** yavdr-xorg
+*** default variables
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes
+---
+# file: roles/yavdr-xorg/tasks/main.yml
+
+- name: install packages for xorg
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - xorg
+    - xserver-xorg-video-all
+    - xserver-xorg-input-all
+    - xlogin
+    - xterm
+    #- yavdr-xorg
+    - openbox
+
+# TODO: move to yavdr-xorg package?
+- name: create folders for user session
+  file:
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox/autostart'
+
+### TODO: move to yavdr-xorg package? ###
+- name: create folder for customizations of vdr.service
+  file:
+    state: directory
+    dest: /etc/systemd/system/vdr.service.d
+    mode: '0775'
+
+- name: add dependency to X-server for vdr.service using a drop-in
+  template:
+    src: templates/vdr-xorg.conf
+    dest: /etc/systemd/system/vdr.service.d/
+### END TODO ###
+
+- name: set up .xinitrc for vdr user
+  template:
+      src: 'templates/.xinitrc.j2'
+      dest: '/var/lib/vdr/.xinitrc'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: set up autostart for openbox
+  template:
+      src: 'templates/autostart.j2'
+      dest: '/var/lib/vdr/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: set a login shell for the vdr user
+  user:
+      name: '{{ vdr.user }}'
+      shell: '/bin/bash'
+      state: present
+      uid: '{{ vdr.uid }}'
+      groups: '{{ vdr.group }}'
+      append: yes
+
+- name: enable and start xlogin for vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
+#+END_SRC
+*** templates
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
+# file: roles/yavdr-xorg/templates/vdr-xorg.conf
+# {{ ansible_managed_file }}
+
+[Unit]
+After=x@vt7.service
+Wants=x@vt7.service
+BindsTo=x@vt7.service
+#+END_SRC
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
+#!/bin/bash
+# {{ ansible_managed_file }}
+exec openbox-session
+#+END_SRC
+#+BEGIN_SRC jinja2 tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
+systemctl --user import-environment
+#+END_SRC
+*** files
+** grub
+*** default variables
+*** tasks
+*** templates 
+*** files

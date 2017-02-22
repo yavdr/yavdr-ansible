@@ -1,0 +1,36 @@
+ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
+
+branch: unstable
+ppa_owner: 'ppa:yavdr'
+repositories:
+  - '{{ ppa_owner }}/main'
+  - '{{ ppa_owner }}/unstable-main'
+  - '{{ ppa_owner }}/{{branch}}-vdr'
+  - '{{ ppa_owner }}/{{branch}}-yavdr'
+  - '{{ ppa_owner }}/{{branch}}-kodi'
+
+drivers:
+  sundtek: auto
+  ddvb-dkms: auto
+
+vdr:
+  user: vdr
+  group: vdr
+  uid: 666
+  gid: 666
+  home: /var/lib/vdr
+  recdir: /srv/vdr/video
+  hide_first_recording_level: false
+  safe_dirnames: true
+  override_vdr_charset: false
+
+vdr_plugins:
+  - vdr-plugin-devstatus
+  - vdr-plugin-markad
+  - vdr-plugin-restfulapi
+  - vdr-plugin-softhddevice
+
+extra_packages:
+  - vim
+  - tree
+  - w-scan

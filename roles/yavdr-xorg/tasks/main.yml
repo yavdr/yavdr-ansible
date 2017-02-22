@@ -1,61 +1,72 @@
 ---
-# this playbook sets up a graphical user session for a yaVDR installation
+# file: roles/yavdr-xorg/tasks/main.yml
 
-- name: install xorg packages
+- name: install packages for xorg
   apt:
-      name: "{{ item }}"
-      state: present
-      install_recommends: no
+    name: '{{ item }}'
+    state: present
   with_items:
-      - openbox
-      - xlogin
-      - xorg
-      - xserver-xorg-input-all
-      - xserver-xorg-video-all
-      - xterm
+    - xorg
+    - xserver-xorg-video-all
+    - xserver-xorg-input-all
+    - xlogin
+    - xterm
+    #- yavdr-xorg
+    - openbox
 
-- name: create /etc/yavdr
+# TODO: move to yavdr-xorg package?
+- name: create folders for user session
   file:
-        path: /etc/yavdr
-        state: directory
-        mode: 0755
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox/autostart'
 
-- name: check if /etc/yavdr/autoinstalled exists
-  stat: path=/etc/yavdr/autoinstalled
-  register: ubuntu_drivers_autoinstalled
+### TODO: move to yavdr-xorg package? ###
+- name: create folder for customizations of vdr.service
+  file:
+    state: directory
+    dest: /etc/systemd/system/vdr.service.d
+    mode: '0775'
 
-- name: install drivers using ubuntu-drivers autodetection
-  shell: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
-  when: not ubuntu_drivers_autoinstalled.stat.exists
+- name: add dependency to X-server for vdr.service using a drop-in
+  template:
+    src: templates/vdr-xorg.conf
+    dest: /etc/systemd/system/vdr.service.d/
+### END TODO ###
 
-- name: set up .xinitrc for user vdr
+- name: set up .xinitrc for vdr user
   template:
       src: 'templates/.xinitrc.j2'
       dest: '/var/lib/vdr/.xinitrc'
       mode: 0755
-      owner: vdr
-      group: vdr
-
-- name: create directories for desktop session
-  file:
-      state: directory
-      owner: vdr
-      group: vdr
-      mode: 0644
-      path: '{{ item }}'
-  with_items:
-      - /var/lib/vdr/.config/openbox/
-      - /var/lib/vdr/.config/systemd/user/
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
 
 - name: set up autostart for openbox
   template:
       src: 'templates/autostart.j2'
       dest: '/var/lib/vdr/.config/openbox/autostart'
       mode: 0755
-      owner: vdr
-      group: vdr
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
 
-- name: enable xlogin@vt7.service
-  service:
-      name: xlogin@vdr.service
-      enabled: yes
+- name: set a login shell for the vdr user
+  user:
+      name: '{{ vdr.user }}'
+      shell: '/bin/bash'
+      state: present
+      uid: '{{ vdr.uid }}'
+      groups: '{{ vdr.group }}'
+      append: yes
+
+- name: enable and start xlogin for vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
