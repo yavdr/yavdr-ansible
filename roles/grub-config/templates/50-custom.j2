@@ -1,0 +1,16 @@
+#!/bin/sh
+exec tail -n +3 $0
+
+# This file is configured by the ansible configuration for yaVDR
+
+{% if system.shutdown is defined and system.shutdown == 'reboot' %}
+menuentry "PowerOff" {
+    halt
+}
+{% endif %}
+
+if [ "${recordfail}" = 1 ]; then
+    set timeout={{ 3 if system.grub.timeout < 3 else system.grub.timeout }}
+else
+    set timeout={{ system.grub.timeout if system.grub.timeout is defined else 0 }}
+fi

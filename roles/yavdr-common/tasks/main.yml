@@ -1,16 +1,11 @@
 ---
 # This playbook sets up the basic packages an directories for a yaVDR installation
+# file: roles/yavdr-common/tasks/main.yml
 
 - name: apt | prevent automatic installation of recommended packages
-  blockinfile:
+  template:
+      src: templates/90-norecommends.j2
       dest: /etc/apt/apt.conf.d/90norecommends
-      create: yes
-      state: present
-      marker: "// *** {mark} ANSIBLE MANAGED BLOCK ***"
-      block: |
-          // Recommends are as of now still abused in many packages
-          APT::Install-Recommends "0";
-          APT::Install-Suggests "0";
 
 - name: add yaVDR PPAs
   apt_repository:

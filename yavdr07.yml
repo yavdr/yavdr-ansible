@@ -6,9 +6,17 @@
   hosts: all
   become: true
   roles:
-     - yavdr-common
-     - vdr
-     - yavdr-network
-     - yavdr-xorg
-     - yavdr-remote
-     - grub
+     - yavdr-common   # install and configure the basic system
+     - vdr            # install vdr and related packages
+     - yavdr-network  # enable network client capabilities
+     - samba-install  # install samba server
+     - samba-config   # configure samba server
+     #- nfs-server     # install nfs server
+     #- nfs-config     # configure nfs server
+     - yavdr-xorg     # graphical session
+     - yavdr-remote   # remote configuration files, services and scripts
+     - grub-config    # configure grub
+
+
+  handlers:
+    - include: handlers/main.yml

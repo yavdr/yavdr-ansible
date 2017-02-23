@@ -15,16 +15,6 @@
       - vdr-addon-avahi-linker
       - wakeonlan
 
-- name: install and configure nfs-kernel-server
-  apt:
-      name: "{{ item }}"
-      state: present
-      install_recommends: no
-  with_items:
-      - nfs-kernel-server
-  when:
-      - '{{ install_nfs_server }}'
-
 # Does this really work? We need a way to check if an interface supports WOL - Python Skript?
 # - name: check WOL capabilities of network interfaces
 #   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'

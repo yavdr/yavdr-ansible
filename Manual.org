@@ -10,7 +10,10 @@
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
+This Manual is written in org-mode for Emacs and can rewrite the complete ansible configuration if you call ~org-babel-tangle~ from within emacs.
+
 * Playbooks
+** yavdr07.yml
 To set up a fully-featured yaVDR installation you can use the ~yavdr07.yml~ Playbook:
 #+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes
 ---
@@ -21,14 +24,43 @@ To set up a fully-featured yaVDR installation you can use the ~yavdr07.yml~ Play
   hosts: all
   become: true
   roles:
-     - yavdr-common
-     - vdr
-     - yavdr-network
-     - yavdr-xorg
-     - yavdr-remote
-     - grub
-#+END_SRC
+     - yavdr-common   # install and configure the basic system
+     - vdr            # install vdr and related packages
+     - yavdr-network  # enable network client capabilities
+     - samba-install  # install samba server
+     - samba-config   # configure samba server
+     #- nfs-server     # install nfs server
+     #- nfs-config     # configure nfs server
+     - yavdr-xorg     # graphical session
+     - yavdr-remote   # remote configuration files, services and scripts
+     - grub-config    # configure grub
 
+
+  handlers:
+    - include: handlers/main.yml
+#+END_SRC
+** yavdr07-headless.yml
+For a headless server installation ~yavdr07-headless.yml~ is a good choice
+#+BEGIN_SRC yaml :tangle yavdr07-headless.yml :mkdirp yes
+---
+# file: yavdr07-headless.yml
+# this playbook set up a headless yaVDR 0.7 installation
+
+- name: set up a headless yaVDR server
+  hosts: all
+  become: true
+  roles:
+    - yavdr-common
+    - vdr
+    - yavdr-network
+    - samba-server
+    - samba-config
+    - nfs-server
+    - nfs-config
+    - grub-config
+  handlers:
+    - include: handlers/main.yml
+#+END_SRC
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
@@ -43,11 +75,15 @@ This playbook can either be used to run the installation on the localhost or any
 
 #+END_SRC
 * Group Variables
-#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes :exports none
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+# file: group_vars/all
+
+# this is the standard text to put in templates
 ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
 
 branch: unstable
 ppa_owner: 'ppa:yavdr'
+# a list of all package repositories to be added to the installation
 repositories:
   - '{{ ppa_owner }}/main'
   - '{{ ppa_owner }}/unstable-main'
@@ -59,6 +95,14 @@ drivers:
   sundtek: auto
   ddvb-dkms: auto
 
+# dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
+media_dirs:
+  audio: /srv/audio
+  video: /srv/audio
+  pictures: /srv/audio
+  files: /srv/files
+
+# properties of the user vdr and vdr-related options
 vdr:
   user: vdr
   group: vdr
@@ -70,16 +114,27 @@ vdr:
   safe_dirnames: true
   override_vdr_charset: false
 
+# add the vdr plugins you want to install
 vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad
   - vdr-plugin-restfulapi
   - vdr-plugin-softhddevice
 
+samba:
+  workgroup: YAVDR
+
+# additional packages you want to install
 extra_packages:
   - vim
   - tree
   - w-scan
+
+system:
+    shutdown: poweroff
+    grub:
+        timeout: 0
+        boot_options: quiet nosplash
 #+END_SRC
 * Roles
 ** yavdr-common
@@ -89,7 +144,7 @@ Several variables can be set to customize the configuration.
 
 **** Repositories
 You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
 ---
 # file: roles/yavdr-common/defaults/main.yml
 
@@ -103,14 +158,14 @@ repositories:
 #+END_SRC
 **** Drivers
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
 drivers:
   sundtek: auto
   ddvb-dkms: auto
 #+END_SRC
 **** Additional Packages
 Add additional packages you would like to have on your installation to this list
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
   extra_packages:
       - vim
       - tree
@@ -127,7 +182,7 @@ This section allows you to set the recording directory, the user and group that 
  - hide_first_recording_level :: let vdr hide the first directory level of it's recording directory so the content of multiple directories is shown merged together
  - safe_dirnames :: replace special characters which are not compatible with Windows file systems and Samba shares
  - override_vdr_charset :: workaround for channels with weird EPG encodings, e.g. Sky
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
 vdr:
     user: vdr
     group: vdr
@@ -141,26 +196,23 @@ vdr:
 #+END_SRC
 *** tasks
 yavdr-common executes the following tasks:
-**** Disable default installation of recommended packages
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
 ---
 # This playbook sets up the basic packages an directories for a yaVDR installation
+# file: roles/yavdr-common/tasks/main.yml
 #+END_SRC
+**** Disable default installation of recommended packages
+
 This configuration file prevents apt to automatically install all recommended dependencies when installing packages:
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: apt | prevent automatic installation of recommended packages
-  blockinfile:
+  template:
+      src: templates/90-norecommends.j2
       dest: /etc/apt/apt.conf.d/90norecommends
-      create: yes
-      state: present
-      marker: "// *** {mark} ANSIBLE MANAGED BLOCK ***"
-      block: |
-          // Recommends are as of now still abused in many packages
-          APT::Install-Recommends "0";
-          APT::Install-Suggests "0";
+
 #+END_SRC
 **** Setting up the package repositories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: add yaVDR PPAs
   apt_repository:
       repo: '{{ item }}'
@@ -174,7 +226,7 @@ This configuration file prevents apt to automatically install all recommended de
       update_cache: yes
 #+END_SRC
 **** Installing essential packages
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: apt | install basic packages
   apt:
     name: '{{ item }}'
@@ -194,6 +246,13 @@ This configuration file prevents apt to automatically install all recommended de
     - wpasupplicant
     - usbutils
     - xfsprogs
+#+END_SRC
+*** templates
+#+BEGIN_SRC shell :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
+// {{ ansible_managed_file }}
+// Recommends are as of now still abused in many packages
+APT::Install-Recommends "0";
+APT::Install-Suggests "0";
 #+END_SRC
 ** vdr
 *** tasks
@@ -248,7 +307,7 @@ This configuration file prevents apt to automatically install all recommended de
     '{{ vdr_plugins }}'
 #+END_SRC
 *** Set up the directories for files in /srv
-#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create directories for media files
   file:
     state: directory
@@ -294,6 +353,16 @@ install_samba_server: true
       - vdr-addon-avahi-linker
       - wakeonlan
 
+# Does this really work? We need a way to check if an interface supports WOL - Python Skript?
+# - name: check WOL capabilities of network interfaces
+#   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
+#   register: wol
+#   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
+  
+#+END_SRC
+** nfs-server
+*** tasks
+#+BEGIN_SRC yaml :tanlge roles/nfs-server/tasks/main.yml :mkdirp yes
 - name: install and configure nfs-kernel-server
   apt:
       name: "{{ item }}"
@@ -303,13 +372,6 @@ install_samba_server: true
       - nfs-kernel-server
   when:
       - '{{ install_nfs_server }}'
-
-# Does this really work? We need a way to check if an interface supports WOL - Python Skript?
-# - name: check WOL capabilities of network interfaces
-#   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
-#   register: wol
-#   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
-  
 #+END_SRC
 ** yavdr-remote
 *** default variables
@@ -394,7 +456,7 @@ install_samba_server: true
     state: started
 #+END_SRC
 *** templates
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
 # file: roles/yavdr-xorg/templates/vdr-xorg.conf
 # {{ ansible_managed_file }}
 
@@ -403,18 +465,212 @@ After=x@vt7.service
 Wants=x@vt7.service
 BindsTo=x@vt7.service
 #+END_SRC
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
+#+BEGIN_SRC sh :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
 #!/bin/bash
 # {{ ansible_managed_file }}
 exec openbox-session
 #+END_SRC
-#+BEGIN_SRC jinja2 tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+#+BEGIN_SRC sh tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment
 #+END_SRC
 *** files
-** grub
-*** default variables
+** samba-install
 *** tasks
+#+BEGIN_SRC yaml :tangle roles/samba-install/tasks/main.yml :mkdirp yes
+# file: roles/samba-install/tasks/main.yml
+
+- name: install samba server
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - samba
+    - samba-common
+    - samba-common-bin
+    - tdb-tools
+
+#+END_SRC
+** samba-config
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/samba-config/tasks/main.yml :mkdirp yes
+# file: roles/samba-config/tasks/main.yml
+
+# TODO:
+#- name: divert original smbd.conf
+
+- name: create smb.conf.custom
+  file:
+    state: touch
+    dest: '/etc/samba/smb.conf.custom'
+  notify: [ 'Restart Samba' ]
+    
+- name: expand template for smb.conf
+  template:
+    src: 'templates/smb.conf.j2'
+    dest: '/etc/samba/smb.conf'
+    #validate: 'testparm -s %s'
+  notify: [ 'Restart Samba' ]
+#+END_SRC
+*** templates
+#+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
+# {{ ansible_managed_file }}
+
+#======================= Global Settings =======================
+
+[global]
+
+## Browsing/Identification ###
+
+# Change this to the workgroup/NT-domain name your Samba server will part of
+   workgroup = {{ samba.workgroup }}
+
+# server string is the equivalent of the NT Description field
+   server string = %h server (Samba, Ubuntu)
+
+# This will prevent nmbd to search for NetBIOS names through DNS.
+   dns proxy = no
+
+#### Debugging/Accounting ####
+
+# This tells Samba to use a separate log file for each machine
+# that connects
+   log file = /var/log/samba/log.%m
+
+# Cap the size of the individual log files (in KiB).
+   max log size = 1000
+
+# We want Samba to log a minimum amount of information to syslog. Everything
+# should go to /var/log/samba/log.{smbd,nmbd} instead. If you want to log
+# through syslog you should set the following parameter to something higher.
+   syslog = 0
+
+# Do something sensible when Samba crashes: mail the admin a backtrace
+   panic action = /usr/share/samba/panic-action %d
+
+
+####### Authentication #######
+
+# "security = user" is always a good idea. This will require a Unix account
+# in this server for every user accessing the server. See
+# /usr/share/doc/samba-doc/htmldocs/Samba3-HOWTO/ServerType.html
+# in the samba-doc package for details.
+#   security = user
+
+# You may wish to use password encryption.  See the section on
+# 'encrypt passwords' in the smb.conf(5) manpage before enabling.
+   encrypt passwords = true
+
+# If you are using encrypted passwords, Samba will need to know what
+# password database type you are using.  
+   passdb backend = tdbsam
+
+   obey pam restrictions = yes
+
+# This boolean parameter controls whether Samba attempts to sync the Unix
+# password with the SMB password when the encrypted SMB password in the
+# passdb is changed.
+   unix password sync = yes
+
+# For Unix password sync to work on a Debian GNU/Linux system, the following
+# parameters must be set (thanks to Ian Kahan <<kahan@informatik.tu-muenchen.de> for
+# sending the correct chat script for the passwd program in Debian Sarge).
+   passwd program = /usr/bin/passwd %u
+   passwd chat = *Enter\snew\s*\spassword:* %n\n *Retype\snew\s*\spassword:* %n\n *password\supdated\ssuccessfully* .
+
+# This boolean controls whether PAM will be used for password changes
+# when requested by an SMB client instead of the program listed in
+# 'passwd program'. The default is 'no'.
+   pam password change = yes
+
+# This option controls how unsuccessful authentication attempts are mapped 
+# to anonymous connections
+   map to guest = bad user
+
+{% for name, path in media_dirs.iteritems() %}
+[{{ name }}]
+   path = {{ path }}
+   comment = {{ name }} on %h
+   browseable = yes
+   guest ok = yes
+   writeable = yes
+   browseable = yes
+   create mode = 0664
+   directory mode = 0775
+   force user = {{ vdr.user }}
+   force group = {{ vdr.group }}
+   follow symlinks = yes
+   wide links = yes
+
+{% endfor %}
+
+include = /etc/samba/smb.conf.custom
+#+END_SRC
+** grub-config
+*** default variables
+#+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes
+system:
+    shutdown: poweroff
+    grub:
+        timeout: 0
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/grub-config/tasks/main.yml :mkdirp yes
+- name: custom grub configuration for timeout and reboot halt
+  template:
+    src: templates/50_custom.j2
+    dest: /etc/grub.d/50_custom
+    mode: '0775'
+  notify: [ 'Update GRUB' ]
+
+# TODO: add special case if plymouth is used
+- name: let the system boot quietly
+  lineinfile:
+      dest: /etc/default/grub
+      state: present
+      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
+      line: '\1{{ system.grub.boot_options}}"'
+      backrefs: yes
+  notify: [ 'Update GRUB' ]
+#+END_SRC
 *** templates 
-*** files
+#+BEGIN_SRC sh :tangle roles/grub-config/templates/50-custom.j2 :mkdirp yes
+#!/bin/sh
+exec tail -n +3 $0
+
+# This file is configured by the ansible configuration for yaVDR
+
+{% if system.shutdown is defined and system.shutdown == 'reboot' %}
+menuentry "PowerOff" {
+    halt
+}
+{% endif %}
+
+if [ "${recordfail}" = 1 ]; then
+    set timeout={{ 3 if system.grub.timeout < 3 else system.grub.timeout }}
+else
+    set timeout={{ system.grub.timeout if system.grub.timeout is defined else 0 }}
+fi
+#+END_SRC
+*** handlers
+#+BEGIN_SRC yaml :tangle roles/grub-config/handlers/main.yml :mkdirp yes
+- name: Update GRUB
+  command: update-grub
+  failed_when: ('error' in grub_register_update.stderr)
+  register: grub_register_update
+
+  # TODO: Do we need to use grub-set-default?
+  # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
+#+END_SRC
+* Handlers
+#+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
+- name: Restart Samba
+  systemd:
+    name: smbd.service
+    state: restarted
+    enabled: yes
+    #masked: no
+  register: samba_reload
+
+#+END_SRC
