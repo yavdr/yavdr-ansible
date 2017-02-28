@@ -1,4 +1,5 @@
 # -*- mode: org; -*-
+:DOCUMENT_OPTIONS:
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
 
@@ -7,6 +8,7 @@
 #+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
 #+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
 #+OPTIONS: ^:nil
+:END:
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
@@ -348,7 +350,7 @@ APT::Install-Suggests "0";
     - /srv/backups
 #+END_SRC
 
-** yavdr-network
+** STARTED yavdr-network
 *** default variables
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/main.yml :mkdirp yes
@@ -386,7 +388,7 @@ install_samba_server: true
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
   
 #+END_SRC
-** nfs-server
+** STARTED nfs-server
 *** tasks
 #+BEGIN_SRC yaml :tanlge roles/nfs-server/tasks/main.yml :mkdirp yes
 - name: install and configure nfs-kernel-server
@@ -399,10 +401,34 @@ install_samba_server: true
   when:
       - '{{ install_nfs_server }}'
 #+END_SRC
-** yavdr-remote
+** TODO yavdr-remote
 *** default variables
 *** tasks
 *** templates
+*** files
+** TODO automatic X-server configuration
+- [ ] detect connected display
+- [ ] read EDID from displays
+- [ ] create a xorg.conf for nvidia/intel/amd gpus
+*** templates
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
+# file: roles/yavdr-xorg/templates/vdr-xorg.conf
+# {{ ansible_managed_file }}
+
+[Unit]
+After=x@vt7.service
+Wants=x@vt7.service
+BindsTo=x@vt7.service
+#+END_SRC
+#+BEGIN_SRC sh :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
+#!/bin/bash
+# {{ ansible_managed_file }}
+exec openbox-session
+#+END_SRC
+#+BEGIN_SRC sh tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
+systemctl --user import-environment
+#+END_SRC
 *** files
 ** yavdr-xorg
 *** default variables
@@ -424,7 +450,6 @@ install_samba_server: true
     #- yavdr-xorg
     - openbox
 
-# TODO: move to yavdr-xorg package?
 - name: create folders for user session
   file:
     state: directory
@@ -449,7 +474,7 @@ install_samba_server: true
     dest: /etc/systemd/system/vdr.service.d/
 ### END TODO ###
 
-- name: set up .xinitrc for vdr user
+- name: create .xinitrc for vdr user
   template:
       src: 'templates/.xinitrc.j2'
       dest: '/var/lib/vdr/.xinitrc'
@@ -457,7 +482,7 @@ install_samba_server: true
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
-- name: set up autostart for openbox
+- name: populate autostart for openbox
   template:
       src: 'templates/autostart.j2'
       dest: '/var/lib/vdr/.config/openbox/autostart'
@@ -474,33 +499,13 @@ install_samba_server: true
       groups: '{{ vdr.group }}'
       append: yes
 
-- name: enable and start xlogin for vdr user
+- name: enable and start xlogin for the vdr user
   systemd:
     daemon_reload: yes
     name: 'xlogin@{{ vdr.user }}'
     enabled: yes
     state: started
 #+END_SRC
-*** templates
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
-# file: roles/yavdr-xorg/templates/vdr-xorg.conf
-# {{ ansible_managed_file }}
-
-[Unit]
-After=x@vt7.service
-Wants=x@vt7.service
-BindsTo=x@vt7.service
-#+END_SRC
-#+BEGIN_SRC sh :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
-#!/bin/bash
-# {{ ansible_managed_file }}
-exec openbox-session
-#+END_SRC
-#+BEGIN_SRC sh tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
-env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
-systemctl --user import-environment
-#+END_SRC
-*** files
 ** samba-install
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/samba-install/tasks/main.yml :mkdirp yes
@@ -689,6 +694,15 @@ fi
   # TODO: Do we need to use grub-set-default?
   # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
 #+END_SRC
+** TODO autoinstall-drivers
+*** sundtek
+*** 
+** TODO autoinstall-plugins
+*** imonlcd
+*** targavfd
+*** sddevice
+*** hddevice
+*** pvr350
 * Handlers
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
 - name: Restart Samba
