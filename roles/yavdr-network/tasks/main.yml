@@ -15,50 +15,8 @@
       - vdr-addon-avahi-linker
       - wakeonlan
 
-- name: install and configure nfs-kernel-server
-  apt:
-      name: "{{ item }}"
-      state: present
-      install_recommends: no
-  with_items:
-      - nfs-kernel-server
-  when:
-      - install_nfs_server
-
-#- name: install and configure mariadb-server
-#  apt:
-#      name: "{{ item }}"
-#      state: present
-#      install_recommends: no
-#  with_items:
-#      - mariadb-server
-#      - mariadb-client
-#      - python-mysqldb
-#  when:
-#      - install_mariadb
-#
-#- name: create a new database with name epg2vdr
-#  mysql_db:
-#      name: epg2vdr
-#      state: present
-#      encoding: utf-8
-#  when:
-#      - install_mariadb
-#
-#  mysql_user:
-#      name: epg2vdr
-#      password: epg
-#      priv: 'epg2vdr.*:ALL,GRANT'
-#      host_all: yes
-#      state: present
-#  when:
-#      - install_mariadb
-#
-#- name: Install and configure vdr-epg-daemon
-#  apt:
-#    name: "{{ item }}"
-#    state: present
-#    with_items:
-#      - vdr-epg-daemon
-#  when:
-#      - install_epgd
+# Does this really work? We need a way to check if an interface supports WOL - Python Skript?
+# - name: check WOL capabilities of network interfaces
+#   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
+#   register: wol
+#   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'

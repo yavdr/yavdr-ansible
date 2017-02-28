@@ -1,0 +1,61 @@
+---
+# file: roles/vdr/tasks/main.yml
+
+- name: apt | install basic vdr packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - vdr
+    - vdrctl
+    - vdr-plugin-dbus2vdr
+
+- name: create vdr recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0775
+    dest: '{{ vdr.recdir }}'
+
+- name: set option to use hide-first-recording-level patch
+  blockinfile:
+    dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+    create: true
+    block: |
+      [vdr]
+      --hide-first-recording-level
+  when:
+    vdr.hide_first_recording_level
+
+- name: create local dir in recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0775'
+    dest: '{{ vdr.recdir }}/local'
+  when:
+    vdr.hide_first_recording_level
+
+- name: install additional vdr plugins
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    '{{ vdr_plugins }}'
+
+- name: create directories for media files
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0777
+    dest: '{{ item }}'
+  with_items:
+    - /srv/videos
+    - /srv/music
+    - /srv/picture
+    - /srv/backups

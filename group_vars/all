@@ -1,0 +1,59 @@
+# file: group_vars/all
+
+# this is the standard text to put in templates
+ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
+
+branch: unstable
+ppa_owner: 'ppa:yavdr'
+# a list of all package repositories to be added to the installation
+repositories:
+  - '{{ ppa_owner }}/main'
+  - '{{ ppa_owner }}/unstable-main'
+  - '{{ ppa_owner }}/{{branch}}-vdr'
+  - '{{ ppa_owner }}/{{branch}}-yavdr'
+  - '{{ ppa_owner }}/{{branch}}-kodi'
+
+drivers:
+  sundtek: auto
+  ddvb-dkms: auto
+
+# dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
+media_dirs:
+  audio: /srv/audio
+  video: /srv/audio
+  pictures: /srv/audio
+  files: /srv/files
+
+# properties of the user vdr and vdr-related options
+vdr:
+  user: vdr
+  group: vdr
+  uid: 666
+  gid: 666
+  home: /var/lib/vdr
+  recdir: /srv/vdr/video
+  hide_first_recording_level: false
+  safe_dirnames: true
+  override_vdr_charset: false
+
+# add the vdr plugins you want to install
+vdr_plugins:
+  - vdr-plugin-devstatus
+  - vdr-plugin-markad
+  - vdr-plugin-restfulapi
+  - vdr-plugin-softhddevice
+
+samba:
+  workgroup: YAVDR
+
+# additional packages you want to install
+extra_packages:
+  - vim
+  - tree
+  - w-scan
+
+system:
+    shutdown: poweroff
+    grub:
+        timeout: 0
+        boot_options: quiet nosplash

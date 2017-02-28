@@ -1,9 +1,18 @@
 ---
- # this playbook set up an yaVDR 0.7 installation
- - name: basic setup for PPAs, packages etc.
-   hosts: yavdr-full
-   become: true
-   roles:
-       - yavdr-common
-       - yavdr-network
-       - grub
+# file: yavdr07-headless.yml
+# this playbook set up a headless yaVDR 0.7 installation
+
+- name: set up a headless yaVDR server
+  hosts: all
+  become: true
+  roles:
+    - yavdr-common
+    - vdr
+    - yavdr-network
+    - samba-server
+    - samba-config
+    - nfs-server
+    - nfs-config
+    - grub-config
+  handlers:
+    - include: handlers/main.yml
