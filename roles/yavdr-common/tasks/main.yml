@@ -38,3 +38,24 @@
     - wpasupplicant
     - usbutils
     - xfsprogs
+
+- name: install and execute local fact scripts
+  - include:
+      - tasks/local_facts.yml
+
+---
+# file: local_facts.yml
+
+- name: create directory for local facts
+  file:
+    dest: /etc/ansible/facts.d
+    state: directory
+
+- name: copy facts script for USB- and PCI(e)-IDs
+  copy:
+    src: files/hardware.facts.py
+    dest: /etc/ansible/facts.d/hardware.facts
+    mode: '0775'
+
+- name: reload ansible local facts
+  setup: filter=ansible_local
