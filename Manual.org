@@ -196,56 +196,82 @@ vdr:
 #+END_SRC
 *** tasks
 yavdr-common executes the following tasks:
+**** main.yml
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+ ---
+ # This playbook sets up the basic packages an directories for a yaVDR installation
+ # file: roles/yavdr-common/tasks/main.yml
+ #+END_SRC
+***** Disable default installation of recommended packages
+
+ This configuration file prevents apt to automatically install all recommended dependencies when installing packages:
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+ - name: apt | prevent automatic installation of recommended packages
+   template:
+       src: templates/90-norecommends.j2
+       dest: /etc/apt/apt.conf.d/90norecommends
+
+ #+END_SRC
+***** Setting up the package repositories
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+ - name: add yaVDR PPAs
+   apt_repository:
+       repo: '{{ item }}'
+       state: present
+       update_cache: yes
+   with_items: '{{ repositories }}'
+
+ - name: upgrade existing packages
+   apt:
+       upgrade: dist
+       update_cache: yes
+ #+END_SRC
+***** Installing essential packages
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+ - name: apt | install basic packages
+   apt:
+     name: '{{ item }}'
+     state: present
+     install_recommends: no
+   with_items:
+     - anacron
+     - at
+     - bash-completion
+     - biosdevname
+     - linux-firmware
+     - psmisc
+     - software-properties-common
+     - ssh
+     - ubuntu-drivers-common
+     - wget
+     - wpasupplicant
+     - usbutils
+     - xfsprogs
+ #+END_SRC
+***** install and execute local fact scripts 
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+  - name: install and execute local fact scripts
+    - include:
+        - tasks/local_facts.yml
+#+END_SRC
+**** local_facts.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
----
-# This playbook sets up the basic packages an directories for a yaVDR installation
-# file: roles/yavdr-common/tasks/main.yml
-#+END_SRC
-**** Disable default installation of recommended packages
+  ---
+  # file: local_facts.yml
 
-This configuration file prevents apt to automatically install all recommended dependencies when installing packages:
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: apt | prevent automatic installation of recommended packages
-  template:
-      src: templates/90-norecommends.j2
-      dest: /etc/apt/apt.conf.d/90norecommends
+  - name: create directory for local facts
+    file:
+      dest: /etc/ansible/facts.d
+      state: directory
 
-#+END_SRC
-**** Setting up the package repositories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: add yaVDR PPAs
-  apt_repository:
-      repo: '{{ item }}'
-      state: present
-      update_cache: yes
-  with_items: '{{ repositories }}'
+  - name: copy facts script for USB- and PCI(e)-IDs
+    copy:
+      src: files/hardware.facts.py
+      dest: /etc/ansible/facts.d/hardware.facts
+      mode: '0775'
 
-- name: upgrade existing packages
-  apt:
-      upgrade: dist
-      update_cache: yes
-#+END_SRC
-**** Installing essential packages
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: apt | install basic packages
-  apt:
-    name: '{{ item }}'
-    state: present
-    install_recommends: no
-  with_items:
-    - anacron
-    - at
-    - bash-completion
-    - biosdevname
-    - linux-firmware
-    - psmisc
-    - software-properties-common
-    - ssh
-    - ubuntu-drivers-common
-    - wget
-    - wpasupplicant
-    - usbutils
-    - xfsprogs
+  - name: reload ansible local facts
+    setup: filter=ansible_local
 #+END_SRC
 *** templates
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
