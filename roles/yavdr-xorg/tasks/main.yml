@@ -14,7 +14,6 @@
     #- yavdr-xorg
     - openbox
 
-# TODO: move to yavdr-xorg package?
 - name: create folders for user session
   file:
     state: directory
@@ -39,7 +38,7 @@
     dest: /etc/systemd/system/vdr.service.d/
 ### END TODO ###
 
-- name: set up .xinitrc for vdr user
+- name: create .xinitrc for vdr user
   template:
       src: 'templates/.xinitrc.j2'
       dest: '/var/lib/vdr/.xinitrc'
@@ -47,7 +46,7 @@
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
-- name: set up autostart for openbox
+- name: populate autostart for openbox
   template:
       src: 'templates/autostart.j2'
       dest: '/var/lib/vdr/.config/openbox/autostart'
@@ -64,7 +63,7 @@
       groups: '{{ vdr.group }}'
       append: yes
 
-- name: enable and start xlogin for vdr user
+- name: enable and start xlogin for the vdr user
   systemd:
     daemon_reload: yes
     name: 'xlogin@{{ vdr.user }}'

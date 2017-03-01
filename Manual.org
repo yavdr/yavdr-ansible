@@ -16,7 +16,7 @@ This Manual is written in org-mode for Emacs and can rewrite the complete ansibl
 
 * Playbooks
 ** yavdr07.yml
-To set up a fully-featured yaVDR installation you can use the ~yavdr07.yml~ Playbook:
+The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
 #+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes
 ---
 # file: yavdr07.yml
@@ -66,10 +66,10 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
-#+BEGIN_SRC conf :tangle hosts :mkdirp yes
+#+BEGIN_SRC conf :tangle localhost_inventory :mkdirp yes
 [yavdr-full]
-#localhost connection=local
-192.168.1.116
+localhost connection=local
+#192.168.1.116
 
 [yavdr-headless]
 
@@ -142,14 +142,15 @@ system:
 ** yavdr-common
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
 *** default variables
-Several variables can be set to customize the configuration.
+This section is for reference only, please use the files in ~global_vars~ for customizations.
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
+---
+# file: roles/yavdr-common/defaults/main.yml
+#+END_SRC
 
 **** Repositories
 You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
----
-# file: roles/yavdr-common/defaults/main.yml
-
 branch: unstable
 repositories:
   - 'ppa:yavdr/main'
@@ -206,7 +207,7 @@ yavdr-common executes the following tasks:
  #+END_SRC
 ***** Disable default installation of recommended packages
 
- This configuration file prevents apt to automatically install all recommended dependencies when installing packages:
+ This task prevents apt to automatically install all recommended dependencies for packages:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
  - name: apt | prevent automatic installation of recommended packages
    template:
@@ -272,8 +273,91 @@ yavdr-common executes the following tasks:
       dest: /etc/ansible/facts.d/hardware.facts
       mode: '0775'
 
+  - name: copy facts script for Sat>IP server detection
+    copy:
+      src: files/satip.facts.py
+      dest: /etc/ansible/facts.d/satip.facts
+      mode: '0775'
+
   - name: reload ansible local facts
     setup: filter=ansible_local
+#+END_SRC
+*** files:
+#+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.facts.py :mkdirp yes
+#!/usr/bin/env python3
+# This script returns a list of Vendor- and Product-IDs for all connected usb
+# and pci(e) devices in json format
+import glob
+import json
+import os
+import sys
+import usb.core
+from collections import namedtuple
+
+
+Device = namedtuple("Device", ['idVendor', 'idProduct'])
+
+def get_pci_devices():
+    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
+        with open(os.path.join(device, 'device')) as d:
+            product_id = int(d.read().strip(), 16)
+        with open(os.path.join(device, 'vendor')) as d:
+            vendor_id = int(d.read().strip(), 16)
+        yield Device(idVendor=vendor_id, idProduct=product_id)
+
+def format_device_list(iterator):
+    return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
+
+
+if __name__ == '__main__':
+    usb_devices = format_device_list(usb.core.find(find_all=True))
+    pci_devices = format_device_list(get_pci_devices())
+    print(json.dumps({'usb': usb_devices, 'pci': pci_devices}))
+#+END_SRC
+#+BEGIN_SRC  python :tangle roles/yavdr-common/files/satip.facts.py :mkdirp yes
+  #!/usr/bin/env python3
+  # This script sends a multicast message and awaits responses by Sat>IP servers.
+  # returns the boolean variable 'satip_detected' as json
+  import json
+  import socket
+  import sys
+  import time
+
+  SSDP_ADDR = "239.255.255.250"
+  SSDP_PORT = 1900
+  # SSDP_MX = max delay for server response
+  # a value of 2s is recommended by the SAT>IP specification 1.2.2
+  SSDP_MX = 2
+  SSDP_ST = "urn:ses-com:device:SatIPServer:1"
+
+  ssdpRequest = "\r\n".join((
+      "M-SEARCH * HTTP/1.1",
+      "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
+      "MAN: \"ssdp:discover\"",
+      "MX: %d" % (SSDP_MX),
+      "ST: %s" % (SSDP_ST),
+      "\r\n"))
+
+  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  # according to Sat>IP Specification 1.2.2, p. 20
+  # a client should send three requests within 100 ms with a ttl of 2
+  sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+  sock.settimeout(SSDP_MX + 0.5)
+  for _ in range(3):
+      sock.sendto(ssdpRequest.encode('ascii'), (SSDP_ADDR, SSDP_PORT))
+      time.sleep(0.03)
+  try:
+      response = sock.recv(1000).decode()
+      if response and "SERVER:" in response:
+          got_response = True
+      else:
+          raise ValueError('No satip server detected')
+  except (socket.timeout, ValueError):
+      got_response = False
+  finally:
+      print(json.dumps(
+          {'satip_detected': got_response}
+      ))
 #+END_SRC
 *** templates
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
