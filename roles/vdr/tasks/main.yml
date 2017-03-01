@@ -11,6 +11,18 @@
     - vdrctl
     - vdr-plugin-dbus2vdr
 
+- name: add svdrp to /etc/services
+  lineinfile:
+    dest: /etc/services
+    state: present
+    line: "svdrp        6419/tcp"
+
+- name: add svdrp-disc to /etc/services
+  lineinfile:
+    dest: /etc/services
+    state: present
+    line: "svdrp-disc       6419/udp"
+
 - name: create vdr recdir
   file:
     state: directory
@@ -45,7 +57,7 @@
     state: present
     install_recommends: no
   with_items:
-    '{{ vdr_plugins }}'
+    '{{ vdr_plugins | default({}) }}'
 
 - name: create directories for media files
   file:
