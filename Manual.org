@@ -236,6 +236,24 @@ yavdr-common executes the following tasks:
     dest: /etc/apt/apt.conf.d/90norecommends
 
  #+END_SRC
+***** Use bash instead of dash
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+- name: use bash instead of dash
+  shell: |
+    echo "set dash/sh false" | debconf-communicate
+    dpkg-reconfigure -f noninteractive dash
+#+END_SRC
+
+***** Disable release-upgrade notifications
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+- name: disable release-upgrade notifications
+  lineinfile:
+    dest: /etc/update-manager/release-upgrades
+    backrefs: yes
+    state: present
+    regexp: '^(Prompt=).*$'
+    line: '\1never'
+#+END_SRC
 ***** Setting up the package repositories
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: add yaVDR PPAs
@@ -781,9 +799,10 @@ include = /etc/samba/smb.conf.custom
 *** default variables
 #+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes
 system:
-    shutdown: poweroff
-    grub:
-        timeout: 0
+  shutdown: poweroff
+  grub:
+    timeout: 0
+    boot_options: quiet nosplash
 #+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/grub-config/tasks/main.yml :mkdirp yes

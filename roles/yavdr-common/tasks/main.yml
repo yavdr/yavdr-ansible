@@ -8,6 +8,19 @@
     src: templates/90-norecommends.j2
     dest: /etc/apt/apt.conf.d/90norecommends
 
+- name: use bash instead of dash
+  shell: |
+    echo "set dash/sh false" | debconf-communicate
+    dpkg-reconfigure -f noninteractive dash
+
+- name: disable release-upgrade notifications
+  lineinfile:
+    dest: /etc/update-manager/release-upgrades
+    backrefs: yes
+    state: present
+    regexp: '^(Prompt=).*$'
+    line: '\1never'
+
 - name: add yaVDR PPAs
   apt_repository:
       repo: '{{ item }}'
