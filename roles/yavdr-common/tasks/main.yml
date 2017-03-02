@@ -32,6 +32,7 @@
     - biosdevname
     - linux-firmware
     - psmisc
+    - python-kmodpy
     - python3-usb
     - software-properties-common
     - ssh
@@ -48,13 +49,19 @@
 
 - name: copy facts script for USB- and PCI(e)-IDs
   copy:
-    src: files/hardware.facts.py
+    src: files/hardware.fact.py
     dest: /etc/ansible/facts.d/hardware.fact
+    mode: '0775'
+
+- name: copy facts script for loaded modules
+  copy:
+    src: files/modules.fact.py
+    dest: /etc/ansible/facts.d/modules.fact
     mode: '0775'
 
 - name: copy facts script for Sat>IP server detection
   copy:
-    src: files/satip.facts.py
+    src: files/satip.fact.py
     dest: /etc/ansible/facts.d/satip.fact
     mode: '0775'
 

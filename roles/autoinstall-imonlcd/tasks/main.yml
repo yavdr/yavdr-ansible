@@ -1,0 +1,9 @@
+---
+# file roles/autoinstall-imonlcd/tasks/main.yml
+
+- name: apt | install vdr-plugin-imonlcd if connected
+  apt:
+    name: vdr-plugin-imonlcd
+  when: 
+    - '"15c2:0038" in ansible_local.hardware.usb'
+    - '"15c2:ffdc" in ansible_local.hardware.usb'

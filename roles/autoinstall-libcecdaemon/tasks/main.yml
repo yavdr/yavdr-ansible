@@ -1,0 +1,8 @@
+---
+# file roles/autoinstall-libcec-daemon/tasks/main.yml
+
+- name: apt | install libcec-daemon if connected
+  apt:
+    name: libcec-daemon
+  when: 
+    - '"2548:1002" in ansible_local.hardware.usb'

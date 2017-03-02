@@ -1,0 +1,9 @@
+---
+# file roles/autoinstall-dvbhddevice/tasks/main.yml
+
+- name: apt | install vdr-plugin-dvbhddevice if connected
+  apt:
+    name: vdr-plugin-dvbhddevice
+  when: 
+    - '"13c2:300a" in ansible_local.hardware.pci'
+    - '"13c2:300b" in ansible_local.hardware.pci'

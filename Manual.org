@@ -38,7 +38,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - yavdr-remote   # remote configuration files, services and scripts
      - grub-config    # configure grub
      - autoinstall-satip # install vdr-plugin-satip if a Sat>IP server has been found
-
+     - autoinstall-targavfd
+     - autoinstall-imonlcd
 
   handlers:
     - include: handlers/main.yml
@@ -147,6 +148,7 @@ extra_packages:
   - vim
   - tree
   - w-scan
+  - bpython3
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -262,6 +264,7 @@ yavdr-common executes the following tasks:
     - biosdevname
     - linux-firmware
     - psmisc
+    - python-kmodpy
     - python3-usb
     - software-properties-common
     - ssh
@@ -272,7 +275,7 @@ yavdr-common executes the following tasks:
     - xfsprogs
 
  #+END_SRC
-***** install and execute local fact scripts 
+***** Install and execute local fact scripts 
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: create directory for local facts
   file:
@@ -281,13 +284,19 @@ yavdr-common executes the following tasks:
 
 - name: copy facts script for USB- and PCI(e)-IDs
   copy:
-    src: files/hardware.facts.py
+    src: files/hardware.fact.py
     dest: /etc/ansible/facts.d/hardware.fact
+    mode: '0775'
+
+- name: copy facts script for loaded modules
+  copy:
+    src: files/modules.fact.py
+    dest: /etc/ansible/facts.d/modules.fact
     mode: '0775'
 
 - name: copy facts script for Sat>IP server detection
   copy:
-    src: files/satip.facts.py
+    src: files/satip.fact.py
     dest: /etc/ansible/facts.d/satip.fact
     mode: '0775'
 
@@ -296,6 +305,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 *** files:
+**** hardware facts
 #+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
 # This script returns a list of Vendor- and Product-IDs for all connected usb
 # and pci(e) devices in json format
@@ -326,6 +336,20 @@ if __name__ == '__main__':
     pci_devices = format_device_list(get_pci_devices())
     print(json.dumps({'usb': usb_devices, 'pci': pci_devices}))
 #+END_SRC
+**** module facts
+#+BEGIN_SRC python :tangle roles/yavdr-common/files/modules.fact.py :mkdirp yes :shebang #!/usr/bin/env python2
+# This script returns a list of currently loaded kernel modules
+from __future__ import print_function
+import json
+import kmodpy
+
+k = kmodpy.Kmod()
+
+print(json.dumps([module[0] for module in k.loaded()]))
+
+
+#+END_SRC
+**** satip facts
 #+BEGIN_SRC  python :tangle roles/yavdr-common/files/satip.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
 # This script sends a multicast message and awaits responses by Sat>IP servers.
 # returns the boolean variable 'satip_detected' as json
@@ -820,17 +844,93 @@ fi
 
 - name: Display all variables/facts known for a host
   debug:
-    var: '{{ ansible_local }}'
+    var: ansible_local
     verbosity: 1
 
-- name: apt install vdr-plugin-satip if a Sat>IP server has been detected
+- name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
   when: ansible_local.satip.satip_detected
 #+END_SRC
+
+** autoinstall-targavfd
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-targavfd/tasks/main.yml
+---
+# file roles/autoinstall-targavfd/tasks/main.yml
+
+- name: apt | install vdr-plugin-targavfd if connected
+  apt:
+    name: vdr-plugin-targavfd
+  when: 
+    - '"19c2:6a11" in ansible_local.hardware.usb'
+#+END_SRC
+** autoinstall-imonlcd
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-imonlcd/tasks/main.yml
+---
+# file roles/autoinstall-imonlcd/tasks/main.yml
+
+- name: apt | install vdr-plugin-imonlcd if connected
+  apt:
+    name: vdr-plugin-imonlcd
+  when: 
+    - '"15c2:0038" in ansible_local.hardware.usb'
+    - '"15c2:ffdc" in ansible_local.hardware.usb'
+#+END_SRC
+** autoinstall-libcecdaemon
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-libcecdaemon/tasks/main.yml
+---
+# file roles/autoinstall-libcec-daemon/tasks/main.yml
+
+- name: apt | install libcec-daemon if connected
+  apt:
+    name: libcec-daemon
+  when: 
+    - '"2548:1002" in ansible_local.hardware.usb'
+#+END_SRC
+** autoinstall-pvr350
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-pvr350/tasks/main.yml
+---
+# file roles/autoinstall-pvr350/tasks/main.yml
+
+- name: apt | install vdr-plugin-pvr350 if connected
+  apt:
+    name: vdr-plugin-pvr350
+  when: 
+    - '19c2:6a11" in ansible_local.hardware.pci'
+#+END_SRC
+
+** TODO autoinstall-dvbhddevice
+Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/tasks/main.yml
+---
+# file roles/autoinstall-dvbhddevice/tasks/main.yml
+
+- name: apt | install vdr-plugin-dvbhddevice if connected
+  apt:
+    name: vdr-plugin-dvbhddevice
+  when: 
+    - '"13c2:300a" in ansible_local.hardware.pci'
+    - '"13c2:300b" in ansible_local.hardware.pci'
+#+END_SRC
+
+** autoinstall-dvbsddevice
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/tasks/main.yml
+---
+# file roles/autoinstall-dvbsddevice/tasks/main.yml
+
+- name: apt | install vdr-plugin-dvbsddevice if module is loaded
+  apt:
+    name: vdr-plugin-dvbsddevice
+  when: 
+    - '19c2:6a11" in ansible_local.modules'
+#+END_SRC
 ** TODO autoinstall-plugins
-*** imonlcd
-*** targavfd
 *** sddevice
 *** hddevice
 *** pvr350
