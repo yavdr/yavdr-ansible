@@ -218,87 +218,81 @@ vdr:
 yavdr-common executes the following tasks:
 **** main.yml
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
- ---
- # This playbook sets up the basic packages an directories for a yaVDR installation
- # file: roles/yavdr-common/tasks/main.yml
+---
+
+# This playbook sets up the basic packages an directories for a yaVDR installation
+# file: roles/yavdr-common/tasks/main.yml
  #+END_SRC
 ***** Disable default installation of recommended packages
 
  This task prevents apt to automatically install all recommended dependencies for packages:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
- - name: apt | prevent automatic installation of recommended packages
-   template:
-       src: templates/90-norecommends.j2
-       dest: /etc/apt/apt.conf.d/90norecommends
+- name: apt | prevent automatic installation of recommended packages
+  template:
+    src: templates/90-norecommends.j2
+    dest: /etc/apt/apt.conf.d/90norecommends
 
  #+END_SRC
 ***** Setting up the package repositories
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
- - name: add yaVDR PPAs
-   apt_repository:
-       repo: '{{ item }}'
-       state: present
-       update_cache: yes
-   with_items: '{{ repositories }}'
+- name: add yaVDR PPAs
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: yes
+  with_items: '{{ repositories }}'
 
- - name: upgrade existing packages
-   apt:
-       upgrade: dist
-       update_cache: yes
+- name: upgrade existing packages
+  apt:
+      upgrade: dist
+      update_cache: yes
  #+END_SRC
 ***** Installing essential packages
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
- - name: apt | install basic packages
-   apt:
-     name: '{{ item }}'
-     state: present
-     install_recommends: no
-   with_items:
-     - anacron
-     - at
-     - bash-completion
-     - biosdevname
-     - linux-firmware
-     - psmisc
-     - software-properties-common
-     - ssh
-     - ubuntu-drivers-common
-     - wget
-     - wpasupplicant
-     - usbutils
-     - xfsprogs
+- name: apt | install basic packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - anacron
+    - at
+    - bash-completion
+    - biosdevname
+    - linux-firmware
+    - psmisc
+    - software-properties-common
+    - ssh
+    - ubuntu-drivers-common
+    - wget
+    - wpasupplicant
+    - usbutils
+    - xfsprogs
+
  #+END_SRC
 ***** install and execute local fact scripts 
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-  - name: install and execute local fact scripts
-    - include:
-        - tasks/local_facts.yml
+- name: create directory for local facts
+  file:
+    dest: /etc/ansible/facts.d
+    state: directory
+
+- name: copy facts script for USB- and PCI(e)-IDs
+  copy:
+    src: files/hardware.facts.py
+    dest: /etc/ansible/facts.d/hardware.facts
+    mode: '0775'
+
+- name: copy facts script for Sat>IP server detection
+  copy:
+    src: files/satip.facts.py
+    dest: /etc/ansible/facts.d/satip.facts
+    mode: '0775'
+
+- name: reload ansible local facts
+  setup: filter=ansible_local
 #+END_SRC
-**** local_facts.yml
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
-  ---
-  # file: local_facts.yml
 
-  - name: create directory for local facts
-    file:
-      dest: /etc/ansible/facts.d
-      state: directory
-
-  - name: copy facts script for USB- and PCI(e)-IDs
-    copy:
-      src: files/hardware.facts.py
-      dest: /etc/ansible/facts.d/hardware.facts
-      mode: '0775'
-
-  - name: copy facts script for Sat>IP server detection
-    copy:
-      src: files/satip.facts.py
-      dest: /etc/ansible/facts.d/satip.facts
-      mode: '0775'
-
-  - name: reload ansible local facts
-    setup: filter=ansible_local
-#+END_SRC
 *** files:
 #+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.facts.py :mkdirp yes
 #!/usr/bin/env python3
@@ -387,73 +381,73 @@ APT::Install-Suggests "0";
 *** tasks
 **** install the basic vdr packages
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-  ---
-  # file: roles/vdr/tasks/main.yml
+---
+# file: roles/vdr/tasks/main.yml
 
-  - name: apt | install basic vdr packages
-    apt:
-      name: '{{ item }}'
-      state: present
-      install_recommends: no
-    with_items:
-      - vdr
-      - vdrctl
-      - vdr-plugin-dbus2vdr
+- name: apt | install basic vdr packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - vdr
+    - vdrctl
+    - vdr-plugin-dbus2vdr
 #+END_SRC
 **** Add svdrp/svdrp-disc to /etc/services
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-  - name: add svdrp to /etc/services
-    lineinfile:
-      dest: /etc/services
-      state: present
-      line: "svdrp        6419/tcp"
+- name: add svdrp to /etc/services
+  lineinfile:
+    dest: /etc/services
+    state: present
+    line: "svdrp        6419/tcp"
 
-  - name: add svdrp-disc to /etc/services
-    lineinfile:
-      dest: /etc/services
-      state: present
-      line: "svdrp-disc       6419/udp"
+- name: add svdrp-disc to /etc/services
+  lineinfile:
+    dest: /etc/services
+    state: present
+    line: "svdrp-disc       6419/udp"
 #+END_SRC
 **** Set up the recording directory for the vdr user
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-  - name: create vdr recdir
-    file:
-      state: directory
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-      mode: 0775
-      dest: '{{ vdr.recdir }}'
+- name: create vdr recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0775
+    dest: '{{ vdr.recdir }}'
 
-  - name: set option to use hide-first-recording-level patch
-    blockinfile:
-      dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
-      create: true
-      block: |
-        [vdr]
-        --hide-first-recording-level
-    when:
-      vdr.hide_first_recording_level
+- name: set option to use hide-first-recording-level patch
+  blockinfile:
+    dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+    create: true
+    block: |
+      [vdr]
+      --hide-first-recording-level
+  when:
+    vdr.hide_first_recording_level
 
-  - name: create local dir in recdir
-    file:
-      state: directory
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-      mode: '0775'
-      dest: '{{ vdr.recdir }}/local'
-    when:
-      vdr.hide_first_recording_level
+- name: create local dir in recdir
+  file:
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0775'
+    dest: '{{ vdr.recdir }}/local'
+  when:
+    vdr.hide_first_recording_level
 #+END_SRC
 **** Install additional vdr plugins
 The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ in the group variables
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-  - name: install additional vdr plugins
-    apt:
-      name: '{{ item }}'
-      state: present
-      install_recommends: no
-    with_items:
-      '{{ vdr_plugins | default({}) }}'
+- name: install additional vdr plugins
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    '{{ vdr_plugins | default({}) }}'
 #+END_SRC
 *** Set up the directories for files in /srv
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
@@ -541,12 +535,12 @@ After=x@vt7.service
 Wants=x@vt7.service
 BindsTo=x@vt7.service
 #+END_SRC
-#+BEGIN_SRC sh :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
 #!/bin/bash
 # {{ ansible_managed_file }}
 exec openbox-session
 #+END_SRC
-#+BEGIN_SRC sh tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+#+BEGIN_SRC shell tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment
 #+END_SRC
@@ -787,7 +781,7 @@ system:
   notify: [ 'Update GRUB' ]
 #+END_SRC
 *** templates 
-#+BEGIN_SRC sh :tangle roles/grub-config/templates/50-custom.j2 :mkdirp yes
+#+BEGIN_SRC shell :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes
 #!/bin/sh
 exec tail -n +3 $0
 
