@@ -37,6 +37,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - yavdr-xorg     # graphical session
      - yavdr-remote   # remote configuration files, services and scripts
      - grub-config    # configure grub
+     - autoinstall-satip # install vdr-plugin-satip if a Sat>IP server has been found
 
 
   handlers:
@@ -261,6 +262,7 @@ yavdr-common executes the following tasks:
     - biosdevname
     - linux-firmware
     - psmisc
+    - python3-usb
     - software-properties-common
     - ssh
     - ubuntu-drivers-common
@@ -280,13 +282,13 @@ yavdr-common executes the following tasks:
 - name: copy facts script for USB- and PCI(e)-IDs
   copy:
     src: files/hardware.facts.py
-    dest: /etc/ansible/facts.d/hardware.facts
+    dest: /etc/ansible/facts.d/hardware.fact
     mode: '0775'
 
 - name: copy facts script for Sat>IP server detection
   copy:
     src: files/satip.facts.py
-    dest: /etc/ansible/facts.d/satip.facts
+    dest: /etc/ansible/facts.d/satip.fact
     mode: '0775'
 
 - name: reload ansible local facts
@@ -294,8 +296,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 *** files:
-#+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.facts.py :mkdirp yes
-#!/usr/bin/env python3
+#+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
 # This script returns a list of Vendor- and Product-IDs for all connected usb
 # and pci(e) devices in json format
 import glob
@@ -325,50 +326,49 @@ if __name__ == '__main__':
     pci_devices = format_device_list(get_pci_devices())
     print(json.dumps({'usb': usb_devices, 'pci': pci_devices}))
 #+END_SRC
-#+BEGIN_SRC  python :tangle roles/yavdr-common/files/satip.facts.py :mkdirp yes
-  #!/usr/bin/env python3
-  # This script sends a multicast message and awaits responses by Sat>IP servers.
-  # returns the boolean variable 'satip_detected' as json
-  import json
-  import socket
-  import sys
-  import time
+#+BEGIN_SRC  python :tangle roles/yavdr-common/files/satip.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
+# This script sends a multicast message and awaits responses by Sat>IP servers.
+# returns the boolean variable 'satip_detected' as json
+import json
+import socket
+import sys
+import time
 
-  SSDP_ADDR = "239.255.255.250"
-  SSDP_PORT = 1900
-  # SSDP_MX = max delay for server response
-  # a value of 2s is recommended by the SAT>IP specification 1.2.2
-  SSDP_MX = 2
-  SSDP_ST = "urn:ses-com:device:SatIPServer:1"
+SSDP_ADDR = "239.255.255.250"
+SSDP_PORT = 1900
+# SSDP_MX = max delay for server response
+# a value of 2s is recommended by the SAT>IP specification 1.2.2
+SSDP_MX = 2
+SSDP_ST = "urn:ses-com:device:SatIPServer:1"
 
-  ssdpRequest = "\r\n".join((
-      "M-SEARCH * HTTP/1.1",
-      "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
-      "MAN: \"ssdp:discover\"",
-      "MX: %d" % (SSDP_MX),
-      "ST: %s" % (SSDP_ST),
-      "\r\n"))
+ssdpRequest = "\r\n".join((
+    "M-SEARCH * HTTP/1.1",
+    "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
+    "MAN: \"ssdp:discover\"",
+    "MX: %d" % (SSDP_MX),
+    "ST: %s" % (SSDP_ST),
+    "\r\n"))
 
-  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  # according to Sat>IP Specification 1.2.2, p. 20
-  # a client should send three requests within 100 ms with a ttl of 2
-  sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-  sock.settimeout(SSDP_MX + 0.5)
-  for _ in range(3):
-      sock.sendto(ssdpRequest.encode('ascii'), (SSDP_ADDR, SSDP_PORT))
-      time.sleep(0.03)
-  try:
-      response = sock.recv(1000).decode()
-      if response and "SERVER:" in response:
-          got_response = True
-      else:
-          raise ValueError('No satip server detected')
-  except (socket.timeout, ValueError):
-      got_response = False
-  finally:
-      print(json.dumps(
-          {'satip_detected': got_response}
-      ))
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# according to Sat>IP Specification 1.2.2, p. 20
+# a client should send three requests within 100 ms with a ttl of 2
+sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+sock.settimeout(SSDP_MX + 0.5)
+for _ in range(3):
+    sock.sendto(ssdpRequest.encode('ascii'), (SSDP_ADDR, SSDP_PORT))
+    time.sleep(0.03)
+try:
+    response = sock.recv(1000).decode()
+    if response and "SERVER:" in response:
+        got_response = True
+    else:
+        raise ValueError('No satip server detected')
+except (socket.timeout, ValueError):
+    got_response = False
+finally:
+    print(json.dumps(
+        {'satip_detected': got_response}
+    ))
 #+END_SRC
 *** templates
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
@@ -811,7 +811,23 @@ fi
 #+END_SRC
 ** TODO autoinstall-drivers
 *** sundtek
-*** 
+
+** autoinstall-satip
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-satip/tasks/main.yml
+---
+# file roles/autoinstall-satip/tasks/main.yml
+
+- name: Display all variables/facts known for a host
+  debug:
+    var: '{{ ansible_local }}'
+    verbosity: 1
+
+- name: apt install vdr-plugin-satip if a Sat>IP server has been detected
+  apt:
+    name: vdr-plugin-satip
+  when: ansible_local.satip.satip_detected
+#+END_SRC
 ** TODO autoinstall-plugins
 *** imonlcd
 *** targavfd
