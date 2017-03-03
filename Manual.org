@@ -40,6 +40,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-satip # install vdr-plugin-satip if a Sat>IP server has been found
      - autoinstall-targavfd
      - autoinstall-imonlcd
+     - template-test
 
   handlers:
     - include: handlers/main.yml
@@ -152,11 +153,11 @@ extra_packages:
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
-system:
-    shutdown: poweroff
-    grub:
-        timeout: 0
-        boot_options: quiet nosplash
+#system:
+#  shutdown: poweroff
+#  grub:
+#    timeout: 0
+#    boot_options: quiet nosplash
 #+END_SRC
 * Roles
 ** yavdr-common
@@ -283,6 +284,7 @@ yavdr-common executes the following tasks:
     - linux-firmware
     - psmisc
     - python-kmodpy
+    - python-usb
     - python3-usb
     - software-properties-common
     - ssh
@@ -293,124 +295,33 @@ yavdr-common executes the following tasks:
     - xfsprogs
 
  #+END_SRC
-***** Install and execute local fact scripts 
+***** run local fact scripts 
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: create directory for local facts
-  file:
-    dest: /etc/ansible/facts.d
-    state: directory
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+    gpus: True
+- debug:
+    var: usb
+    verbosity: 1
+- debug:
+    var: pci
+    verbosity: 1
+- debug:
+    var: modules
+    verbosity: 1
+- debug:
+    var: gpus
+    verbosity: 1
 
-- name: copy facts script for USB- and PCI(e)-IDs
-  copy:
-    src: files/hardware.fact.py
-    dest: /etc/ansible/facts.d/hardware.fact
-    mode: '0775'
+- name: "detect SAT>IP Server on the network"
+  action: satip_facts
 
-- name: copy facts script for loaded modules
-  copy:
-    src: files/modules.fact.py
-    dest: /etc/ansible/facts.d/modules.fact
-    mode: '0775'
-
-- name: copy facts script for Sat>IP server detection
-  copy:
-    src: files/satip.fact.py
-    dest: /etc/ansible/facts.d/satip.fact
-    mode: '0775'
-
-- name: reload ansible local facts
-  setup: filter=ansible_local
-#+END_SRC
-
-*** files:
-**** hardware facts
-#+BEGIN_SRC python :tangle roles/yavdr-common/files/hardware.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
-# This script returns a list of Vendor- and Product-IDs for all connected usb
-# and pci(e) devices in json format
-import glob
-import json
-import os
-import sys
-import usb.core
-from collections import namedtuple
-
-
-Device = namedtuple("Device", ['idVendor', 'idProduct'])
-
-def get_pci_devices():
-    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
-        with open(os.path.join(device, 'device')) as d:
-            product_id = int(d.read().strip(), 16)
-        with open(os.path.join(device, 'vendor')) as d:
-            vendor_id = int(d.read().strip(), 16)
-        yield Device(idVendor=vendor_id, idProduct=product_id)
-
-def format_device_list(iterator):
-    return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
-
-
-if __name__ == '__main__':
-    usb_devices = format_device_list(usb.core.find(find_all=True))
-    pci_devices = format_device_list(get_pci_devices())
-    print(json.dumps({'usb': usb_devices, 'pci': pci_devices}))
-#+END_SRC
-**** module facts
-#+BEGIN_SRC python :tangle roles/yavdr-common/files/modules.fact.py :mkdirp yes :shebang #!/usr/bin/env python2
-# This script returns a list of currently loaded kernel modules
-from __future__ import print_function
-import json
-import kmodpy
-
-k = kmodpy.Kmod()
-
-print(json.dumps([module[0] for module in k.loaded()]))
-
-
-#+END_SRC
-**** satip facts
-#+BEGIN_SRC  python :tangle roles/yavdr-common/files/satip.fact.py :mkdirp yes :shebang #!/usr/bin/env python3
-# This script sends a multicast message and awaits responses by Sat>IP servers.
-# returns the boolean variable 'satip_detected' as json
-import json
-import socket
-import sys
-import time
-
-SSDP_ADDR = "239.255.255.250"
-SSDP_PORT = 1900
-# SSDP_MX = max delay for server response
-# a value of 2s is recommended by the SAT>IP specification 1.2.2
-SSDP_MX = 2
-SSDP_ST = "urn:ses-com:device:SatIPServer:1"
-
-ssdpRequest = "\r\n".join((
-    "M-SEARCH * HTTP/1.1",
-    "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
-    "MAN: \"ssdp:discover\"",
-    "MX: %d" % (SSDP_MX),
-    "ST: %s" % (SSDP_ST),
-    "\r\n"))
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# according to Sat>IP Specification 1.2.2, p. 20
-# a client should send three requests within 100 ms with a ttl of 2
-sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-sock.settimeout(SSDP_MX + 0.5)
-for _ in range(3):
-    sock.sendto(ssdpRequest.encode('ascii'), (SSDP_ADDR, SSDP_PORT))
-    time.sleep(0.03)
-try:
-    response = sock.recv(1000).decode()
-    if response and "SERVER:" in response:
-        got_response = True
-    else:
-        raise ValueError('No satip server detected')
-except (socket.timeout, ValueError):
-    got_response = False
-finally:
-    print(json.dumps(
-        {'satip_detected': got_response}
-    ))
+- debug:
+    var: satip_detected
+    verbosity: 1
 #+END_SRC
 *** templates
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
@@ -861,15 +772,10 @@ fi
 ---
 # file roles/autoinstall-satip/tasks/main.yml
 
-- name: Display all variables/facts known for a host
-  debug:
-    var: ansible_local
-    verbosity: 1
-
 - name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
-  when: ansible_local.satip.satip_detected
+  when: satip_detected
 #+END_SRC
 
 ** autoinstall-targavfd
@@ -882,7 +788,7 @@ fi
   apt:
     name: vdr-plugin-targavfd
   when: 
-    - '"19c2:6a11" in ansible_local.hardware.usb'
+    - '"19c2:6a11" in usb'
 #+END_SRC
 ** autoinstall-imonlcd
 *** tasks
@@ -894,8 +800,8 @@ fi
   apt:
     name: vdr-plugin-imonlcd
   when: 
-    - '"15c2:0038" in ansible_local.hardware.usb'
-    - '"15c2:ffdc" in ansible_local.hardware.usb'
+    - '"15c2:0038" in usb'
+    - '"15c2:ffdc" in usb'
 #+END_SRC
 ** autoinstall-libcecdaemon
 *** tasks
@@ -907,7 +813,7 @@ fi
   apt:
     name: libcec-daemon
   when: 
-    - '"2548:1002" in ansible_local.hardware.usb'
+    - '"2548:1002" in usb'
 #+END_SRC
 ** autoinstall-pvr350
 *** tasks
@@ -919,7 +825,7 @@ fi
   apt:
     name: vdr-plugin-pvr350
   when: 
-    - '19c2:6a11" in ansible_local.hardware.pci'
+    - '19c2:6a11" in pci'
 #+END_SRC
 
 ** TODO autoinstall-dvbhddevice
@@ -933,8 +839,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   apt:
     name: vdr-plugin-dvbhddevice
   when: 
-    - '"13c2:300a" in ansible_local.hardware.pci'
-    - '"13c2:300b" in ansible_local.hardware.pci'
+    - '"13c2:300a" in pci'
+    - '"13c2:300b" in pci'
 #+END_SRC
 
 ** autoinstall-dvbsddevice
@@ -947,12 +853,420 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   apt:
     name: vdr-plugin-dvbsddevice
   when: 
-    - '19c2:6a11" in ansible_local.modules'
+    - '19c2:6a11" in modules'
 #+END_SRC
 ** TODO autoinstall-plugins
 *** sddevice
 *** hddevice
 *** pvr350
+** template-test
+#+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml
+---
+- name: show vars
+  debug: 
+    var: '{{ system }}'
+
+- name: test templates
+  template:
+    src: templates/test.j2
+    dest: /tmp/test.txt
+#+END_SRC
+#+BEGIN_SRC shell :tangle roles/template-test/templates/test.j2
+{{ ansible_managed_file | comment }}
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0"
+    {% if system.x11.dualhead.enabled %}
+    Screen      1  "Screen1" RightOf "Screen0"
+    {% endif %}
+    InputDevice    "Keyboard0" "CoreKeyboard"
+    InputDevice    "Mouse0" "CorePointer"
+EndSection
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Mouse0"
+    Driver         "mouse"
+    Option         "Protocol" "auto"
+    Option         "Device" "/dev/psaux"
+    Option         "Emulate3Buttons" "no"
+    Option         "ZAxisMapping" "4 5"
+EndSection
+
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Keyboard0"
+    Driver         "kbd"
+EndSection
+
+
+Section "Monitor"
+    Identifier     "Monitor0"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{% if system.x11.display.0.default == "VGA2Scart_4_3" or system.x11.display.0.default == "VGA2Scart_16_9" %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.0.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.0.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+{% endif %}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+EndSection
+
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Monitor"
+    Identifier     "Monitor1"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{% if system.x11.display.1.default in ("VGA2Scart_4_3",  "VGA2Scart_16_9") %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.1.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.1.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+{% endif %}
+EndSection
+{% endif %}
+
+Section "Device"
+    Identifier     "Device0"
+{% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+{% endif %}
+    Screen          0
+    Option         "DPI" "100x100"
+{% if system.hardware.nvidia.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+{% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+    Option         "OnDemandVBlankinterrupts" "on"
+    Option         "FlatPanelProperties" "Scaling = Native"
+EndSection
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Device"
+    Identifier     "Device1"
+    {% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    {% endif %}
+    Screen          1
+    {% if system.hardware.nvidia.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+    {% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+EndSection
+{% endif %}
+
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    SubSection     "Display"
+        Depth       24
+{% if system.x11.display.0.default is defined and system.x11.display.0.default %}
+        Modes      "{{ system.x11.display.0.default }}"{% for mode in system.x11.display.0.mode %}{% if mode != system.x11.display.0.default %} "{{ mode }}"{% endif %}{% endfor %}
+
+{% elif system.hardware.nvidia.detected == 1 %}
+        Modes      "nvidia-auto-select"
+{% endif %}
+    EndSubSection
+{% if system.x11.display.0.default or system.x11.default %}
+#     Option         "ConnectedMonitor" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?><?cs if:(?system.x11.dualhead.enabled && system.x11.dualhead.enabled == 1) ?>, <?cs call:fix_display_name(system.x11.display.1.device) ?><?cs /if ?>"
+#     Option         "UseDisplayDevice" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.0.edid && system.hardware.nvidia.0.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.0.device) ?>:/etc/X11/edid.0.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.0.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:system.x11.display.0.default ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.0.mode ?><?cs if:(mode != system.x11.display.0.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?> 
+{% endif %}
+EndSection
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Screen"
+
+     Identifier     "Screen1"
+     Device         "Device1"
+     Monitor        "Monitor1"
+     DefaultDepth    24
+     SubSection     "Display"
+         Depth       24
+{% if system.x11.display.0.default is defined and system.x11.display.0.default %}
+         Modes      "{{ system.x11.display.1.default }}"{% for mode in system.x11.display.1.mode %}{% if mode != system.x11.display.1.default %} "{{ mode }}"{% endif %}{% endfor %}
+
+{% elif system.hardware.nvidia.detected == "1" %}
+         Modes      "nvidia-auto-select"
+{% endif %}
+      EndSubSection
+
+# <?cs if:(?system.x11.display.1.default && system.x11.display.1.default != "" && system.x11.display.1.default != "disabled") ?>
+#     Option         "UseDisplayDevice" "<?cs call:fix_display_name(system.x11.display.1.device) ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.1.edid && system.hardware.nvidia.1.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.1.device) ?>:/etc/X11/edid.1.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.1.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:system.x11.display.1.default ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.1.mode ?><?cs if:(mode != system.x11.display.1.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?>
+# <?cs /if ?>
+EndSection
+{% endif %}
+
+Section "Extensions"
+# if no open-gl OSD is needed (e.g. for vdr-sxfe):
+    Option         "Composite" "Disable"
+EndSection
+
+#+END_SRC
+#+BEGIN_SRC yaml :tangle roles/template-test/defaults/main.yml
+foo:
+  - bar
+  - baz
+  - spam
+
+system:
+  hardware:
+    nvidia:
+      detected: "1"
+      busid: "000:2304:234"
+  x11:
+    dualhead:
+      enabled: "0"
+    display:
+      0:
+        mode:
+          - "1920x1080_50"
+        default: "nvidia-auto"
+
+      1:
+        mode:
+          - "1280x720_60"
+#+END_SRC
+* Modules
+This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
+** hardware_facts.py
+#+BEGIN_SRC python :tangle library/hardware_facts.py
+#!/usr/bin/env python
+
+# This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
+DOCUMENTATION = '''
+---
+module: hardware_facts
+short_description: collects facts for kernel modules, usb and pci devices
+description:
+     - This Module collects the vendor- and device ids for USB- and PCI(e)-devices and
+       currently loaded kernel modules.
+options:
+    usb:
+        required: False
+        default: True
+        description:
+          - return a list of vendor- and device ids for usb devices in '04x:04x' notation
+
+    pci:
+        required: False
+        default: True
+        description:
+          - return a list of vendor- and device ids for pci devices in '04x:04x' notation
+
+    modules:
+        required: False
+        default: True
+        description:
+          - return a list of currently loaded kernel modules
+
+    gpus:
+        required: False
+        default: True
+        description:
+          - return a list of devices of the pci gpu class (0x030000)
+notes:
+   - requres python-pyusb and python-kmodpy
+requirements: [ ]
+author: "Alexander Grothe <seahawk1986@gmx.de>"
+'''
+
+EXAMPLES = '''
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+- debug:
+    var: usb
+- debug
+    var: pci
+- debug
+    var: modules
+- debug
+    var: gpus
+'''
+
+import glob
+import json
+import os
+import sys
+import usb.core
+from collections import namedtuple
+
+import kmodpy
+from ansible.module_utils.basic import *
+
+
+PCIDevice = namedtuple("PCIDevice", ['idVendor', 'idProduct', 'idClass'])
+
+def get_pci_devices():
+    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
+        with open(os.path.join(device, 'device')) as d:
+            product_id = int(d.read().strip(), 16)
+        with open(os.path.join(device, 'vendor')) as d:
+            vendor_id = int(d.read().strip(), 16)
+        with open(os.path.join(device, 'class')) as d:
+            class_id = int(d.read().strip(), 16)
+        yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id)
+
+def format_device_list(iterator):
+    return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
+
+def format_gpu_device_list(iterator):
+    def get_entries(iterator):
+        for d in iterator:
+            if d.idClass == 0x030000:
+                yield ("{:04x}:{:04x}".format(d.idVendor, d.idProduct))
+    return [entry for entry in get_entries(iterator)]
+
+arg_specs = {
+    'usb': dict(default=True, type='bool', required=False),
+    'pci': dict(default=True, type='bool', required=False),
+    'modules': dict(default=True, type='bool', required=False),
+    'gpus': dict(default=True, type='bool', required=False),
+    }
+
+
+def main():
+    module = AnsibleModule(argument_spec=arg_specs, supports_check_mode=True,)
+    collect_usb = module.params['usb']
+    collect_pci = module.params['pci']
+    collect_modules = module.params['modules']
+    collect_gpus = module.params['gpus']
+    if collect_usb:
+        usb_devices = format_device_list(usb.core.find(find_all=True))
+    else:
+        usb_device = []
+    if collect_pci:
+        pci_devices = format_device_list(get_pci_devices())
+    else:
+        pci_devices = []
+    if collect_modules:
+        k = kmodpy.Kmod()
+        modules = [m[0] for m in k.loaded()]
+    else:
+        modules = []
+    if collect_gpus:
+        gpus = format_gpu_device_list(get_pci_devices())
+    else:
+        gpus = []
+    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
+    module.exit_json(changed=False, ansible_facts=data, msg=data)
+
+
+if __name__ == '__main__':  
+    main()
+#+END_SRC
+** satip_facts.py
+#+BEGIN_SRC python :tangle library/satip_facts.py
+#!/usr/bin/env python2
+
+DOCUMENTATION = '''
+---
+module: hardware_facts
+short_description: "check if at least one SAT>IP server responds on the network"
+description:
+     - This script sends a multicast message and awaits responses by Sat>IP servers.
+       Returns the boolean variable 'satip_detected'
+'''
+EXAMPLES = '''
+- name: "detect SAT>IP Server on the network"
+  action: satip_facts
+
+- debug:
+    var: satip_detected
+'''
+
+import json
+import socket
+import sys
+import time
+
+from ansible.module_utils.basic import *
+
+SSDP_ADDR = "239.255.255.250"
+SSDP_PORT = 1900
+# SSDP_MX = max delay for server response
+# a value of 2s is recommended by the SAT>IP specification 1.2.2
+SSDP_MX = 2
+SSDP_ST = "urn:ses-com:device:SatIPServer:1"
+
+ssdpRequest = "\r\n".join((
+    "M-SEARCH * HTTP/1.1",
+    "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
+    "MAN: \"ssdp:discover\"",
+    "MX: %d" % (SSDP_MX),
+    "ST: %s" % (SSDP_ST),
+    "\r\n"))
+
+def main():
+    module = AnsibleModule(argument_spec={}, supports_check_mode=True,)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # according to Sat>IP Specification 1.2.2, p. 20
+    # a client should send three requests within 100 ms with a ttl of 2
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+    sock.settimeout(SSDP_MX + 0.5)
+    for _ in range(3):
+        sock.sendto(ssdpRequest, (SSDP_ADDR, SSDP_PORT))
+        time.sleep(0.03)
+    try:
+        response = sock.recv(1000)
+        if response and "SERVER:" in response:
+            got_response = True
+        else:
+            raise ValueError('No satip server detected')
+    except (socket.timeout, ValueError):
+        got_response = False
+
+    module.exit_json(changed=False, ansible_facts={'satip_detected': got_response})
+
+if __name__ == '__main__':  
+    main()
+#+END_SRC
 * Handlers
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
 - name: Restart Samba

@@ -46,6 +46,7 @@
     - linux-firmware
     - psmisc
     - python-kmodpy
+    - python-usb
     - python3-usb
     - software-properties-common
     - ssh
@@ -55,28 +56,28 @@
     - usbutils
     - xfsprogs
 
-- name: create directory for local facts
-  file:
-    dest: /etc/ansible/facts.d
-    state: directory
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+    gpus: True
+- debug:
+    var: usb
+    verbosity: 1
+- debug:
+    var: pci
+    verbosity: 1
+- debug:
+    var: modules
+    verbosity: 1
+- debug:
+    var: gpus
+    verbosity: 1
 
-- name: copy facts script for USB- and PCI(e)-IDs
-  copy:
-    src: files/hardware.fact.py
-    dest: /etc/ansible/facts.d/hardware.fact
-    mode: '0775'
+- name: "detect SAT>IP Server on the network"
+  action: satip_facts
 
-- name: copy facts script for loaded modules
-  copy:
-    src: files/modules.fact.py
-    dest: /etc/ansible/facts.d/modules.fact
-    mode: '0775'
-
-- name: copy facts script for Sat>IP server detection
-  copy:
-    src: files/satip.fact.py
-    dest: /etc/ansible/facts.d/satip.fact
-    mode: '0775'
-
-- name: reload ansible local facts
-  setup: filter=ansible_local
+- debug:
+    var: satip_detected
+    verbosity: 1

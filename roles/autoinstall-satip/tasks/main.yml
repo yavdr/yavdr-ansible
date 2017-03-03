@@ -1,12 +1,7 @@
 ---
 # file roles/autoinstall-satip/tasks/main.yml
 
-- name: Display all variables/facts known for a host
-  debug:
-    var: ansible_local
-    verbosity: 1
-
 - name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
-  when: ansible_local.satip.satip_detected
+  when: satip_detected
