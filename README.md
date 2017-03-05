@@ -11,5 +11,5 @@ sudo apt-get dist-upgrade
 sudo apt-get install ansible git
 git clone https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
-ansible-playbook yavdr07.yml -c local -K -i hosts
+ansible-playbook yavdr07.yml -c local -K -i localhost_inventory
 ```
