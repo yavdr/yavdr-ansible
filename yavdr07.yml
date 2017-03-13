@@ -6,19 +6,20 @@
   hosts: all
   become: true
   roles:
-     - yavdr-common   # install and configure the basic system
-     - vdr            # install vdr and related packages
-     - yavdr-network  # enable network client capabilities
-     - samba-install  # install samba server
-     - samba-config   # configure samba server
-     - nfs-server     # install nfs server
-     - yavdr-xorg     # graphical session
-     - yavdr-remote   # remote configuration files, services and scripts
-     - grub-config    # configure grub
-     - autoinstall-satip # install vdr-plugin-satip if a Sat>IP server has been found
-     - autoinstall-targavfd
-     - autoinstall-imonlcd
-     #- template-test
+     - yavdr-common             # install and configure the basic system
+     - vdr                      # install vdr and related packages
+     - yavdr-network            # enable network client capabilities
+     - samba-install            # install samba server
+     - samba-config             # configure samba server
+     - nfs-server               # install nfs server
+     - yavdr-xorg               # graphical session
+     - yavdr-remote             # remote configuration files, services and scripts
+     - autoinstall-satip        # install vdr-plugin-satip if a Sat>IP server has been found
+     - autoinstall-targavfd     # install vdr-plugin-targavfd if display is connected
+     - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
+     #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
+     #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
+     - grub-config          # configure grub
 
   handlers:
     - include: handlers/main.yml

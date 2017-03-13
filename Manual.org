@@ -53,19 +53,20 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   hosts: all
   become: true
   roles:
-     - yavdr-common   # install and configure the basic system
-     - vdr            # install vdr and related packages
-     - yavdr-network  # enable network client capabilities
-     - samba-install  # install samba server
-     - samba-config   # configure samba server
-     - nfs-server     # install nfs server
-     - yavdr-xorg     # graphical session
-     - yavdr-remote   # remote configuration files, services and scripts
-     - grub-config    # configure grub
-     - autoinstall-satip # install vdr-plugin-satip if a Sat>IP server has been found
-     - autoinstall-targavfd
-     - autoinstall-imonlcd
-     #- template-test
+     - yavdr-common             # install and configure the basic system
+     - vdr                      # install vdr and related packages
+     - yavdr-network            # enable network client capabilities
+     - samba-install            # install samba server
+     - samba-config             # configure samba server
+     - nfs-server               # install nfs server
+     - yavdr-xorg               # graphical session
+     - yavdr-remote             # remote configuration files, services and scripts
+     - autoinstall-satip        # install vdr-plugin-satip if a Sat>IP server has been found
+     - autoinstall-targavfd     # install vdr-plugin-targavfd if display is connected
+     - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
+     #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
+     #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
+     - grub-config          # configure grub
 
   handlers:
     - include: handlers/main.yml
@@ -784,69 +785,16 @@ systemctl --user import-environment
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
 include = /etc/samba/smb.conf.custom
 #+END_SRC
-** grub-config
-*** default variables
-#+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes
-system:
-  shutdown: poweroff
-grub:
-  timeout: 0
-  boot_options: quiet nosplash
-#+END_SRC
-*** tasks
-#+BEGIN_SRC yaml :tangle roles/grub-config/tasks/main.yml :mkdirp yes
-- name: custom grub configuration for timeout and reboot halt
-  template:
-    src: templates/50_custom.j2
-    dest: /etc/grub.d/50_custom
-    mode: '0775'
-  notify: [ 'Update GRUB' ]
-
-# TODO: add special case if plymouth is used
-- name: let the system boot quietly
-  lineinfile:
-      dest: /etc/default/grub
-      state: present
-      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
-      line: '\1{{ grub.boot_options}}"'
-      backrefs: yes
-  notify: [ 'Update GRUB' ]
-#+END_SRC
-*** templates 
-#+BEGIN_SRC shell :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes
-#!/bin/sh
-exec tail -n +3 $0
-
-# This file is configured by the ansible configuration for yaVDR
-
-{% if system.shutdown is defined and system.shutdown == 'reboot' %}
-menuentry "PowerOff" {
-    halt
-}
-{% endif %}
-
-if [ "${recordfail}" = 1 ]; then
-    set timeout={{ 3 if grub.timeout < 3 else grub.timeout }}
-else
-    set timeout={{ grub.timeout if grub.timeout is defined else 0 }}
-fi
-#+END_SRC
-*** handlers
-#+BEGIN_SRC yaml :tangle roles/grub-config/handlers/main.yml :mkdirp yes
-- name: Update GRUB
-  command: update-grub
-  failed_when: ('error' in grub_register_update.stderr)
-  register: grub_register_update
-
-  # TODO: Do we need to use grub-set-default?
-  # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
-#+END_SRC
 ** TODO autoinstall-drivers
 It would be nice to be able to detect if it is suitable to install those drivers:
-- [ ] sundtek for Sundtek devices (local or network connection)
-- [ ] dddvb-dkms if only newer DD cards are detected
-- [ ] media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
-- [ ] newly merged DD drivers from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
+*** sundtek for Sundtek devices (local or network connection)
+Vendor-IDs:
+- eb1a:5[1b2] (alte Generation)
+- 2659:*      (neuere Sticks)
+*** dddvb-dkms if only newer DD cards are detected
+*** media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
+*** newly merged DD drivers
+from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
 
 ** autoinstall-satip
 *** tasks
@@ -917,7 +865,7 @@ It would be nice to be able to detect if it is suitable to install those drivers
   apt:
     name: vdr-plugin-pvr350
   when: 
-    - '"19c2:6a11" in pci'
+    - '"0070:4000" in pci'
   notify: [ 'Restart VDR' ]
 #+END_SRC
 
@@ -947,7 +895,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   apt:
     name: vdr-plugin-dvbsddevice
   when: 
-    - '19c2:6a11" in modules'
+    - '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** template-test
@@ -1172,6 +1120,63 @@ system:
       1:
         mode:
           - "1280x720_60"
+#+END_SRC
+** grub-config
+*** default variables
+#+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes
+system:
+  shutdown: poweroff
+grub:
+  timeout: 0
+  boot_options: quiet nosplash
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/grub-config/tasks/main.yml :mkdirp yes
+- name: custom grub configuration for timeout and reboot halt
+  template:
+    src: templates/50_custom.j2
+    dest: /etc/grub.d/50_custom
+    mode: '0775'
+  notify: [ 'Update GRUB' ]
+
+# TODO: add special case if plymouth is used
+- name: let the system boot quietly
+  lineinfile:
+      dest: /etc/default/grub
+      state: present
+      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
+      line: '\1{{ grub.boot_options}}"'
+      backrefs: yes
+  notify: [ 'Update GRUB' ]
+#+END_SRC
+*** templates 
+#+BEGIN_SRC shell :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes
+#!/bin/sh
+exec tail -n +3 $0
+
+# This file is configured by the ansible configuration for yaVDR
+
+{% if system.shutdown is defined and system.shutdown == 'reboot' %}
+menuentry "PowerOff" {
+    halt
+}
+{% endif %}
+
+if [ "${recordfail}" = 1 ]; then
+    set timeout={{ 3 if grub.timeout < 3 else grub.timeout }}
+else
+    set timeout={{ grub.timeout if grub.timeout is defined else 0 }}
+fi
+#+END_SRC
+*** handlers
+#+BEGIN_SRC yaml :tangle roles/grub-config/handlers/main.yml :mkdirp yes
+- name: Update GRUB
+  command: update-grub
+  failed_when: ('error' in grub_register_update.stderr)
+  register: grub_register_update
+
+  # TODO: Do we need to use grub-set-default?
+  # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
 #+END_SRC
 * Modules
 This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
