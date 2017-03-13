@@ -11,3 +11,5 @@ add-apt-repository -y ppa:ansible/ansible
 apt-get update
 # install required packages
 apt-get -y install ansible python
+
+# TODO: run ansible on local host
