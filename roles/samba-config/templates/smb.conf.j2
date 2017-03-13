@@ -71,11 +71,17 @@
 # to anonymous connections
    map to guest = bad user
 
+{% if samba.windows_compatible %}
+# disable unix extensions and enable following symlinks
+   unix extensions = no
+   follow symlinks= yes
+   wide links= yes
+{% endif %}
+
 {% for name, path in media_dirs.iteritems() %}
 [{{ name }}]
    path = {{ path }}
    comment = {{ name }} on %h
-   browseable = yes
    guest ok = yes
    writeable = yes
    browseable = yes

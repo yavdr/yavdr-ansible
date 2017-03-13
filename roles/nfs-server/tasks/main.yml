@@ -1,0 +1,14 @@
+- name: install nfs server packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - nfs-kernel-server
+    - nfs-common
+
+- name: create /etc/exports
+  template:
+    src: templates/nfs-exports.j2
+    dest: /etc/exports
+  notify: [ 'Restart NFS Kernel Server' ]

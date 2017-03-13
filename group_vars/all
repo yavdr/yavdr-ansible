@@ -17,13 +17,6 @@ drivers:
   sundtek: auto
   ddvb-dkms: auto
 
-# dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
-media_dirs:
-  audio: /srv/audio
-  video: /srv/audio
-  pictures: /srv/audio
-  files: /srv/files
-
 # properties of the user vdr and vdr-related options
 vdr:
   user: vdr
@@ -33,7 +26,7 @@ vdr:
   home: /var/lib/vdr
   recdir: /srv/vdr/video
   hide_first_recording_level: false
-  safe_dirnames: true
+  safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: false
 
 # add the vdr plugins you want to install
@@ -43,8 +36,21 @@ vdr_plugins:
   - vdr-plugin-restfulapi
   - vdr-plugin-softhddevice
 
+# dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
+media_dirs:
+  audio: /srv/audio
+  video: /srv/audio
+  pictures: /srv/picture
+  files: /srv/files
+  backups: /srv/backups
+  recordings: '{{ vdr.recdir }}'
+
+nfs:
+  insecure: false  # required for OS X clients and when using libnfs as unprivileged user (e.g. KODI)
+
 samba:
   workgroup: YAVDR
+  windows_compatible: '{{ vdr.safe_dirnames }}'  # disable unix extensions, enable follow symlinks and wide links
 
 # additional packages you want to install
 extra_packages:
@@ -53,8 +59,8 @@ extra_packages:
   - w-scan
   - bpython3
 
-system:
-    shutdown: poweroff
-    grub:
-        timeout: 0
-        boot_options: quiet nosplash
+#system:
+#  shutdown: poweroff
+grub:
+  timeout: 0
+  boot_options: quiet nosplash

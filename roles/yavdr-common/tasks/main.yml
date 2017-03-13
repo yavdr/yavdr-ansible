@@ -56,6 +56,23 @@
     - usbutils
     - xfsprogs
 
+- name: apt | install extra packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+      '{{ extra_packages }}'
+
+- name: create media directories
+  file:
+    dest: '{{ item.value }}'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    state: directory
+    mode: '0777'
+  with_dict: '{{ media_dirs }}'
+
 - name: get information about usb and pci hardware and loaded kernel modules
   hardware_facts:
     usb: True

@@ -58,16 +58,3 @@
     install_recommends: no
   with_items:
     '{{ vdr_plugins | default({}) }}'
-
-- name: create directories for media files
-  file:
-    state: directory
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0777
-    dest: '{{ item }}'
-  with_items:
-    - /srv/videos
-    - /srv/music
-    - /srv/picture
-    - /srv/backups
