@@ -15,6 +15,24 @@ This is an experimental feature which allows to set up a yaVDR installation base
 
 This Manual is written in org-mode for Emacs and can rewrite the complete ansible configuration if you call ~org-babel-tangle~ from within emacs.
 
+** Install script for local usage
+#+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
+if (( $EUID != 0 )); then
+    echo "This script must be run using sudo or as root"
+    exit
+fi
+
+apt-get -y install software-properties-common
+# Add repository for ansible
+add-apt-repository -y ppa:ansible/ansible
+# update packages
+apt-get update
+# install required packages
+apt-get -y install ansible python
+
+# TODO: run ansible on local host
+ansible-playbook yavdr07.yml -b -i 'localhost,'
+#+END_SRC
 * Playbooks
 ** yavdr07.yml
 The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
@@ -33,7 +51,6 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - samba-install  # install samba server
      - samba-config   # configure samba server
      - nfs-server     # install nfs server
-     #- nfs-config     # configure nfs server
      - yavdr-xorg     # graphical session
      - yavdr-remote   # remote configuration files, services and scripts
      - grub-config    # configure grub
@@ -252,6 +269,25 @@ yavdr-common executes the following tasks:
     dpkg-reconfigure -f noninteractive dash
 #+END_SRC
 
+***** create user vdr
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+- name: create vdr group
+  group:
+    gid: '{{ vdr.gid }}'
+    state: present
+    name: '{{ vdr.group }}'
+
+- name: create vdr user
+  user:
+    name: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    uid: '{{ vdr.uid }}'
+    home: '{{ vdr.home }}'
+    shell: '/bin/bash'
+    state: present
+    append: true
+#+END_SRC
+
 ***** Disable release-upgrade notifications
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: disable release-upgrade notifications
@@ -312,17 +348,6 @@ yavdr-common executes the following tasks:
   with_items:
       '{{ extra_packages }}'
 #+END_SRC
-***** create media directories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
-- name: create media directories
-  file:
-    dest: '{{ item.value }}'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    state: directory
-    mode: '0777'
-  with_dict: '{{ media_dirs }}'
-#+END_SRC
 ***** Gather facts with custom modules 
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
 - name: get information about usb and pci hardware and loaded kernel modules
@@ -350,6 +375,17 @@ yavdr-common executes the following tasks:
 - debug:
     var: satip_detected
     verbosity: 1
+#+END_SRC
+***** create media directories
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+- name: create media directories
+  file:
+    dest: '{{ item.value }}'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    state: directory
+    mode: '0777'
+  with_dict: '{{ media_dirs }}'
 #+END_SRC
 *** templates
 #+BEGIN_SRC c :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes
@@ -418,6 +454,8 @@ APT::Install-Suggests "0";
     dest: '{{ vdr.recdir }}/local'
   when:
     vdr.hide_first_recording_level
+
+# TODO: set recdir, user etc. in /etc/vdr/conf.d/
 #+END_SRC
 **** Install additional vdr plugins
 The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ in the group variables
@@ -435,12 +473,6 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/main.yml :mkdirp yes
 install_avahi: true
-install_epgd: true
-install_mariadb: true
-install_nfs_client: true
-install_nfs_server: true
-install_samba_client: true
-install_samba_server: true
 #+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/tasks/main.yml :mkdirp yes

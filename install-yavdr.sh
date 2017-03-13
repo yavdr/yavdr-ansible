@@ -13,3 +13,4 @@ apt-get update
 apt-get -y install ansible python
 
 # TODO: run ansible on local host
+ansible-playbook yavdr07.yml -b -i 'localhost,'

@@ -13,6 +13,22 @@
     echo "set dash/sh false" | debconf-communicate
     dpkg-reconfigure -f noninteractive dash
 
+- name: create vdr group
+  group:
+    gid: '{{ vdr.gid }}'
+    state: present
+    name: '{{ vdr.group }}'
+
+- name: create vdr user
+  user:
+    name: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    uid: '{{ vdr.uid }}'
+    home: '{{ vdr.home }}'
+    shell: '/bin/bash'
+    state: present
+    append: true
+
 - name: disable release-upgrade notifications
   lineinfile:
     dest: /etc/update-manager/release-upgrades
@@ -64,15 +80,6 @@
   with_items:
       '{{ extra_packages }}'
 
-- name: create media directories
-  file:
-    dest: '{{ item.value }}'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    state: directory
-    mode: '0777'
-  with_dict: '{{ media_dirs }}'
-
 - name: get information about usb and pci hardware and loaded kernel modules
   hardware_facts:
     usb: True
@@ -98,3 +105,12 @@
 - debug:
     var: satip_detected
     verbosity: 1
+
+- name: create media directories
+  file:
+    dest: '{{ item.value }}'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    state: directory
+    mode: '0777'
+  with_dict: '{{ media_dirs }}'
