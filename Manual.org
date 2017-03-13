@@ -125,12 +125,6 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-yavdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
 #+END_SRC
-** Drivers
-#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
-drivers:
-  sundtek: auto
-  ddvb-dkms: auto
-#+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # properties of the user vdr and vdr-related options
@@ -375,13 +369,6 @@ yavdr-common executes the following tasks:
     verbosity: 1
 - debug:
     var: gpus
-    verbosity: 1
-
-- name: "detect SAT>IP Server on the network"
-  action: satip_facts
-
-- debug:
-    var: satip_detected
     verbosity: 1
 #+END_SRC
 ***** create media directories
@@ -855,7 +842,11 @@ fi
   # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
 #+END_SRC
 ** TODO autoinstall-drivers
-*** sundtek
+It would be nice to be able to detect if it is suitable to install those drivers:
+- [ ] sundtek for Sundtek devices (local or network connection)
+- [ ] dddvb-dkms if only newer DD cards are detected
+- [ ] media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
+- [ ] newly merged DD drivers from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
 
 ** autoinstall-satip
 *** tasks
@@ -863,10 +854,18 @@ fi
 ---
 # file roles/autoinstall-satip/tasks/main.yml
 
+- name: "detect SAT>IP Server(s) on the network"
+  action: satip_facts
+
+- debug:
+    var: satip_detected
+    verbosity: 1
+
 - name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
   when: satip_detected
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 
 ** autoinstall-targavfd
@@ -880,6 +879,7 @@ fi
     name: vdr-plugin-targavfd
   when: 
     - '"19c2:6a11" in usb'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-imonlcd
 *** tasks
@@ -893,6 +893,7 @@ fi
   when: 
     - '"15c2:0038" in usb'
     - '"15c2:ffdc" in usb'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-libcecdaemon
 *** tasks
@@ -917,6 +918,7 @@ fi
     name: vdr-plugin-pvr350
   when: 
     - '"19c2:6a11" in pci'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 
 ** TODO autoinstall-dvbhddevice
@@ -932,6 +934,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   when: 
     - '"13c2:300a" in pci'
     - '"13c2:300b" in pci'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 
 ** autoinstall-dvbsddevice
@@ -945,11 +948,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
     name: vdr-plugin-dvbsddevice
   when: 
     - '19c2:6a11" in modules'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
-** TODO autoinstall-plugins
-*** sddevice
-*** hddevice
-*** pvr350
 ** template-test
 #+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml
 ---
