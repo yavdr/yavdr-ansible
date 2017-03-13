@@ -53,10 +53,11 @@
 
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
 
-- name: install additional vdr plugins
+- name: apt | install additional vdr plugins
   apt:
     name: '{{ item }}'
     state: present
     install_recommends: no
   with_items:
     '{{ vdr_plugins | default({}) }}'
+  notify: [ 'Restart VDR' ]

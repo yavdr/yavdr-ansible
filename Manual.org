@@ -15,6 +15,14 @@ This is an experimental feature which allows to set up a yaVDR installation base
 
 This Manual is written in org-mode for Emacs and can rewrite the complete ansible configuration if you call ~org-babel-tangle~ from within emacs.
 
+To use this playbook on a Ubuntu Server Installation you need to run the following commands:
+#+BEGIN_SRC shell
+sudo apt-get install git
+git clone https://github.com/yavdr/yavdr-ansible.git
+cd yavdr-ansible
+sudo ./install-yavdr.sh
+#+END_SRC
+
 ** Install script for local usage
 #+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
 if (( $EUID != 0 )); then
@@ -31,7 +39,7 @@ apt-get update
 apt-get -y install ansible
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost,' --connection=local
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -79,8 +87,8 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - samba-server
     - samba-config
     - nfs-server
-    - nfs-config
     - grub-config
+    - autoinstall-satip
   handlers:
     - include: handlers/main.yml
 #+END_SRC
@@ -460,13 +468,14 @@ APT::Install-Suggests "0";
 **** Install additional vdr plugins
 The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ in the group variables
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-- name: install additional vdr plugins
+- name: apt | install additional vdr plugins
   apt:
     name: '{{ item }}'
     state: present
     install_recommends: no
   with_items:
     '{{ vdr_plugins | default({}) }}'
+  notify: [ 'Restart VDR' ]
 #+END_SRC
 ** STARTED yavdr-network
 *** default variables
@@ -602,7 +611,7 @@ systemctl --user import-environment
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
-- name: set a login shell for the vdr user
+- name: set a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
       shell: '/bin/bash'
@@ -611,7 +620,7 @@ systemctl --user import-environment
       groups: '{{ vdr.group }}'
       append: yes
 
-- name: enable and start xlogin for the vdr user
+- name: enable and start xlogin for the user vdr
   systemd:
     daemon_reload: yes
     name: 'xlogin@{{ vdr.user }}'
@@ -1378,4 +1387,11 @@ if __name__ == '__main__':
     enabled: yes
     #masked: no
   register: nfs_reload
+
+- name: Restart VDR
+  systemd:
+    name: vdr.service
+    state: restarted
+    enabled: yes
+  register: vdr_restart
 #+END_SRC
