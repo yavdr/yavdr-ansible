@@ -162,13 +162,13 @@ media_dirs:
 ** NFS
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 nfs:
-  insecure: false  # required for OS X clients and when using libnfs as unprivileged user (e.g. KODI)
+  insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
 #+END_SRC
 ** Samba
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 samba:
   workgroup: YAVDR
-  windows_compatible: '{{ vdr.safe_dirnames }}'  # disable unix extensions, enable follow symlinks and wide links
+  windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
 #+END_SRC
 ** Additional packages
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -683,7 +683,7 @@ systemctl --user import-environment
 **** smb.conf
 ***** global settings
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
-# {{ ansible_managed_file }}
+{{ ansible_managed_file | comment }}
 
 #======================= Global Settings =======================
 
