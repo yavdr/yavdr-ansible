@@ -1,0 +1,184 @@
+{{ ansible_managed_file | comment }}
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0"
+    {% if system.x11.dualhead.enabled %}
+    Screen      1  "Screen1" RightOf "Screen0"
+    {% endif %}
+    InputDevice    "Keyboard0" "CoreKeyboard"
+    InputDevice    "Mouse0" "CorePointer"
+EndSection
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Mouse0"
+    Driver         "mouse"
+    Option         "Protocol" "auto"
+    Option         "Device" "/dev/psaux"
+    Option         "Emulate3Buttons" "no"
+    Option         "ZAxisMapping" "4 5"
+EndSection
+
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Keyboard0"
+    Driver         "kbd"
+EndSection
+
+
+Section "Monitor"
+    Identifier     "Monitor0"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{% if system.x11.display.0.default == "VGA2Scart_4_3" or system.x11.display.0.default == "VGA2Scart_16_9" %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.0.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.0.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+{% endif %}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+EndSection
+
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Monitor"
+    Identifier     "Monitor1"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{% if system.x11.display.1.default in ("VGA2Scart_4_3",  "VGA2Scart_16_9") %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.1.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.1.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+{% endif %}
+EndSection
+{% endif %}
+
+Section "Device"
+    Identifier     "Device0"
+{% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+{% endif %}
+    Screen          0
+    Option         "DPI" "100x100"
+{% if system.hardware.nvidia.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+{% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+    Option         "OnDemandVBlankinterrupts" "on"
+    Option         "FlatPanelProperties" "Scaling = Native"
+EndSection
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Device"
+    Identifier     "Device1"
+    {% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    {% endif %}
+    Screen          1
+    {% if system.hardware.nvidia.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+    {% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+EndSection
+{% endif %}
+
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    SubSection     "Display"
+        Depth       24
+{% if system.x11.display.0.default is defined and system.x11.display.0.default %}
+        Modes      "{{ system.x11.display.0.default }}"{% for mode in system.x11.display.0.mode %}{% if mode != system.x11.display.0.default %} "{{ mode }}"{% endif %}{% endfor %}
+
+{% elif system.hardware.nvidia.detected == 1 %}
+        Modes      "nvidia-auto-select"
+{% endif %}
+    EndSubSection
+{% if system.x11.display.0.default or system.x11.default %}
+    {% if system.x11.display.0.device is definded and system.x11.display.0.device %}
+    Option         "ConnectedMonitor" {{ system.x11.display.0.device }}
+    {% else %}
+    Option         "ConnectedMonitor" {{ system.x11.default }}
+    {% endif %}
+    #     Option         "ConnectedMonitor" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?><?cs if:(?system.x11.dualhead.enabled && system.x11.dualhead.enabled == 1) ?>, <?cs call:fix_display_name(system.x11.display.1.device) ?><?cs /if ?>"
+    #Option         "ConnectedMonitor"
+    "<?cs if:(?system.x11.display.0.device) ?>
+          <?cs call:fix_display_name(system.x11.display.0.device) ?>
+     <?cs else ?>
+          <?cs var:system.x11.default ?>
+     <?cs /if ?>
+     <?cs if:(?system.x11.dualhead.enabled && system.x11.dualhead.enabled == 1) ?>, <?cs call:fix_display_name(system.x11.display.1.device) ?><?cs /if ?>"
+#     Option         "UseDisplayDevice" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.0.edid && system.hardware.nvidia.0.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.0.device) ?>:/etc/X11/edid.0.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.0.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:system.x11.display.0.default ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.0.mode ?><?cs if:(mode != system.x11.display.0.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?> 
+{% endif %}
+EndSection
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Screen"
+
+     Identifier     "Screen1"
+     Device         "Device1"
+     Monitor        "Monitor1"
+     DefaultDepth    24
+     SubSection     "Display"
+         Depth       24
+{% if system.x11.display.0.default is defined and system.x11.display.0.default %}
+         Modes      "{{ system.x11.display.1.default }}"{% for mode in system.x11.display.1.mode %}{% if mode != system.x11.display.1.default %} "{{ mode }}"{% endif %}{% endfor %}
+
+{% elif system.hardware.nvidia.detected == "1" %}
+         Modes      "nvidia-auto-select"
+{% endif %}
+      EndSubSection
+
+# <?cs if:(?system.x11.display.1.default && system.x11.display.1.default != "" && system.x11.display.1.default != "disabled") ?>
+#     Option         "UseDisplayDevice" "<?cs call:fix_display_name(system.x11.display.1.device) ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.1.edid && system.hardware.nvidia.1.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.1.device) ?>:/etc/X11/edid.1.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.1.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:system.x11.display.1.default ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.1.mode ?><?cs if:(mode != system.x11.display.1.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?>
+# <?cs /if ?>
+EndSection
+{% endif %}
+
+Section "Extensions"
+# if no open-gl OSD is needed (e.g. for vdr-sxfe):
+    Option         "Composite" "Disable"
+EndSection
