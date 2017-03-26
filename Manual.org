@@ -1464,7 +1464,7 @@ arg_specs = {
                                   type='dict', required=False),
     }
 
-Mode = namedtuple('Mode', ['score', 'connection', 'resolution', 'refreshrate'])
+Mode = namedtuple('Mode', ['connection', 'resolution', 'refreshrate'])
 
 
 class ModelineTools(object):
@@ -1488,9 +1488,11 @@ class ModelineTools(object):
         return int(round(ast.literal_eval(rrate)))
     
     def sort_mode(self, mode):
+        refreshrate_score = self.preferred_refreshrates.get(int(mode.refreshrate), 0)
+        resolution_score = self.preferred_resolutions.get(mode.resolution, 0)
         x, y = mode.resolution.split('x')
         connection = mode.connection.split('-')[0]
-        return (mode.score, int(x), int(y), self.preferred_outputs.get(connection, 0))
+        return (refreshrate_score, resolution_score, int(x), int(y), self.preferred_outputs.get(connection, 0))
     
 
 def main():
@@ -1526,11 +1528,13 @@ def main():
                     displays[screen][connection]['connected'] = True
                 displays[screen][connection]['modes'] = OrderedDict(
                     sorted({}.items(), key=lambda t: t.split('_')[0]))
+                display_modes = []
 
             elif line.startswith(' '):
                 fields = filter(None, re.split(r'\s{2,}', line))
                 resolution = fields[0]
                 refreshrates = fields[1:]
+
                 r = set()
                 for refreshrate in refreshrates:
                     refreshrate = refreshrate.strip()
@@ -1538,19 +1542,20 @@ def main():
                     if len(refreshrate) < 2:
                         continue
                     if '*' in refreshrate:
-                        current_mode = (resolution, rrate)
+                        current_mode = Mode(connection, resolution, rrate)
                         displays[screen][connection]['current_mode'] = current_mode
                     if '+' in refreshrate:
-                        preferred_mode = (resolution, rrate)
+                        preferred_mode = Mode(connection, resolution, rrate)
                         displays[screen][connection]['preferred_mode'] = preferred_mode
                     r.add(mtools.cleanup_refreshrate(refreshrate))
-                    modes.append(Mode(score=mtools.get_score(connection, resolution, rrate), connection=connection,
-                                 resolution=resolution, refreshrate=rrate))
+                    modes.append(Mode(connection=connection, resolution=resolution, refreshrate=rrate))
+                    display_modes.append(Mode(connection=connection, resolution=resolution, refreshrate=rrate))
                     displays[screen][connection]['modes'][resolution] = sorted(r)
+                    displays[screen][connection]['best_mode'] = max(display_modes, key=mtools.sort_mode)
 
 
     data['displays'] = displays
-    data['modes'] = modes
+    #data['modes'] = modes
     best_mode = max(modes, key=mtools.sort_mode)
     data["best_mode"] = {
         'connection': best_mode.connection,
