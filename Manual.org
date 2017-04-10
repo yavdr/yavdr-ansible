@@ -510,31 +510,390 @@ install_avahi: true
 *** tasks
 *** templates
 *** files
-** TODO automatic X-server configuration
-- [ ] detect connected display
-- [ ] read EDID from displays
-- [ ] create a xorg.conf for nvidia/intel/amd gpus
-*** templates
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
-# file: roles/yavdr-xorg/templates/vdr-xorg.conf
-# {{ ansible_managed_file }}
 
-[Unit]
-After=x@vt7.service
-Wants=x@vt7.service
-BindsTo=x@vt7.service
-#+END_SRC
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
-#!/bin/bash
-# {{ ansible_managed_file }}
-exec openbox-session
-#+END_SRC
-#+BEGIN_SRC shell tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
-env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
-systemctl --user import-environment
-#+END_SRC
-*** files
 ** yavdr-xorg
+*** TODO automatic X-server configuration
+- [X] detect connected display
+- [X] read EDID from displays
+- [ ] create a xorg.conf for nvidia/intel/amd gpus
+
+**** HOLD Nvidia-Karten: EDID Informationen auslesen:
+
+#+BEGIN_SRC shell
+$ nvidia-xconfig --extract-edids-from-file=/var/log/Xorg.0.log --extract-edids-output-file=/tmp/edid.bin.0
+
+Found 2 EDIDs in "/var/log/Xorg.0.log".
+  Wrote EDID for "DELL 2407WFP (CRT-1)" to "/tmp/edid.bin.0.0" (128 bytes).
+  Wrote EDID for "ADI A715 (DFP-1)" to "/tmp/edid.bin.0.1" (128 bytes).
+
+$ xrandr -q
+Screen 0: minimum 8 x 8, current 3200 x 1200, maximum 8192 x 8192
+DVI-I-0 disconnected primary (normal left inverted right x axis y axis)
+VGA-0 connected 1920x1200+1280+0 (normal left inverted right x axis y axis) 519mm x 324mm
+   1920x1200     59.95*+
+   1680x1050     59.95  
+   1280x1024     75.02    60.02  
+   1152x864      75.00  
+   1024x768      75.03    60.00  
+   800x600       75.00    60.32  
+   640x480       75.00    59.94  
+DVI-I-1 disconnected (normal left inverted right x axis y axis)
+HDMI-0 connected 1280x1024+0+0 (normal left inverted right x axis y axis) 338mm x 270mm
+   1280x1024     60.02*+
+   1024x768      60.00  
+   800x600       60.32  
+   640x480       59.95    59.94
+
+$ parse-edid < /tmp/edid.bin.0.1
+Checksum Correct
+
+Section "Monitor"
+	Identifier "ADI A715"
+	ModelName "ADI A715"
+	VendorName "ADI"
+	# Monitor Manufactured week 15 of 2003
+	# EDID version 1.3
+	# Digital Display
+	DisplaySize 330 270
+	Gamma 2.20
+	Option "DPMS" "true"
+	#Not giving standard mode: 640x480, 60Hz
+	#Not giving standard mode: 800x600, 60Hz
+	#Not giving standard mode: 1024x768, 60Hz
+	#Not giving standard mode: 1280x1024, 60Hz
+	Modeline 	"Mode 0" 108.00 1280 1328 1440 1688 1024 1025 1028 1066 +hsync +vsync 
+	Modeline 	"Mode 1" 40.00 800 840 968 1056 600 601 605 628 +hsync +vsync 
+EndSection
+
+$ parse-edid < /tmp/edid.bin.0.0
+Checksum Correct
+
+Section "Monitor"
+	Identifier "DELL 2407WFP"
+	ModelName "DELL 2407WFP"
+	VendorName "DEL"
+	# Monitor Manufactured week 24 of 2007
+	# EDID version 1.3
+	# Analog Display
+	Option "SyncOnGreen" "true"
+	DisplaySize 520 330
+	Gamma 2.20
+	Option "DPMS" "true"
+	Horizsync 30-83
+	VertRefresh 56-76
+	# Maximum pixel clock is 170MHz
+	#Not giving standard mode: 1280x1024, 60Hz
+	#Not giving standard mode: 1600x1200, 60Hz
+	#Not giving standard mode: 1152x864, 75Hz
+	#Not giving standard mode: 1680x1050, 60Hz
+	Modeline 	"Mode 0" 154.00 1920 1968 2000 2080 1200 1203 1209 1235 +hsync -vsync 
+EndSection
+
+#+END_SRC
+
+**** DONE Start X-server with debug-output
+#+BEGIN_SRC conf
+# /etc/systemd/system/x-debug@.service
+[Unit]
+Description=X with verbose logging on %I
+Wants=graphical.target
+Before=graphical.target
+Conflicts=xlogin@vdr.service x@vt7.service
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config xdiscover.conf
+#+END_SRC
+
+#+BEGIN_SRC conf
+# /etc/X11/xdiscover.conf
+Section "Device"
+        Identifier "nvidia"
+        Driver  "nvidia"
+        Option  "NoLogo"              "true"
+        Option  "DynamicTwinView"     "true"
+        Option  "NoFlip"              "false"
+#        Option  "FlatPanelProperties" "Scaling = Native"
+#        Option  "ModeValidation"      "NoVesaModes, NoXServerModes"
+#        Option  "ModeDebug"           "true"
+#        Option  "HWCursor"            "false"
+EndSection
+
+Section "Screen"
+        Identifier      "screen"
+        Device          "nvidia"
+EndSection
+
+Section "Extensions"
+        Option  "Composite"           "false"
+EndSection
+
+#+END_SRC
+
+**** DONE Python-Skript zum Parsen des xrandr --verbose Output
+***** Beispielausgaben
+# ION-330-I
+#+BEGIN_SRC shell :tangle library/xrandr_output.1
+$ xrandr --verbose
+Screen 0: minimum 8 x 8, current 1280 x 720, maximum 8192 x 8192
+VGA-0 disconnected primary (normal left inverted right x axis y axis)
+	Identifier: 0x1c4
+	Timestamp:  18571
+	Subpixel:   unknown
+	Clones:    
+	CRTCs:      0 1
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	BorderDimensions: 4 
+		supported: 4
+	Border: 0 0 0 0 
+		range: (0, 65535)
+	SignalFormat: VGA 
+		supported: VGA
+	ConnectorType: VGA 
+	ConnectorNumber: 0 
+	_ConnectorLocation: 1 
+HDMI-0 connected 1280x720+0+0 (0x1cb) normal (normal left inverted right x axis y axis) 885mm x 498mm
+	Identifier: 0x1c5
+	Timestamp:  18571
+	Subpixel:   unknown
+	Gamma:      1.0:1.0:1.0
+	Brightness: 1.0
+	Clones:    
+	CRTC:       0
+	CRTCs:      0 1fg
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	EDID: 
+		00ffffffffffff004c2d800100000000
+		2c0e01038059328c0ae2bda15b4a9824
+		15474a20000001010101010101010101
+		010101010101011d007251d01e206e28
+		550075f23100001e011d00bc52d01e20
+		b828554075f23100001e000000fd0032
+		3d0f2e08000a202020202020000000fc
+		0053414d53554e470a20202020200181
+		02031971468413051403122309070783
+		01000065030c001000011d8018711c16
+		20582c250075f23100009e011d80d072
+		1c1620102c258075f23100009e8c0ad0
+		8a20e02d10103e960075f2310000188c
+		0ad090204031200c40550075f2310000
+		18000000000000000000000000000000
+		000000000000000000000000000000ca
+	BorderDimensions: 4 
+		supported: 4
+	Border: 39 24 41 21 
+		range: (0, 65535)
+	SignalFormat: TMDS 
+		supported: TMDS
+	ConnectorType: HDMI 
+	ConnectorNumber: 1 
+	_ConnectorLocation: 2 
+  1280x720 (0x1c6)   74.2MHz +HSync +VSync +preferred
+        h: width  1280 start 1390 end 1430 total 1650 skew    0 clock   45.0KHz
+        v: height  720 start  725 end  730 total  750           clock   60.0Hz
+  1920x1080 (0x1c7)   74.2MHz +HSync +VSync Interlace
+        h: width  1920 start 2008 e#nd 2052 total 2200 skew    0 clock   33.8KHz
+        v: height 1080 start 1084 end 1094 total 1124           clock   60.1Hz
+  1920x1080 (0x1c8)   74.2MHz +HSync +VSync Interlace
+        h: width  1920 start 2008 end 2052 total 2200 skew    0 clock   33.7KHz
+        v: height 1080 start 1084 end 1094 total 1124           clock   60.0Hz
+  1920x1080 (0x1c9)   74.2MHz +HSync +VSync Interlace
+        h: width  1920 start 2448 end 2492 total 2640 skew    0 clock   28.1KHz
+        v: height 1080 start 1084 end 1094 total 1124           clock   50.0Hz
+  1280x720 (0x1ca)   74.2MHz +HSync +VSync
+        h: width  1280 start 1390 end 1430 total 1650 skew    0 clock   45.0KHz
+        v: height  720 start  725 end  730 total  750           clock   59.9Hz
+  1280x720 (0x1cb)   74.2MHz +HSync +VSync *current
+        h: width  1280 start 1720 end 1760 total 1980 skew    0 clock   37.5KHz
+        v: height  720 start  725 end  730 total  750           clock   50.0Hz
+  800x600 (0x1cc)   40.0MHz +HSync +VSync
+        h: width   800 start  840 end  968 total 1056 skew    0 clock   37.9KHz
+        v: height  600 start  601 end  605 total  628           clock   60.3Hz
+  800x600 (0x1cd)   36.0MHz +HSync +VSync
+        h: width   800 start  824 end  896 total 1024 skew    0 clock   35.2KHz
+        v: height  600 start  601 end  603 total  625           clock   56.2Hz
+  720x576 (0x1ce)   27.0MHz -HSync -VSync
+        h: width   720 start  732 end  796 total  864 skew    0 clock   31.2KHz
+        v: height  576 start  581 end  586 total  625           clock   50.0Hz
+  720x480 (0x1cf)   27.0MHz -HSync -VSync
+        h: width   720 start  736 end  798 total  858 skew    0 clock   31.5KHz
+        v: height  480 start  489 end  495 total  525           clock   59.9Hz
+  640x480 (0x1d0)   25.2MHz -HSync -VSync
+        h: width   640 start  656 end  752 total  800 skew    0 clock   31.5KHz
+        v: height  480 start  490 end  492 total  525           clock   59.9Hz
+  320x240 (0x1d1)   12.6MHz -HSync -VSync DoubleScan
+        h: width   320 start  328 end  376 total  400 skew    0 clock   31.5KHz
+        v: height  240 start  245 end  246 total  262           clock   60.1Hz
+#+END_SRC
+
+# GT210
+#+BEGIN_SRC shell :tangle library/xrandr_output.2
+$ xrandr --verbose
+Screen 0: minimum 8 x 8, current 3200 x 1200, maximum 8192 x 8192
+DVI-I-0 disconnected primary (normal left inverted right x axis y axis)
+	Identifier: 0x1c4
+	Timestamp:  641679
+	Subpixel:   unknown
+	Clones:    
+	CRTCs:      0 1
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	BorderDimensions: 4 
+		supported: 4
+	Border: 0 0 0 0 
+		range: (0, 65535)
+	SignalFormat: VGA 
+		supported: VGA
+	ConnectorType: DVI-I 
+	ConnectorNumber: 0 
+	_ConnectorLocation: 0 
+VGA-0 connected 1920x1200+1280+0 (0x1c6) normal (normal left inverted right x axis y axis) 519mm x 324mm
+	Identifier: 0x1c5
+	Timestamp:  641679
+	Subpixel:   unknown
+	Gamma:      1.0:1.0:1.0
+	Brightness: 1.0
+	Clones:    
+	CRTC:       1
+	CRTCs:      0 1
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	EDID: 
+		00ffffffffffff0010ac16a0534b4431
+		181101030e342178eeee91a3544c9926
+		0f5054a54b008180a940714fb3000101
+		010101010101283c80a070b023403020
+		360007442100001a000000ff00555935
+		343537364531444b5320000000fc0044
+		454c4c20323430375746500a000000fd
+		00384c1e5311000a20202020202000f1
+	BorderDimensions: 4 
+		supported: 4
+	Border: 0 0 0 0 
+		range: (0, 65535)
+	SignalFormat: VGA 
+		supported: VGA
+	ConnectorType: VGA 
+	ConnectorNumber: 2 
+	_ConnectorLocation: 2 
+  1920x1200 (0x1c6) 154.000MHz +HSync -VSync *current +preferred
+        h: width  1920 start 1968 end 2000 total 2080 skew    0 clock  74.04KHz
+        v: height 1200 start 1203 end 1209 total 1235           clock  59.95Hz
+  1680x1050 (0x1c7) 146.250MHz -HSync +VSync
+        h: width  1680 start 1784 end 1960 total 2240 skew    0 clock  65.29KHz
+        v: height 1050 start 1053 end 1059 total 1089           clock  59.95Hz
+  1280x1024 (0x1c8) 135.000MHz +HSync +VSync
+        h: width  1280 start 1296 end 1440 total 1688 skew    0 clock  79.98KHz
+        v: height 1024 start 1025 end 1028 total 1066           clock  75.02Hz
+  1280x1024 (0x1c9) 108.000MHz +HSync +VSync
+        h: width  1280 start 1328 end 1440 total 1688 skew    0 clock  63.98KHz
+        v: height 1024 start 1025 end 1028 total 1066           clock  60.02Hz
+  1152x864 (0x1ca) 108.000MHz +HSync +VSync
+        h: width  1152 start 1216 end 1344 total 1600 skew    0 clock  67.50KHz
+        v: height  864 start  865 end  868 total  900           clock  75.00Hz
+  1024x768 (0x1cb) 78.750MHz +HSync +VSync
+        h: width  1024 start 1040 end 1136 total 1312 skew    0 clock  60.02KHz
+        v: height  768 start  769 end  772 total  800           clock  75.03Hz
+  1024x768 (0x1cc) 65.000MHz -HSync -VSync
+        h: width  1024 start 1048 end 1184 total 1344 skew    0 clock  48.36KHz
+        v: height  768 start  771 end  777 total  806           clock  60.00Hz
+  800x600 (0x1cd) 49.500MHz +HSync +VSync
+        h: width   800 start  816 end  896 total 1056 skew    0 clock  46.88KHz
+        v: height  600 start  601 end  604 total  625           clock  75.00Hz
+  800x600 (0x1ce) 40.000MHz +HSync +VSync
+        h: width   800 start  840 end  968 total 1056 skew    0 clock  37.88KHz
+        v: height  600 start  601 end  605 total  628           clock  60.32Hz
+  640x480 (0x1cf) 31.500MHz -HSync -VSync
+        h: width   640 start  656 end  720 total  840 skew    0 clock  37.50KHz
+        v: height  480 start  481 end  484 total  500           clock  75.00Hz
+  640x480 (0x1d0) 25.175MHz -HSync -VSync
+        h: width   640 start  656 end  752 total  800 skew    0 clock  31.47KHz
+        v: height  480 start  490 end  492 total  525           clock  59.94Hz
+DVI-I-1 disconnected (normal left inverted right x axis y axis)
+	Identifier: 0x1d1
+	Timestamp:  641679
+	Subpixel:   unknown
+	Clones:    
+	CRTCs:      0 1
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	BorderDimensions: 4 
+		supported: 4
+	Border: 0 0 0 0 
+		range: (0, 65535)
+	SignalFormat: TMDS 
+		supported: TMDS
+	ConnectorType: DVI-I 
+	ConnectorNumber: 0 
+	_ConnectorLocation: 0 
+HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis y axis) 338mm x 270mm
+	Identifier: 0x1d2
+	Timestamp:  641679
+	Subpixel:   unknown
+	Gamma:      1.0:1.0:1.0
+	Brightness: 1.0
+	Clones:    
+	CRTC:       0
+	CRTCs:      0 1
+	Transform:  1.000000 0.000000 0.000000
+	            0.000000 1.000000 0.000000
+	            0.000000 0.000000 1.000000
+	           filter: 
+	EDID: 
+		00ffffffffffff0004895d2320090000
+		0f0d0103e0211b782ac5c6a3574a9c23
+		124f5421080031404540614081800101
+		010101010101302a009851002a403070
+		1300520e1100001ea00f200031581c20
+		28801400520e1100001e000000ff0033
+		31355430324530323333360a000000fc
+		0041444920413731350a20202020002b
+	BorderDimensions: 4 
+		supported: 4
+	Border: 0 0 0 0 
+		range: (0, 65535)
+	SignalFormat: TMDS 
+		supported: TMDS
+	ConnectorType: HDMI 
+	ConnectorNumber: 1 
+	_ConnectorLocation: 1 
+  1280x1024 (0x1c9) 108.000MHz +HSync +VSync *current +preferred
+        h: width  1280 start 1328 end 1440 total 1688 skew    0 clock  63.98KHz
+        v: height 1024 start 1025 end 1028 total 1066           clock  60.02Hz
+  1024x768 (0x1cc) 65.000MHz -HSync -VSync
+        h: width  1024 start 1048 end 1184 total 1344 skew    0 clock  48.36KHz
+        v: height  768 start  771 end  777 total  806           clock  60.00Hz
+  800x600 (0x1ce) 40.000MHz +HSync +VSync
+        h: width   800 start  840 end  968 total 1056 skew    0 clock  37.88KHz
+        v: height  600 start  601 end  605 total  628           clock  60.32Hz
+  640x480 (0x1d3) 25.180MHz -HSync -VSync
+        h: width   640 start  648 end  744 total  800 skew    0 clock  31.48KHz
+        v: height  480 start  482 end  484 total  525           clock  59.95Hz
+  640x480 (0x1d0) 25.175MHz -HSync -VSync
+        h: width   640 start  656 end  752 total  800 skew    0 clock  31.47KHz
+        v: height  480 start  490 end  492 total  525           clock  59.94Hz
+
+#+END_SRC
+
+***** Hex-String parsen
+#+BEGIN_SRC python
+>>> import binascii
+>>> s = "deadbeef"
+>>> binascii.a2b_hex(s)
+b'\xde\xad\xbe\xef'
+#+END_SRC
 *** default variables
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes
@@ -551,8 +910,42 @@ systemctl --user import-environment
     - xserver-xorg-input-all
     - xlogin
     - xterm
-    #- yavdr-xorg
     - openbox
+    #- yavdr-xorg
+
+- name: "stop x@vt7.service"
+  systemd:
+    name: "x@vt7.service"
+    state: stopped
+
+- name: "expand template for x-verbose@.service"
+  template:
+    src: "templates/x-verbose@.service.j2"
+    dest: "/etc/systemd/system/x-verbose@.service"
+
+- name: "start x-verbose@.service"
+  systemd:
+    name: "x-verbose@vt7.service"
+    state: started
+    enabled: false
+    masked: false
+    daemon_reload: true
+
+- name: "wait a little bit, so X has some time to start up (needed?)"
+  wait_for:
+    timeout: 3
+
+- name: "detect xorg configuration"
+  action: xrandr_facts
+
+- name: "stop x-verbose@vt7.service"
+  systemd:
+    name: "x-verbose@vt7.service"
+    state: stopped
+    enabled: false
+    masked: true
+
+### TODO: Create xorg configuration
 
 - name: create folders for user session
   file:
@@ -611,7 +1004,7 @@ systemctl --user import-environment
     state: started
 #+END_SRC
 *** templates
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/x-verbose.service.j2
+#+BEGIN_SRC conf :tangle "roles/yavdr-xorg/templates/x-verbose@.service.j2"
 [Unit]
 Description=X with verbose logging on %I
 Wants=graphical.target
@@ -621,18 +1014,33 @@ Before=graphical.target
 Type=forking
 ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I
 #+END_SRC
-** display-data
-*** tasks
-#+BEGIN_SRC yaml :tangle roles/display-data/tasks/main.yml
----
-# file: roles/display-data/tasks/main.yml
 
-- name: "detect xorg configuration"
-  action: xorg_facts
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes
+# file: roles/yavdr-xorg/templates/vdr-xorg.conf
+# {{ ansible_managed_file }}
 
-- debug:
-    var: xorg
-    verbosity: 1
+[Unit]
+After=x@vt7.service
+Wants=x@vt7.service
+BindsTo=x@vt7.service
+#+END_SRC
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
+#!/bin/bash
+# {{ ansible_managed_file }}
+exec openbox-session
+#+END_SRC
+
+#+BEGIN_SRC shell tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
+systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+
+if which dbus-update-activation-environment >/dev/null 2>&1; then
+        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
+fi
+
+# Needed to start pulseaudio before VDR if softhddevice is attached at startup before frontend script is up
+# pactl list sinks 2>&1 >> /tmp/audio.dbg
+
 #+END_SRC
 ** nfs-server
 *** tasks
@@ -1394,45 +1802,51 @@ def main():
 if __name__ == '__main__':  
     main()
 #+END_SRC
-** xorg_facts.py
-#+BEGIN_SRC python :tangle library/xorg_facts.py
+** xrandr_facts.py
+- [ ] support multiple screens (-d :0.0 .. :0.n)
+#+BEGIN_SRC python :tangle library/xrandr_facts.py
 #!/usr/bin/env python2
+from __future__ import print_function
+import ast
+import binascii
+import re
+import subprocess
+from collections import namedtuple
+
+from ansible.module_utils.basic import *
 
 DOCUMENTATION = '''
 ---
-module: xorg_facts
+module: xrandr_facts
 short_description: "gather facts about connected monitors and available modelines"
 description:
-     - This script needs a running x-server on a given display in order to successfully call xrandr.
-       The ranking uses the following factors:
-       1. preferred_refreshrate
-       2. preferred_resolution
-       3. preferred_output
-       For each element a dictionary of values (up to 4 bit [0 .. 256]) may be passed to the module.
-       The rank is represented by this order of 4-Bit values:
-       | rrate | resolution | output | internal score
-       |    50 |  1920x1080 |   HDMI | 0b_0100_0100_0100 = 1092
-       |    60 |   1280x720 |     DP | 0b_0011_0011_0011 =  819
-       Returns the connected output, monitors and modelines and a suggestion for the most fitting mode in a dictionary 'xorg'
+     - This module needs a running x-server on a given display in order to successfully call xrandr.
+       Returns the dictionary "xrandr", wich contains all screens with output states, connected displays,
+       EDID info and their modes and a recommendation for the best fitting tv mode.
 options:
     display:
         required: False
         default: ":0"
         description:
           - the DISPLAY variable to use when calling xrandr
+    multi_display:
+        required: False
+        default: "False"
+        description:
+          - check additional screens (:0.0 .. :0.n) until xrandr fails to collect information
     preferred_outpus:
         required: False
-        default: {"HDMI": 4, "DP": 3, "DVI": 2, "VGA": 1, "TV": 0}
+        default: ["HDMI", "DP", "DVI", "VGA", "TV": 0]
         description:
           - ranking of the preferred display connectors
     preferred_refreshrates:
         required: False
-        default: {"50": 4, "60": 3, "75": 2, "30": 1, "25": 0}
+        default: ["50", "60", "75", "30", "25"]
         description:
           - ranking of the preferred display refreshrate
     preferred_resolutions:
         required: False
-        default: {"7680x4320": 8, "3840x2160": 4, "1920x1080": 2, "1280x720": 1, "720x576": 0}
+        default: ["7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"]
         description:
            - ranking of the preferred display resolutions
 '''
@@ -1442,132 +1856,151 @@ EXAMPLES = '''
     display: ":0"
 
 - debug:
-    var: xorg
+    var: xrandr
 '''
 
-import ast
-import json
-import re
-import subprocess
-import sys
-import time
-from collections import OrderedDict, namedtuple
-
-from ansible.module_utils.basic import *
-
-arg_specs = {
-    'display': dict(default=[":0", ":0.1"], type='list', required=False),
-    'multi_display': dict(default=True, type='bool', required=False),
-    'preferred_outputs': dict(default={"HDMI": 8, "DP": 4, "DVI": 2, "VGA": 1, "TV": 0}, type='dict', required=False),
-    'preferred_refreshrates': dict(default={50: 8, 60: 4, 75: 3, 30: 2, 25: 1}, type='dict', required=False),
-    'preferred_resolutions': dict(default={"7680x4320": 8, "3840x2160": 4, "1920x1080": 2, "1280x720": 1, "720x576": 0},
-                                  type='dict', required=False),
+ARG_SPECS = {
+    'display': dict(default=":0", type='str', required=False),
+    'multi_display': dict(default=False, type='bool', required=False),
+    'preferred_outputs': dict(
+        default=["HDMI", "DP", "DVI", "VGA", "TV"], type='list', required=False),
+    'preferred_refreshrates': dict(
+        default=[50, 60, 75, 30, 25], type='list', required=False),
+    'preferred_resolutions': dict(
+        default=[
+            "7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"],
+        type='list', required=False),
     }
+
+SCREEN_REGEX = re.compile("^(?P<screen>Screen\s\d+:)(?:.*)")
+CONNECTOR_REGEX = re.compile(
+    "^(?P<connector>.*-\d+)\s(?P<connection_state>connected|disconnected)\s(?P<primary>primary)?")
+MODE_REGEX = re.compile("^\s+(?P<resolution>\d{3,}x\d{3,}).*")
 
 Mode = namedtuple('Mode', ['connection', 'resolution', 'refreshrate'])
 
+def check_for_screen(line):
+    """check line for screen information"""
+    match = re.match(SCREEN_REGEX, line)
+    if match:
+        return match.groupdict()['screen']
 
-class ModelineTools(object):
-    def __init__(self, preferred_outputs, preferred_resolutions, preferred_refreshrates):
-        self.preferred_outputs = preferred_outputs
-        self.preferred_resolutions = preferred_resolutions
-        self.preferred_refreshrates = preferred_refreshrates
-        
-    def get_score(self, connection, resolution, refreshrate):
-        connection = connection.split('-')[0]
-        score = self.preferred_refreshrates.get(int(refreshrate), 0)
-        score = score << 4
-        score += self.preferred_resolutions.get(resolution, 0)
-        #score = score << 4
-        #score += self.preferred_outputs.get(connection, 0)
-        return score
+def check_for_connection(line):
+    """check line for connection name and state"""
+    match = re.match(CONNECTOR_REGEX, line)
+    connector = None
+    is_connected = False
+    if match:
+        match = match.groupdict()
+        connector = match['connector']
+        is_connected = True if match['connection_state'] == 'connected' else False
+    return connector, is_connected
 
-    @staticmethod
-    def cleanup_refreshrate(refreshrate):
-        rrate = refreshrate.replace('+', '').replace('*', '').replace(' ', '').strip()
-        return int(round(ast.literal_eval(rrate)))
-    
-    def sort_mode(self, mode):
-        refreshrate_score = self.preferred_refreshrates.get(int(mode.refreshrate), 0)
-        resolution_score = self.preferred_resolutions.get(mode.resolution, 0)
-        x, y = mode.resolution.split('x')
-        connection = mode.connection.split('-')[0]
-        return (refreshrate_score, resolution_score, int(x), int(y), self.preferred_outputs.get(connection, 0))
-    
+def get_indentation(line):
+    """return the number of leading whitespace characters"""
+    return len(line) - len(line.lstrip())
 
-def main():
-    module = AnsibleModule(argument_spec=arg_specs, supports_check_mode=False,)
-    display_list = module.params['display']
-    preferred_outputs = module.params['preferred_outputs']
+def sort_mode(mode):
+    """rate modes by several criteria"""
+    connection_score = 0
+    rrate_score = 0
+    resolution_score = 0
+    preferred_rrates = module.params['preferred_refreshrates']
+    # [50, 60]
     preferred_resolutions = module.params['preferred_resolutions']
-    preferred_refreshrates = module.params['preferred_refreshrates']
-    mtools = ModelineTools(preferred_outputs, preferred_resolutions, preferred_refreshrates)
-    modes = []
-    displays = {}
-    data = {}
+    # ["7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"]
+    preferred_outputs = module.params['preferred_outputs']
+    # ["HDMI", "DP", "DVI", "VGA"]
+    if mode.refreshrate in preferred_rrates:
+        rrate_score = len(preferred_rrates) - preferred_rrates.index(mode.refreshrate)
+    if mode.resolution in preferred_resolutions:
+        resolution_score = len(preferred_resolutions) - preferred_resolutions.index(mode.resolution)
+    x_resolution, y_resolution = (int(n) for n in  mode.resolution.split('x'))
+    connection = mode.connection.split('-')[0]
+    if connection in preferred_outputs:
+        connection_score = len(preferred_outputs) - preferred_outputs.index(connection)
+    return (rrate_score, resolution_score, x_resolution, y_resolution, connection_score)
 
-    for display in display_list:
-        # call xrandr
-        try:
-            xrandr_data = subprocess.check_output(['xrandr', '-q','-d', display],
-                                                  universal_newlines=True)
-        except: continue
-    
-        for line in xrandr_data.splitlines():
-            if line.startswith('Screen'):
-                screen = line.split(':')[0].split()[-1]
-                screen = "Screen{}".format(screen)
-                displays[screen] = {}
-
-            elif 'connected' in line:
-                connection = line.split()[0]
-                displays[screen][connection] = {}
-                if 'disconnected' in line:
-                    displays[screen][connection]['connected'] = False
+def parse_xrandr_verbose(iterator):
+    """parse the output of xrandr --verbose using an iterator delivering single lines"""
+    xorg = {}
+    is_connected = False
+    for line in iterator:
+        if line.startswith('Screen'):
+            screen = check_for_screen(line)
+            xorg[screen] = {}
+        elif 'connected' in line:
+            connector, is_connected = check_for_connection(line)
+            xorg[screen][connector] = {
+                'is_connected': is_connected,
+                'EDID': '',
+                'modes': {},
+                'preferred': '',
+                'current': '',
+                'auto': '',
+                }
+        elif is_connected and 'EDID:' in line:
+            edid_str = ""
+            outer_indentation = get_indentation(line)
+            while True:
+                line = next(iterator)
+                if get_indentation(line) > outer_indentation:
+                    edid_str += line.strip()
                 else:
-                    displays[screen][connection]['connected'] = True
-                displays[screen][connection]['modes'] = OrderedDict(
-                    sorted({}.items(), key=lambda t: t.split('_')[0]))
-                display_modes = []
+                    break
+            xorg[screen][connector]['EDID'] = edid_str
+        elif is_connected and "MHz" in line and not "Interlace" in line:
+            match = re.match(MODE_REGEX, line)
+            if match:
+                match = match.groupdict()
+                preferred = bool("+preferred" in line)
+                current = bool("*current" in line)
 
-            elif line.startswith(' '):
-                fields = filter(None, re.split(r'\s{2,}', line))
-                resolution = fields[0]
-                refreshrates = fields[1:]
+                while True:
+                    line = next(iterator)
+                    if line.strip().startswith('v:'):                        
+                        refresh_rate = ast.literal_eval(line.split()[-1][:-2])
+                        rrate = int(round(refresh_rate))
+                        if xorg[screen][connector]['modes'].get(match['resolution']) is None:
+                            xorg[screen][connector]['modes'][match['resolution']] = []
+                        if rrate not in xorg[screen][connector]['modes'][match['resolution']]:
+                            xorg[screen][connector]['modes'][match['resolution']].append(rrate)
+                        if preferred:
+                            xorg[screen][connector]['preferred'] = "{}_{}".format(
+                                match['resolution'], rrate)
+                        if current:
+                            xorg[screen][connector]['current'] = "{}_{}".format(
+                                match['resolution'], rrate)
+                        break
+    return xorg
 
-                r = set()
-                for refreshrate in refreshrates:
-                    refreshrate = refreshrate.strip()
-                    rrate = mtools.cleanup_refreshrate(refreshrate)
-                    if len(refreshrate) < 2:
-                        continue
-                    if '*' in refreshrate:
-                        current_mode = Mode(connection, resolution, rrate)
-                        displays[screen][connection]['current_mode'] = current_mode
-                    if '+' in refreshrate:
-                        preferred_mode = Mode(connection, resolution, rrate)
-                        displays[screen][connection]['preferred_mode'] = preferred_mode
-                    r.add(mtools.cleanup_refreshrate(refreshrate))
-                    modes.append(Mode(connection=connection, resolution=resolution, refreshrate=rrate))
-                    display_modes.append(Mode(connection=connection, resolution=resolution, refreshrate=rrate))
-                    displays[screen][connection]['modes'][resolution] = sorted(r)
-                    displays[screen][connection]['best_mode'] = max(display_modes, key=mtools.sort_mode)
+def output_data(data):
+    if data:
+        modes = []
+        for _, screen_data in data.items():
+            for connector, connection_data in screen_data.items():
+                if connection_data.get('EDID'):
+                    with open('/etc/X11/edid.{}.bin'.format(connector), 'wb') as edid:
+                        edid.write(binascii.a2b_hex(connection_data['EDID']))
+                for resolution, refreshrates in connection_data['modes'].items():
+                    for refreshrate in refreshrates:
+                        modes.append(Mode(connector, resolution, refreshrate))
+        if modes:
+            best_mode = max(modes, key=sort_mode)
+            data['best_tv_mode'] = best_mode
 
-
-    data['displays'] = displays
-    #data['modes'] = modes
-    best_mode = max(modes, key=mtools.sort_mode)
-    data["best_mode"] = {
-        'connection': best_mode.connection,
-        'resolution': best_mode.resolution,
-        'refreshrate': best_mode.refreshrate,
-    }
-
-    module.exit_json(changed=False, ansible_facts={'xorg': data})
-
+    #print(json.dumps(data, sort_keys=True, indent=4))
+    module.exit_json(changed=False, ansible_facts={'xrandr': data})
 
 if __name__ == '__main__':
-    main()
+    module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)
+    try:
+        d = subprocess.check_output(['xrandr', '-d', module.params['display'], '--verbose'], universal_newlines=True).splitlines()
+    except subprocess.CalledProcessError:
+        xorg_data = {}
+    else:
+        xorg_data = parse_xrandr_verbose(iter(d))
+    output_data(xorg_data)
 #+END_SRC
 * Handlers
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
@@ -1593,4 +2026,31 @@ if __name__ == '__main__':
     state: restarted
     enabled: yes
   register: vdr_restart
+
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  register: vdr_stop
+
+- name: Start VDR
+  systemd:
+    name: vdr.service
+    state: started
+    enabled: yes
+  register: vdr_start
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+  register: xlogin_stop
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
+  register: x_stop
 #+END_SRC

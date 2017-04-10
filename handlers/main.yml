@@ -20,3 +20,30 @@
     state: restarted
     enabled: yes
   register: vdr_restart
+
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  register: vdr_stop
+
+- name: Start VDR
+  systemd:
+    name: vdr.service
+    state: started
+    enabled: yes
+  register: vdr_start
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+  register: xlogin_stop
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
+  register: x_stop

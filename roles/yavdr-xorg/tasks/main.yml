@@ -11,8 +11,42 @@
     - xserver-xorg-input-all
     - xlogin
     - xterm
-    #- yavdr-xorg
     - openbox
+    #- yavdr-xorg
+
+- name: "stop x@vt7.service"
+  systemd:
+    name: "x@vt7.service"
+    state: stopped
+
+- name: "expand template for x-verbose@.service"
+  template:
+    src: "templates/x-verbose@.service.j2"
+    dest: "/etc/systemd/system/x-verbose@.service"
+
+- name: "start x-verbose@.service"
+  systemd:
+    name: "x-verbose@vt7.service"
+    state: started
+    enabled: false
+    masked: false
+    daemon_reload: true
+
+- name: "wait a little bit, so X has some time to start up (needed?)"
+  wait_for:
+    timeout: 3
+
+- name: "detect xorg configuration"
+  action: xrandr_facts
+
+- name: "stop x-verbose@vt7.service"
+  systemd:
+    name: "x-verbose@vt7.service"
+    state: stopped
+    enabled: false
+    masked: true
+
+### TODO: Create xorg configuration
 
 - name: create folders for user session
   file:
