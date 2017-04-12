@@ -517,7 +517,7 @@ install_avahi: true
 - [X] read EDID from displays
 - [ ] create a xorg.conf for nvidia/intel/amd gpus
 
-**** HOLD Nvidia-Karten: EDID Informationen auslesen:
+**** HOLD Nvidia-GPUs:read  EDID:
 
 #+BEGIN_SRC shell
 $ nvidia-xconfig --extract-edids-from-file=/var/log/Xorg.0.log --extract-edids-output-file=/tmp/edid.bin.0
@@ -630,8 +630,8 @@ EndSection
 
 #+END_SRC
 
-**** DONE Python-Skript zum Parsen des xrandr --verbose Output
-***** Beispielausgaben
+**** DONE python-script for parsing xrandr --verbose output
+***** Example output
 # ION-330-I
 #+BEGIN_SRC shell :tangle library/xrandr_output.1
 $ xrandr --verbose
@@ -887,7 +887,7 @@ HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis
 
 #+END_SRC
 
-***** Hex-String parsen
+***** parse hex-strings
 #+BEGIN_SRC python
 >>> import binascii
 >>> s = "deadbeef"
@@ -1038,7 +1038,10 @@ if which dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
 fi
 
-# Needed to start pulseaudio before VDR if softhddevice is attached at startup before frontend script is up
+###
+# Needed to start pulseaudio before VDR if softhddevice is attached at startup
+# (so the frontend-skript can't force pulseaudio to free the soundcard)
+### 
 # pactl list sinks 2>&1 >> /tmp/audio.dbg
 
 #+END_SRC
@@ -1804,6 +1807,7 @@ if __name__ == '__main__':
 #+END_SRC
 ** xrandr_facts.py
 - [ ] support multiple screens (-d :0.0 .. :0.n)
+
 #+BEGIN_SRC python :tangle library/xrandr_facts.py
 #!/usr/bin/env python2
 from __future__ import print_function
@@ -1849,6 +1853,11 @@ options:
         default: ["7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"]
         description:
            - ranking of the preferred display resolutions
+    write_edids:
+        required: False
+        default: True
+        description:
+           - write edid data to /etc/X11/edid.{connector}.bin
 '''
 EXAMPLES = '''
 - name: "collect facts for connected displays"
@@ -1870,6 +1879,7 @@ ARG_SPECS = {
         default=[
             "7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"],
         type='list', required=False),
+    'write_edids': dict(default=True, type='bool', required=False),
     }
 
 SCREEN_REGEX = re.compile("^(?P<screen>Screen\s\d+:)(?:.*)")
@@ -1974,12 +1984,12 @@ def parse_xrandr_verbose(iterator):
                         break
     return xorg
 
-def output_data(data):
+def output_data(data, write_edids=True):
     if data:
         modes = []
         for _, screen_data in data.items():
             for connector, connection_data in screen_data.items():
-                if connection_data.get('EDID'):
+                if connection_data.get('EDID') and write_edids:
                     with open('/etc/X11/edid.{}.bin'.format(connector), 'wb') as edid:
                         edid.write(binascii.a2b_hex(connection_data['EDID']))
                 for resolution, refreshrates in connection_data['modes'].items():
@@ -1990,7 +2000,7 @@ def output_data(data):
             data['best_tv_mode'] = best_mode
 
     #print(json.dumps(data, sort_keys=True, indent=4))
-    module.exit_json(changed=False, ansible_facts={'xrandr': data})
+    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data})
 
 if __name__ == '__main__':
     module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)
@@ -2000,7 +2010,7 @@ if __name__ == '__main__':
         xorg_data = {}
     else:
         xorg_data = parse_xrandr_verbose(iter(d))
-    output_data(xorg_data)
+    output_data(xorg_data, module.params['write_edids'])
 #+END_SRC
 * Handlers
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes

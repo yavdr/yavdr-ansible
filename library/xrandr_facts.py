@@ -63,6 +63,7 @@ ARG_SPECS = {
         default=[
             "7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"],
         type='list', required=False),
+    'write_edids': dict(default=True, type='bool', required=False),
     }
 
 SCREEN_REGEX = re.compile("^(?P<screen>Screen\s\d+:)(?:.*)")
@@ -167,12 +168,12 @@ def parse_xrandr_verbose(iterator):
                         break
     return xorg
 
-def output_data(data):
+def output_data(data, write_edids=True):
     if data:
         modes = []
         for _, screen_data in data.items():
             for connector, connection_data in screen_data.items():
-                if connection_data.get('EDID'):
+                if connection_data.get('EDID') and write_edids:
                     with open('/etc/X11/edid.{}.bin'.format(connector), 'wb') as edid:
                         edid.write(binascii.a2b_hex(connection_data['EDID']))
                 for resolution, refreshrates in connection_data['modes'].items():
@@ -183,7 +184,7 @@ def output_data(data):
             data['best_tv_mode'] = best_mode
 
     #print(json.dumps(data, sort_keys=True, indent=4))
-    module.exit_json(changed=False, ansible_facts={'xrandr': data})
+    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data})
 
 if __name__ == '__main__':
     module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)
@@ -193,4 +194,4 @@ if __name__ == '__main__':
         xorg_data = {}
     else:
         xorg_data = parse_xrandr_verbose(iter(d))
-    output_data(xorg_data)
+    output_data(xorg_data, module.params['write_edids'])
