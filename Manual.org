@@ -10,6 +10,19 @@
 #+OPTIONS: ^:nil
 #+PROPERTY: header-args :mkdirp yes 
 :END:
+
+* Notes
+:PROPERTIES:
+:export nil
+:END:
+** TODO [#A] optimize and document data structure for xorg parsing script
+** TODO [#A] xorg.conf templates for intel, nvidia, noveau and radeon drivers
+** TODO [#B] plan for customization of xorg settings by the user
+either directly or using a configuration wizard or a web frontend
+** SOMEDAY [#C] select best frontend based on GPU
+- intel :: softhddevice-vpp
+- amd :: softhddevice-vpp
+- nvidia :: softhddevice-openglosd (if no HEVC channels are needed)
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
@@ -996,6 +1009,11 @@ b'\xde\xad\xbe\xef'
       groups: '{{ vdr.group }}'
       append: yes
 
+# TODO: run xorg-debug and parse xrandr output
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
 - name: enable and start xlogin for the user vdr
   systemd:
     daemon_reload: yes
@@ -1342,7 +1360,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
     src: templates/test.j2
     dest: /tmp/test.txt
 #+END_SRC
-#+BEGIN_SRC shell :tangle roles/template-test/templates/test.j2
+#+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
 {{ ansible_managed_file | comment }}
 
 Section "ServerLayout"
@@ -1364,6 +1382,16 @@ Section "InputDevice"
     Option         "Emulate3Buttons" "no"
     Option         "ZAxisMapping" "4 5"
 EndSection
+
+# ignore devices with eventlircd tag 
+# ENV{ID_INPUT.tags}+="eventlircd"
+# must be set by an udev rule
+Section "InputClass"
+    Identifier "ignore eventlircd devices"
+    MatchTag "eventlircd"
+    Option "Ignore" "True"
+EndSection
+
 
 
 Section "InputDevice"
@@ -1523,11 +1551,12 @@ Section "Screen"
 EndSection
 {% endif %}
 
+{% if not system.x11.use_compositing %}
 Section "Extensions"
-# if no open-gl OSD is needed (e.g. for vdr-sxfe):
+# if not open-gl OSD is needed (e.g. for vdr-sxfe):
     Option         "Composite" "Disable"
 EndSection
-
+{% endif %}
 #+END_SRC
 #+BEGIN_SRC yaml :tangle roles/template-test/defaults/main.yml
 foo:
