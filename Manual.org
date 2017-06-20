@@ -134,7 +134,7 @@ ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local
 * Playbooks
 ** yavdr07.yml
 The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
-#+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes :padline no
 ---
 # file: yavdr07.yml
 # this playbook sets up a complete yaVDR 0.7 installation
@@ -204,15 +204,15 @@ ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
 #+END_SRC
 ** PPAs
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
-  branch: unstable
-  ppa_owner: 'ppa:yavdr'
-  # a list of all package repositories to be added to the installation
-  repositories:
-    - '{{ ppa_owner }}/main'
-    - '{{ ppa_owner }}/unstable-main'
-    - '{{ ppa_owner }}/{{branch}}-vdr'
-    - '{{ ppa_owner }}/{{branch}}-yavdr'
-    - '{{ ppa_owner }}/{{branch}}-kodi'
+branch: unstable
+ppa_owner: 'ppa:yavdr'
+# a list of all package repositories to be added to the installation
+repositories:
+  - '{{ ppa_owner }}/main'
+  - '{{ ppa_owner }}/unstable-main'
+  - '{{ ppa_owner }}/{{branch}}-vdr'
+  - '{{ ppa_owner }}/{{branch}}-yavdr'
+  - '{{ ppa_owner }}/{{branch}}-kodi'
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -644,6 +644,38 @@ install_avahi: true
 ** TODO yavdr-remote
 *** default variables
 *** tasks
+#+BEGIN_SRC yaml :tangle roles/yavdr-remote/tasks/main.yml :mkdirp yes
+---
+# This role is used to set up the yaVDR remote control configuration.
+
+- name: install yavdr-remote
+  apt:
+    name: yavdr-remote
+    state: present
+
+- name: install lirc
+  apt:
+    name: lircd
+    state: present
+  when:
+    - install_lircd is defined and install_lircd
+
+- name: install eventlircd
+  apt:
+    name: eventlircd
+    state: present
+  when:
+      install_eventlircd is defined and install_eventlircd
+
+# TODO: upload lircd2uinput package to PPA
+#- name: install lircd2uinput
+#  tag: install
+#  apt:
+#      name: lircd2uinput
+#      state: present
+#  when:
+#      install_eventlircd is defined and install_eventlircd
+#+END_SRC
 *** templates
 *** files
 
@@ -1196,6 +1228,7 @@ b'\xde\xad\xbe\xef'
     state: started
 #+END_SRC
 *** templates
+**** xorg
 #+BEGIN_SRC conf :tangle "roles/yavdr-xorg/templates/x-verbose@.service.j2"
 [Unit]
 Description=X with verbose logging on %I
