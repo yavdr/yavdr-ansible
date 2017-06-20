@@ -1,2 +1,10 @@
+
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
-systemctl --user import-environment
+systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+
+if which dbus-update-activation-environment >/dev/null 2>&1; then
+        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
+fi
+
+# start systemd units for the yavdr user session
+systemctl --user isolate yavdr-desktop.target

@@ -1,3 +1,4 @@
+
 ---
 # file: yavdr07.yml
 # this playbook sets up a complete yaVDR 0.7 installation
@@ -7,6 +8,7 @@
   become: true
   roles:
      - yavdr-common             # install and configure the basic system
+     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers (e.g. nvidia, virtualbox)
      - vdr                      # install vdr and related packages
      - yavdr-network            # enable network client capabilities
      - samba-install            # install samba server
@@ -19,6 +21,8 @@
      - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
      #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
      #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
+     - kodi
+     - dvd
      - grub-config          # configure grub
 
   handlers:

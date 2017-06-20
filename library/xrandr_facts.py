@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python2
 from __future__ import print_function
 import ast
@@ -42,6 +43,11 @@ options:
         default: ["7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"]
         description:
            - ranking of the preferred display resolutions
+    write_edids:
+        required: False
+        default: True
+        description:
+           - write edid data to /etc/X11/edid.{connector}.bin
 '''
 EXAMPLES = '''
 - name: "collect facts for connected displays"

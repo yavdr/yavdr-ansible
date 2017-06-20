@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
@@ -65,7 +66,7 @@ import kmodpy
 from ansible.module_utils.basic import *
 
 
-PCIDevice = namedtuple("PCIDevice", ['idVendor', 'idProduct', 'idClass'])
+PCIDevice = namedtuple("PCIDevice", 'idVendor idProduct idClass pciPath')
 
 def get_pci_devices():
     for device in glob.glob('/sys/devices/pci*/*:*:*/'):
@@ -75,7 +76,7 @@ def get_pci_devices():
             vendor_id = int(d.read().strip(), 16)
         with open(os.path.join(device, 'class')) as d:
             class_id = int(d.read().strip(), 16)
-        yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id)
+        yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id, pciPath=device)
 
 def format_device_list(iterator):
     return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]

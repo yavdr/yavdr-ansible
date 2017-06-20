@@ -9,20 +9,97 @@
 #+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
 #+OPTIONS: ^:nil
 #+PROPERTY: header-args :mkdirp yes 
+#+TITLE: Ansible Playbooks for yaVDR 0.7
+#+Author: Alexander Grothe <seahawk1986@gmx.de>
 :END:
+
+* User Stories
+** yavdr-full
+A User wants to install yaVDR without customization and relies on full automation.
+
+After installing a supported Ubuntu Server version and (if needed) setting up the network connection, the install script is downloaded and started.
+
+The install script adds the ansible PPA, installs ansible and other basic dependencies and runs the automated installation process.
+
+Several roles are used to tie everything together:
+- yavdr-common :: installs the basic set of packages needed and preconfigures the system (package sources, package manager settings, entires for network ports, directory structure etc.). Also collects information about the system
+- autoinstall-ubuntu-drivers :: uses Ubuntu's automatic detection for additional drivers (e.g. proprietary nvidia driver, microcode updates, VirtualBox guest additions)
+- vdr :: install the vdr package and required plugins
+- yavdr-network :: configure WOL, add nfs client capabilites, install avahi-linker
+- samba-server :: install and preconfigure a samba server
+- nfs-server :: install nfs-kernelserver and preconfigure nfs exports (and avahi-announcements)
+- autoinstall-satip :: install vdr-plugin-satip if a Sat>IP server has been found
+- autoinstall-targavfd :: install vdr-plugin-targavfd if display is connected
+- autoinstall-imonlcd :: install vdr-plugin-imonlcd if a matchind display is connected
+- yavdr-xorg :: install and configure a systemd user session with a running X-server.  A frontend script will manage VDR's frontend and other applications like KODI.  Also choose the best possible output plugin.
+- grub-config :: update grub configuration based on executed roles 
+
+*** Using vdr, pulseaudio and xorg together
 
 * Notes
 :PROPERTIES:
 :export nil
-:END:
+:END:      
 ** TODO [#A] optimize and document data structure for xorg parsing script
 ** TODO [#A] xorg.conf templates for intel, nvidia, noveau and radeon drivers
+*** STARTED BusID für (nvidia) Grafikkarten aus lspci auslesen
+Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, device, function)
+- Wie mit mehreren GPUs umgehen? Priorität bzw. Reihenfolge?
+- Was ist mit NVidia Optimus/Bumblebee (AFAIK keine VDPAU-Funktionalität)?
+- Wie BusID der xrandr-Ausgabe zuordnen?
+*** NVIDIA-Dokumentation zur BusID:
+**** What is the format of a PCI Bus ID?
+
+Different tools have different formats for the PCI Bus ID of a PCI device.
+
+The X server's "BusID" X configuration file option interprets the BusID string in the format "bus@domain:device:function" (the "@domain" portion is only needed if the PCI domain is non-zero), in decimal. More specifically,
+
+"%d@%d:%d:%d", bus, domain, device, function
+in printf(3) syntax. NVIDIA X driver logging, nvidia-xconfig, and nvidia-settings match the X configuration file BusID convention.
+
+The lspci(8) utility, in contrast, reports the PCI BusID of a PCI device in the format "domain:bus:device.function", printing the values in hexadecimal. More specifically,
+
+"%04x:%02x:%02x.%x", domain, bus, device, function
+in printf(3) syntax. The "Bus Location" reported in the /proc/driver/nvidia/gpus/0..N/information files matches the lspci format.
+**** Parsen der /proc/driver/nvidia/gpus/*/information Dateien
+#+BEGIN_SRC python
+  # read the BusID for nvidia cards and the model name from the /proc/driver/nvidia/gpus/*/information file(s)
+  from __future__ import print_function
+  import glob
+  import re
+
+  BusID_RE = re.compile((
+      '(?P<domain>[0-9a-fA-F]+)'
+      ':'
+      '(?P<bus>[0-9a-fA-F]+)'
+      ':'
+      '(?P<device>[0-9a-fA-F]+)'
+      '\.'
+      '(?P<function>[0-9a-fA-F]+)'
+  ))
+  Model_RE = re.compile('Model:\s+(.*)')
+
+  def get_BusIDs():
+      for gpu_info in glob.glob('/proc/driver/nvidia/gpus/*/information'):
+          with open(gpu_info) as f:
+              data = f.read()
+          match = BusID_RE.search(data)
+          if match:
+              BusID = "{:d}@{:d}:{:d}:{:d}".format(*(int(n, 16) for n in match.groups()))
+              yield BusID, Model_RE.match(data).groups()[0]
+  if __name__ == '__main__':
+      BusIDs = [BusID for BusID in get_BusIDs()]
+      print(BusIDs)
+#+END_SRC
 ** TODO [#B] plan for customization of xorg settings by the user
 either directly or using a configuration wizard or a web frontend
 ** SOMEDAY [#C] select best frontend based on GPU
 - intel :: softhddevice-vpp
 - amd :: softhddevice-vpp
 - nvidia :: softhddevice-openglosd (if no HEVC channels are needed)
+
+* Introduction
+One of the major problems we faced with customized Ubuntu ISO files as installation media for prior yaVDR versions has been the limited hardware support and the time consuming process to create and update them.  An interesting alternative to this approach is to enable the user to choose the installation medium himself so point releases, kernel versions and additional drivers can be chosen deliberately.  After the basic setup is complete (and a working internet connection is available), a fully customizable install script completes the yaVDR installation.
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
@@ -67,6 +144,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   become: true
   roles:
      - yavdr-common             # install and configure the basic system
+     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers (e.g. nvidia, virtualbox)
      - vdr                      # install vdr and related packages
      - yavdr-network            # enable network client capabilities
      - samba-install            # install samba server
@@ -79,6 +157,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
      #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
      #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
+     - kodi
+     - dvd
      - grub-config          # configure grub
 
   handlers:
@@ -115,7 +195,7 @@ localhost connection=local
 
 #+END_SRC
 * Group Variables
-** default text for templates
+** default text for templates used by ansible
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # file: group_vars/all
 
@@ -124,15 +204,15 @@ ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
 #+END_SRC
 ** PPAs
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
-branch: unstable
-ppa_owner: 'ppa:yavdr'
-# a list of all package repositories to be added to the installation
-repositories:
-  - '{{ ppa_owner }}/main'
-  - '{{ ppa_owner }}/unstable-main'
-  - '{{ ppa_owner }}/{{branch}}-vdr'
-  - '{{ ppa_owner }}/{{branch}}-yavdr'
-  - '{{ ppa_owner }}/{{branch}}-kodi'
+  branch: unstable
+  ppa_owner: 'ppa:yavdr'
+  # a list of all package repositories to be added to the installation
+  repositories:
+    - '{{ ppa_owner }}/main'
+    - '{{ ppa_owner }}/unstable-main'
+    - '{{ ppa_owner }}/{{branch}}-vdr'
+    - '{{ ppa_owner }}/{{branch}}-yavdr'
+    - '{{ ppa_owner }}/{{branch}}-kodi'
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -196,6 +276,43 @@ grub:
   boot_options: quiet nosplash
 #+END_SRC
 * Roles
+** install-dependencies
+*** tasks
+**** main.yml
+#+BEGIN_SRC yaml :tangle roles/install-packages/tasks/main.yml :mkdirp yes
+---
+
+- name: apt | install packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    '{{ packages }}'
+#+END_SRC
+
+** nvidia-381 drivers
+install nvidia-381 from ppa:graphics-drivers/ppa
+*** tasks
+**** main.yml
+#+BEGIN_SRC yaml :tangle roles/nvidia-381/tasks/main.yml :mkdirp yes
+---
+
+- name: add ppa:graphics-drivers/ppa
+  apt_repository:
+      repo: 'ppa:graphics-drivers/ppa'
+      state: present
+      update_cache: yes
+
+- name: install nvidia-381 and other required packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - nvidia-381
+    - nvidia-settings
+#+END_SRC
 ** yavdr-common
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
 *** default variables
@@ -257,12 +374,6 @@ vdr:
 *** tasks
 yavdr-common executes the following tasks:
 **** main.yml
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
----
-
-# This playbook sets up the basic packages an directories for a yaVDR installation
-# file: roles/yavdr-common/tasks/main.yml
- #+END_SRC
 ***** Disable default installation of recommended packages
  This task prevents apt to automatically install all recommended dependencies for packages:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
@@ -335,6 +446,7 @@ yavdr-common executes the following tasks:
     - at
     - bash-completion
     - biosdevname
+    - debconf-utils
     - linux-firmware
     - psmisc
     - python-kmodpy
@@ -342,7 +454,6 @@ yavdr-common executes the following tasks:
     - python3-usb
     - software-properties-common
     - ssh
-    - ubuntu-drivers-common
     - wget
     - wpasupplicant
     - usbutils
@@ -483,8 +594,8 @@ install_avahi: true
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/tasks/main.yml :mkdirp yes
 ---
 # this playbook sets up network services for a yaVDR installation
-#
-- name: install network packages
+
+- name: apt |install packages for network services
   apt:
       name: '{{ item }}'
       state: present
@@ -505,18 +616,30 @@ install_avahi: true
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
   
 #+END_SRC
-** STARTED nfs-server
+** nfs-server
 *** tasks
-#+BEGIN_SRC yaml :tanlge roles/nfs-server/tasks/main.yml :mkdirp yes
-- name: install and configure nfs-kernel-server
+#+BEGIN_SRC yaml :tangle roles/nfs-server/tasks/main.yml :mkdirp yes
+- name: install nfs server packages
   apt:
-      name: "{{ item }}"
-      state: present
-      install_recommends: no
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
   with_items:
-      - nfs-kernel-server
-  when:
-      - '{{ install_nfs_server }}'
+    - nfs-kernel-server
+    - nfs-common
+
+- name: create /etc/exports
+  template:
+    src: templates/nfs-exports.j2
+    dest: /etc/exports
+  notify: [ 'Restart NFS Kernel Server' ]
+#+END_SRC
+*** templates
+#+BEGIN_SRC conf :tangle roles/nfs-server/templates/nfs-exports.j2 :mkdirp yes
+  /srv *(rw,fsid=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
+  {% for name, path in media_dirs.iteritems() %}
+  {{ path }} *(rw,fsid={{ loop.index }},sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }}{{ ',insecure' if nfs.insecure else '' }})
+  {% endfor %}
 #+END_SRC
 ** TODO yavdr-remote
 *** default variables
@@ -603,7 +726,6 @@ Section "Monitor"
 EndSection
 
 #+END_SRC
-
 **** DONE Start X-server with debug-output
 #+BEGIN_SRC conf
 # /etc/systemd/system/x-debug@.service
@@ -913,6 +1035,26 @@ b'\xde\xad\xbe\xef'
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
 
+
+# TODO: use hooks or requirements instead
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  notify: ['Start VDR']
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
+
 - name: install packages for xorg
   apt:
     name: '{{ item }}'
@@ -969,7 +1111,7 @@ b'\xde\xad\xbe\xef'
     group: '{{ vdr.group }}'
   with_items:
     - '{{ vdr.home }}/.config/systemd/user'
-    - '{{ vdr.home }}/.config/openbox/autostart'
+    - '{{ vdr.home }}/.config/openbox/'
 
 ### TODO: move to yavdr-xorg package? ###
 - name: create folder for customizations of vdr.service
@@ -977,6 +1119,22 @@ b'\xde\xad\xbe\xef'
     state: directory
     dest: /etc/systemd/system/vdr.service.d
     mode: '0775'
+
+- name: create folder for systemd user configuration
+  file:
+    state: directory
+    dest: '{{ vdr.home }}/.config/systemd/user'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create folder for openbox configuration
+  file:
+    state: directory
+    dest: '{{ vdr.home }}/.config/openbox'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: add dependency to X-server for vdr.service using a drop-in
   template:
@@ -987,7 +1145,7 @@ b'\xde\xad\xbe\xef'
 - name: create .xinitrc for vdr user
   template:
       src: 'templates/.xinitrc.j2'
-      dest: '/var/lib/vdr/.xinitrc'
+      dest: '{{ vdr.home }}/.xinitrc'
       mode: 0755
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
@@ -995,7 +1153,23 @@ b'\xde\xad\xbe\xef'
 - name: populate autostart for openbox
   template:
       src: 'templates/autostart.j2'
-      dest: '/var/lib/vdr/.config/openbox/autostart'
+      dest: '{{ vdr.home }}/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand rc.xml for openbox
+  template:
+      src: 'templates/openbox_rc.xml.j2'
+      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create yavdr.target for the user session
+  template:
+      src: 'templates/yavdr-desktop.target.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
       mode: 0755
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
@@ -1040,14 +1214,28 @@ ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I
 [Unit]
 After=x@vt7.service
 Wants=x@vt7.service
-BindsTo=x@vt7.service
+#BindsTo=x@vt7.service
 #+END_SRC
 #+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes
 #!/bin/bash
 # {{ ansible_managed_file }}
 exec openbox-session
 #+END_SRC
-#+BEGIN_SRC shell tangle: ansible/yavdr-ansible/roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
+
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/yavdr-desktop.target.j2 :mkdirp yes
+[Unit]
+Description=yaVDR Desktop
+Requires=default.target
+After=default.target pulseaudio.service
+Wants=dbus.service pulseaudio.service
+AllowIsolate=yes
+#+END_SRC
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.yavdr :mkdirp yes
+
+#+END_SRC
+**** openbox
+****** autostart
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/autostart.j2 :mkdirp yes
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 
@@ -1055,42 +1243,829 @@ if which dbus-update-activation-environment >/dev/null 2>&1; then
         dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
 fi
 
-###
-# Needed to start pulseaudio before VDR if softhddevice is attached at startup
-# (so the frontend-skript can't force pulseaudio to free the soundcard)
-### 
-# pactl list sinks 2>&1 >> /tmp/audio.dbg
+# start systemd units for the yavdr user session
+systemctl --user isolate yavdr-desktop.target
+#+END_SRC
+****** rc.xml
+#+BEGIN_SRC xml :tangle roles/yavdr-xorg/templates/openbox_rc.xml.j2 :mkdirp yes :padline no
+  <?xml version="1.0" encoding="UTF-8"?>
+  <openbox_config xmlns="http://openbox.org/3.4/rc" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <!-- Do not edit this file, it will be overwritten on install.
+          Copy the file to $HOME/.config/openbox/ instead. -->
+    <resistance>
+      <strength>10</strength>
+      <screen_edge_strength>20</screen_edge_strength>
+    </resistance>
+    <focus>
+      <focusNew>yes</focusNew>
+      <!-- always try to focus new windows when they appear. other rules do
+         apply -->
+      <followMouse>no</followMouse>
+      <!-- move focus to a window when you move the mouse into it -->
+      <focusLast>yes</focusLast>
+      <!-- focus the last used window when changing desktops, instead of the one
+         under the mouse pointer. when followMouse is enabled -->
+      <underMouse>no</underMouse>
+      <!-- move focus under the mouse, even when the mouse is not moving -->
+      <focusDelay>200</focusDelay>
+      <!-- when followMouse is enabled, the mouse must be inside the window for
+         this many milliseconds (1000 = 1 sec) before moving focus to it -->
+      <raiseOnFocus>no</raiseOnFocus>
+      <!-- when followMouse is enabled, and a window is given focus by moving the
+         mouse into it, also raise the window -->
+    </focus>
+    <placement>
+      <policy>Smart</policy>
+      <!-- 'Smart' or 'UnderMouse' -->
+      <center>yes</center>
+      <!-- whether to place windows in the center of the free area found or
+         the top left corner -->
+      <monitor>Active</monitor>
+      <!-- with Smart placement on a multi-monitor system, try to place new windows
+         on: 'Any' - any monitor, 'Mouse' - where the mouse is, 'Active' - where
+         the active window is, 'Primary' - only on the primary monitor -->
+      <primaryMonitor>Active</primaryMonitor>
+      <!-- The monitor where Openbox should place popup dialogs such as the
+         focus cycling popup, or the desktop switch popup.  It can be an index
+         from 1, specifying a particular monitor.  Or it can be one of the
+         following: 'Mouse' - where the mouse is, or
+                    'Active' - where the active window is -->
+    </placement>
+    <theme>
+      <name>Onyx</name>
+      <titleLayout>NLIMC</titleLayout>
+      <!--
+        available characters are NDSLIMC, each can occur at most once.
+        N: window icon
+        L: window label (AKA title).
+        I: iconify
+        M: maximize
+        C: close
+        S: shade (roll up/down)
+        D: omnipresent (on all desktops).
+    -->
+      <keepBorder>yes</keepBorder>
+      <animateIconify>yes</animateIconify>
+      <font place="ActiveWindow">
+        <name>sans</name>
+        <size>8</size>
+        <!-- font size in points -->
+        <weight>bold</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+      <font place="InactiveWindow">
+        <name>sans</name>
+        <size>8</size>
+        <!-- font size in points -->
+        <weight>bold</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+      <font place="MenuHeader">
+        <name>sans</name>
+        <size>9</size>
+        <!-- font size in points -->
+        <weight>normal</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+      <font place="MenuItem">
+        <name>sans</name>
+        <size>9</size>
+        <!-- font size in points -->
+        <weight>normal</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+      <font place="ActiveOnScreenDisplay">
+        <name>sans</name>
+        <size>9</size>
+        <!-- font size in points -->
+        <weight>bold</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+      <font place="InactiveOnScreenDisplay">
+        <name>sans</name>
+        <size>9</size>
+        <!-- font size in points -->
+        <weight>bold</weight>
+        <!-- 'bold' or 'normal' -->
+        <slant>normal</slant>
+        <!-- 'italic' or 'normal' -->
+      </font>
+    </theme>
+    <desktops>
+      <!-- this stuff is only used at startup, pagers allow you to change them
+         during a session
+
+         these are default values to use when other ones are not already set
+         by other applications, or saved in your session
+
+         use obconf if you want to change these without having to log out
+         and back in -->
+      <number>2</number>
+      <firstdesk>1</firstdesk>
+      <names>
+        <!-- set names up here if you want to, like this:
+      <name>desktop 1</name>
+      <name>desktop 2</name>
+      -->
+      </names>
+      <popupTime>875</popupTime>
+      <!-- The number of milliseconds to show the popup for when switching
+         desktops.  Set this to 0 to disable the popup. -->
+    </desktops>
+    <resize>
+      <drawContents>yes</drawContents>
+      <popupShow>Nonpixel</popupShow>
+      <!-- 'Always', 'Never', or 'Nonpixel' (xterms and such) -->
+      <popupPosition>Center</popupPosition>
+      <!-- 'Center', 'Top', or 'Fixed' -->
+      <popupFixedPosition>
+        <!-- these are used if popupPosition is set to 'Fixed' -->
+        <x>10</x>
+        <!-- positive number for distance from left edge, negative number for
+           distance from right edge, or 'Center' -->
+        <y>10</y>
+        <!-- positive number for distance from top edge, negative number for
+           distance from bottom edge, or 'Center' -->
+      </popupFixedPosition>
+    </resize>
+    <!-- You can reserve a portion of your screen where windows will not cover when
+       they are maximized, or when they are initially placed.
+       Many programs reserve space automatically, but you can use this in other
+       cases. -->
+    <margins>
+      <top>0</top>
+      <bottom>0</bottom>
+      <left>0</left>
+      <right>0</right>
+    </margins>
+    <dock>
+      <position>TopLeft</position>
+      <!-- (Top|Bottom)(Left|Right|)|Top|Bottom|Left|Right|Floating -->
+      <floatingX>0</floatingX>
+      <floatingY>0</floatingY>
+      <noStrut>no</noStrut>
+      <stacking>Above</stacking>
+      <!-- 'Above', 'Normal', or 'Below' -->
+      <direction>Vertical</direction>
+      <!-- 'Vertical' or 'Horizontal' -->
+      <autoHide>no</autoHide>
+      <hideDelay>300</hideDelay>
+      <!-- in milliseconds (1000 = 1 second) -->
+      <showDelay>300</showDelay>
+      <!-- in milliseconds (1000 = 1 second) -->
+      <moveButton>Middle</moveButton>
+      <!-- 'Left', 'Middle', 'Right' -->
+    </dock>
+    <keyboard>
+      <chainQuitKey>C-g</chainQuitKey>
+      <!-- Keybindings for desktop switching -->
+      <keybind key="C-A-Left">
+        <action name="GoToDesktop">
+          <to>left</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="C-A-Right">
+        <action name="GoToDesktop">
+          <to>right</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="C-A-Up">
+        <action name="GoToDesktop">
+          <to>up</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="C-A-Down">
+        <action name="GoToDesktop">
+          <to>down</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="S-A-Left">
+        <action name="SendToDesktop">
+          <to>left</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="S-A-Right">
+        <action name="SendToDesktop">
+          <to>right</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="S-A-Up">
+        <action name="SendToDesktop">
+          <to>up</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="S-A-Down">
+        <action name="SendToDesktop">
+          <to>down</to>
+          <wrap>no</wrap>
+        </action>
+      </keybind>
+      <keybind key="W-F1">
+        <action name="GoToDesktop">
+          <to>1</to>
+        </action>
+      </keybind>
+      <keybind key="W-F2">
+        <action name="GoToDesktop">
+          <to>2</to>
+        </action>
+      </keybind>
+      <keybind key="W-F3">
+        <action name="GoToDesktop">
+          <to>3</to>
+        </action>
+      </keybind>
+      <keybind key="W-F4">
+        <action name="GoToDesktop">
+          <to>4</to>
+        </action>
+      </keybind>
+      <keybind key="W-d">
+        <action name="ToggleShowDesktop"/>
+      </keybind>
+      <!-- Keybindings for windows -->
+      <keybind key="A-F4">
+        <action name="Close"/>
+      </keybind>
+      <keybind key="A-Escape">
+        <action name="Lower"/>
+        <action name="FocusToBottom"/>
+        <action name="Unfocus"/>
+      </keybind>
+      <keybind key="A-space">
+        <action name="ShowMenu">
+          <menu>client-menu</menu>
+        </action>
+      </keybind>
+      <!-- Take a screenshot of the current window with scrot when Alt+Print are pressed -->
+      <keybind key="A-Print">
+        <action name="Execute">
+          <command>scrot -s</command>
+        </action>
+      </keybind>
+      <!-- Keybindings for window switching -->
+      <keybind key="A-Tab">
+        <action name="NextWindow">
+          <finalactions>
+            <action name="Focus"/>
+            <action name="Raise"/>
+            <action name="Unshade"/>
+          </finalactions>
+        </action>
+      </keybind>
+      <keybind key="A-S-Tab">
+        <action name="PreviousWindow">
+          <finalactions>
+            <action name="Focus"/>
+            <action name="Raise"/>
+            <action name="Unshade"/>
+          </finalactions>
+        </action>
+      </keybind>
+      <keybind key="C-A-Tab">
+        <action name="NextWindow">
+          <panels>yes</panels>
+          <desktop>yes</desktop>
+          <finalactions>
+            <action name="Focus"/>
+            <action name="Raise"/>
+            <action name="Unshade"/>
+          </finalactions>
+        </action>
+      </keybind>
+      <!-- Keybindings for window switching with the arrow keys -->
+      <keybind key="W-S-Right">
+        <action name="DirectionalCycleWindows">
+          <direction>right</direction>
+        </action>
+      </keybind>
+      <keybind key="W-S-Left">
+        <action name="DirectionalCycleWindows">
+          <direction>left</direction>
+        </action>
+      </keybind>
+      <keybind key="W-S-Up">
+        <action name="DirectionalCycleWindows">
+          <direction>up</direction>
+        </action>
+      </keybind>
+      <keybind key="W-S-Down">
+        <action name="DirectionalCycleWindows">
+          <direction>down</direction>
+        </action>
+      </keybind>
+      <!-- Keybindings for running applications -->
+      <keybind key="W-e">
+        <action name="Execute">
+          <startupnotify>
+            <enabled>true</enabled>
+            <name>Konqueror</name>
+          </startupnotify>
+          <command>kfmclient openProfile filemanagement</command>
+        </action>
+      </keybind>
+      <!-- Launch scrot when Print is pressed -->
+      <keybind key="Print">
+        <action name="Execute">
+          <command>scrot</command>
+        </action>
+      </keybind>
+    </keyboard>
+    <mouse>
+      <dragThreshold>1</dragThreshold>
+      <!-- number of pixels the mouse must move before a drag begins -->
+      <doubleClickTime>500</doubleClickTime>
+      <!-- in milliseconds (1000 = 1 second) -->
+      <screenEdgeWarpTime>400</screenEdgeWarpTime>
+      <!-- Time before changing desktops when the pointer touches the edge of the
+         screen while moving a window, in milliseconds (1000 = 1 second).
+         Set this to 0 to disable warping -->
+      <screenEdgeWarpMouse>false</screenEdgeWarpMouse>
+      <!-- Set this to TRUE to move the mouse pointer across the desktop when
+         switching due to hitting the edge of the screen -->
+      <context name="Frame">
+        <mousebind button="A-Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="A-Left" action="Click">
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="A-Left" action="Drag">
+          <action name="Move"/>
+        </mousebind>
+        <mousebind button="A-Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="A-Right" action="Drag">
+          <action name="Resize"/>
+        </mousebind>
+        <mousebind button="A-Middle" action="Press">
+          <action name="Lower"/>
+          <action name="FocusToBottom"/>
+          <action name="Unfocus"/>
+        </mousebind>
+        <mousebind button="A-Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="C-A-Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="C-A-Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-S-Up" action="Click">
+          <action name="SendToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-S-Down" action="Click">
+          <action name="SendToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Titlebar">
+        <mousebind button="Left" action="Drag">
+          <action name="Move"/>
+        </mousebind>
+        <mousebind button="Left" action="DoubleClick">
+          <action name="ToggleMaximize"/>
+        </mousebind>
+        <mousebind button="Up" action="Click">
+          <action name="if">
+            <shaded>no</shaded>
+            <then>
+              <action name="Shade"/>
+              <action name="FocusToBottom"/>
+              <action name="Unfocus"/>
+              <action name="Lower"/>
+            </then>
+          </action>
+        </mousebind>
+        <mousebind button="Down" action="Click">
+          <action name="if">
+            <shaded>yes</shaded>
+            <then>
+              <action name="Unshade"/>
+              <action name="Raise"/>
+            </then>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Titlebar Top Right Bottom Left TLCorner TRCorner BRCorner BLCorner">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Middle" action="Press">
+          <action name="Lower"/>
+          <action name="FocusToBottom"/>
+          <action name="Unfocus"/>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="ShowMenu">
+            <menu>client-menu</menu>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Top">
+        <mousebind button="Left" action="Drag">
+          <action name="Resize">
+            <edge>top</edge>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Left">
+        <mousebind button="Left" action="Drag">
+          <action name="Resize">
+            <edge>left</edge>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Right">
+        <mousebind button="Left" action="Drag">
+          <action name="Resize">
+            <edge>right</edge>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Bottom">
+        <mousebind button="Left" action="Drag">
+          <action name="Resize">
+            <edge>bottom</edge>
+          </action>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="ShowMenu">
+            <menu>client-menu</menu>
+          </action>
+        </mousebind>
+      </context>
+      <context name="TRCorner BRCorner TLCorner BLCorner">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Left" action="Drag">
+          <action name="Resize"/>
+        </mousebind>
+      </context>
+      <context name="Client">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="Middle" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+      </context>
+      <context name="Icon">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+          <action name="ShowMenu">
+            <menu>client-menu</menu>
+          </action>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="ShowMenu">
+            <menu>client-menu</menu>
+          </action>
+        </mousebind>
+      </context>
+      <context name="AllDesktops">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Left" action="Click">
+          <action name="ToggleOmnipresent"/>
+        </mousebind>
+      </context>
+      <context name="Shade">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="Left" action="Click">
+          <action name="ToggleShade"/>
+        </mousebind>
+      </context>
+      <context name="Iconify">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="Left" action="Click">
+          <action name="Iconify"/>
+        </mousebind>
+      </context>
+      <context name="Maximize">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Middle" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Left" action="Click">
+          <action name="ToggleMaximize"/>
+        </mousebind>
+        <mousebind button="Middle" action="Click">
+          <action name="ToggleMaximize">
+            <direction>vertical</direction>
+          </action>
+        </mousebind>
+        <mousebind button="Right" action="Click">
+          <action name="ToggleMaximize">
+            <direction>horizontal</direction>
+          </action>
+        </mousebind>
+      </context>
+      <context name="Close">
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+          <action name="Unshade"/>
+        </mousebind>
+        <mousebind button="Left" action="Click">
+          <action name="Close"/>
+        </mousebind>
+      </context>
+      <context name="Desktop">
+        <mousebind button="Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="C-A-Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="C-A-Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="Left" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="Focus"/>
+          <action name="Raise"/>
+        </mousebind>
+      </context>
+      <context name="Root">
+        <!-- Menus -->
+        <mousebind button="Middle" action="Press">
+          <action name="ShowMenu">
+            <menu>client-list-combined-menu</menu>
+          </action>
+        </mousebind>
+        <mousebind button="Right" action="Press">
+          <action name="ShowMenu">
+            <menu>root-menu</menu>
+          </action>
+        </mousebind>
+      </context>
+      <context name="MoveResize">
+        <mousebind button="Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-Up" action="Click">
+          <action name="GoToDesktop">
+            <to>previous</to>
+          </action>
+        </mousebind>
+        <mousebind button="A-Down" action="Click">
+          <action name="GoToDesktop">
+            <to>next</to>
+          </action>
+        </mousebind>
+      </context>
+    </mouse>
+    <menu>
+      <!-- You can specify more than one menu file in here and they are all loaded,
+         just don't make menu ids clash or, well, it'll be kind of pointless -->
+      <!-- default menu file (or custom one in $HOME/.config/openbox/) -->
+      <!-- system menu files on Debian systems -->
+      <file>/var/lib/openbox/debian-menu.xml</file>
+      <file>menu.xml</file>
+      <hideDelay>200</hideDelay>
+      <!-- if a press-release lasts longer than this setting (in milliseconds), the
+         menu is hidden again -->
+      <middle>no</middle>
+      <!-- center submenus vertically about the parent entry -->
+      <submenuShowDelay>100</submenuShowDelay>
+      <!-- time to delay before showing a submenu after hovering over the parent
+         entry.
+         if this is a negative value, then the delay is infinite and the
+         submenu will not be shown until it is clicked on -->
+      <submenuHideDelay>400</submenuHideDelay>
+      <!-- time to delay before hiding a submenu when selecting another
+         entry in parent menu
+         if this is a negative value, then the delay is infinite and the
+         submenu will not be hidden until a different submenu is opened -->
+      <showIcons>yes</showIcons>
+      <!-- controls if icons appear in the client-list-(combined-)menu -->
+      <manageDesktops>yes</manageDesktops>
+      <!-- show the manage desktops section in the client-list-(combined-)menu -->
+    </menu>
+      <!--
+    # this is an example with comments through out. use these to make your
+    # own rules, but without the comments of course.
+    # you may use one or more of the name/class/role/title/type rules to specify
+    # windows to match
+
+    <application name="the window's _OB_APP_NAME property (see obxprop)"
+                class="the window's _OB_APP_CLASS property (see obxprop)"
+            groupname="the window's _OB_APP_GROUP_NAME property (see obxprop)"
+           groupclass="the window's _OB_APP_GROUP_CLASS property (see obxprop)"
+                 role="the window's _OB_APP_ROLE property (see obxprop)"
+                title="the window's _OB_APP_TITLE property (see obxprop)"
+                 type="the window's _OB_APP_TYPE property (see obxprob)..
+                        (if unspecified, then it is 'dialog' for child windows)">
+    # you may set only one of name/class/role/title/type, or you may use more
+    # than one together to restrict your matches.
+
+    # the name, class, role, and title use simple wildcard matching such as those
+    # used by a shell. you can use * to match any characters and ? to match
+    # any single character.
+
+    # the type is one of: normal, dialog, splash, utility, menu, toolbar, dock,
+    #    or desktop
+
+    # when multiple rules match a window, they will all be applied, in the
+    # order that they appear in this list
+
+
+      # each rule element can be left out or set to 'default' to specify to not 
+      # change that attribute of the window
+
+      <decor>yes</decor>
+      # enable or disable window decorations
+
+      <shade>no</shade>
+      # make the window shaded when it appears, or not
+
+      <position force="no">
+        # the position is only used if both an x and y coordinate are provided
+        # (and not set to 'default')
+        # when force is "yes", then the window will be placed here even if it
+        # says you want it placed elsewhere.  this is to override buggy
+        # applications who refuse to behave
+        <x>center</x>
+        # a number like 50, or 'center' to center on screen. use a negative number
+        # to start from the right (or bottom for <y>), ie -50 is 50 pixels from
+        # the right edge (or bottom). use 'default' to specify using value
+        # provided by the application, or chosen by openbox, instead.
+        <y>200</y>
+        <monitor>1</monitor>
+        # specifies the monitor in a xinerama setup.
+        # 1 is the first head, or 'mouse' for wherever the mouse is
+      </position>
+
+      <size>
+        # the size to make the window.
+        <width>20</width>
+        # a number like 20, or 'default' to use the size given by the application.
+        # you can use fractions such as 1/2 or percentages such as 75% in which
+        # case the value is relative to the size of the monitor that the window
+        # appears on.
+        <height>30%</height>
+      </size>
+
+      <focus>yes</focus>
+      # if the window should try be given focus when it appears. if this is set
+      # to yes it doesn't guarantee the window will be given focus. some
+      # restrictions may apply, but Openbox will try to
+
+      <desktop>1</desktop>
+      # 1 is the first desktop, 'all' for all desktops
+
+      <layer>normal</layer>
+      # 'above', 'normal', or 'below'
+
+      <iconic>no</iconic>
+      # make the window iconified when it appears, or not
+
+      <skip_pager>no</skip_pager>
+      # asks to not be shown in pagers
+
+      <skip_taskbar>no</skip_taskbar>
+      # asks to not be shown in taskbars. window cycling actions will also
+      # skip past such windows
+
+      <fullscreen>yes</fullscreen>
+      # make the window in fullscreen mode when it appears
+
+      <maximized>true</maximized>
+      # 'Horizontal', 'Vertical' or boolean (yes/no)
+    </application>
+
+    # end of the example
+  -->
+    <applications>
+      <application title="softhddevice">
+        <decor>no</decor>
+        <maximized>true</maximized>
+        <!--<skip_pager>yes</skip_pager>-->
+        <skip_taskbar>yes</skip_taskbar>
+      </application>
+      <application title="browser">
+        <decor>no</decor>
+        <maximized>true</maximized>
+        <!--<skip_pager>yes</skip_pager>-->
+        <skip_taskbar>yes</skip_taskbar>
+      </application>
+      <application title="osd2Web">
+        <decor>no</decor>
+        <maximized>true</maximized>
+        <!--<skip_pager>yes</skip_pager>-->
+        <skip_taskbar>yes</skip_taskbar>
+      </application>
+    </applications>
+  </openbox_config>
 
 #+END_SRC
-#+BEGIN_SRC conf :tangle roles/yavdr-org/templates/xorg.conf.yavdr :mkdirp yes
-
-#+END_SRC
-** nfs-server
-*** tasks
-#+BEGIN_SRC yaml :tangle roles/nfs-server/tasks/main.yml :mkdirp yes
-- name: install nfs server packages
-  apt:
-    name: '{{ item }}'
-    state: present
-    install_recommends: no
-  with_items:
-    - nfs-kernel-server
-    - nfs-common
-
-- name: create /etc/exports
-  template:
-    src: templates/nfs-exports.j2
-    dest: /etc/exports
-  notify: [ 'Restart NFS Kernel Server' ]
-#+END_SRC
-*** templates
-#+BEGIN_SRC conf :tangle roles/nfs-server/templates/nfs-exports.j2 :mkdirp yes
-/srv *(rw,fsid=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
-{% for name, path in media_dirs.iteritems() %}
-{{ path }} *(rw,fsid={{ loop.index }},sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }}{{ ',insecure' if nfs.insecure else '' }})
-{% endfor %}
-#+END_SRC
-** nfs-config
 ** samba-install
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/samba-install/tasks/main.yml :mkdirp yes
@@ -1114,7 +2089,7 @@ fi
 # file: roles/samba-config/tasks/main.yml
 
 # TODO:
-#- name: divert original smbd.conf
+# - name: divert original smbd.conf
 
 - name: touch smb.conf.custom
   file:
@@ -1235,7 +2210,7 @@ fi
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
 include = /etc/samba/smb.conf.custom
 #+END_SRC
-** TODO autoinstall-drivers
+** STARTED autoinstall-drivers
 It would be nice to be able to detect if it is suitable to install those drivers:
 *** sundtek for Sundtek devices (local or network connection)
 Vendor-IDs:
@@ -1246,7 +2221,29 @@ Vendor-IDs:
 *** newly merged DD drivers
 from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
 
+** autoinstall-ubuntu-drivers
+The tool ubuntu-drivers is used to install the matching driver version for nvidia graphics cards, virtualbox guest additions and Intel and AMD microcode updates.
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-ubuntu-drivers/tasks/main.yml
+  ---
+  # file roles/autoinstall-ubuntu-drivers/tasks/main.yml
+
+  - name: apt | install ubuntu-drivers-common
+    apt:
+      name: ubuntu-drivers-common
+      state: present
+
+  - name: ensure /etc/yavdr exists
+    file:
+      path: /etc/yavdr
+      state: directory
+      mode: 0755
+
+  - name: let ubuntu-drivers automatically install additional drivers
+    command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+#+END_SRC
 ** autoinstall-satip
+If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip is installed.
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-satip/tasks/main.yml
 ---
@@ -1347,6 +2344,73 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   when: 
     - '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]
+#+END_SRC
+** dvd
+*** tasks
+**** install libdvd-pkg
+#+BEGIN_SRC yaml :tangle roles/dvd/tasks/main.yml :mkdirp yes
+---
+# file: roles/dvd/tasks/main.yml
+
+- name: preconfigure libdvd-pkg
+  shell: |
+    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
+    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
+
+- name: apt | install libdvd-pkg
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - libdvd-pkg
+#+END_SRC
+
+** kodi
+*** tasks
+**** Install KODI
+#+BEGIN_SRC yaml :tangle roles/kodi/tasks/main.yml :mkdirp yes
+---
+
+- name: change udev rule to allow KODI to eject optical disks
+  shell: sed 's/--lock-media //' /lib/udev/rules.d/60-cdrom_id.rules > /etc/udev/rules.d/60-cdrom_id.rules
+  args:
+    creates: /etc/udev/rules.d/60-cdrom_id.rules
+
+- name: apt | install kodi packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - kodi
+    - kodi-pvr-vdr-vnsi
+    - kodi-eventclients-xbmc-send  
+
+- name: create kodi.service for the user session
+  template:
+      src: 'templates/kodi.service.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/kodi.service'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+#+END_SRC
+*** templates
+**** kodi.service
+#+BEGIN_SRC conf :tangle roles/kodi/templates/kodi.service.j2 :mkdirp yes
+[Unit]
+Description=Start kodi in user session
+
+[Service]
+Type=simple
+PassEnvironment=DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+ExecStartPre=-/usr/bin/set-kodi-display
+ExecStart=/usr/bin/kodi
+ExecStop=/bin/bash -c "/usr/bin/kodi-send --action=QUIT; while /usr/bin/pgrep kodi; do sleep 1;  done; sleep 1"
+TimeoutStopSec=10
+SuccessExitStatus=0 127
+Restart=on-failure
 #+END_SRC
 ** template-test
 #+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml
@@ -1643,132 +2707,132 @@ fi
 This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
 ** hardware_facts.py
 #+BEGIN_SRC python :tangle library/hardware_facts.py
-#!/usr/bin/env python
+  #!/usr/bin/env python
 
-# This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
-DOCUMENTATION = '''
----
-module: hardware_facts
-short_description: collects facts for kernel modules, usb and pci devices
-description:
-     - This Module collects the vendor- and device ids for USB- and PCI(e)-devices and
-       currently loaded kernel modules.
-options:
-    usb:
-        required: False
-        default: True
-        description:
-          - return a list of vendor- and device ids for usb devices in '04x:04x' notation
+  # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
+  DOCUMENTATION = '''
+  ---
+  module: hardware_facts
+  short_description: collects facts for kernel modules, usb and pci devices
+  description:
+       - This Module collects the vendor- and device ids for USB- and PCI(e)-devices and
+         currently loaded kernel modules.
+  options:
+      usb:
+          required: False
+          default: True
+          description:
+            - return a list of vendor- and device ids for usb devices in '04x:04x' notation
 
-    pci:
-        required: False
-        default: True
-        description:
-          - return a list of vendor- and device ids for pci devices in '04x:04x' notation
+      pci:
+          required: False
+          default: True
+          description:
+            - return a list of vendor- and device ids for pci devices in '04x:04x' notation
 
-    modules:
-        required: False
-        default: True
-        description:
-          - return a list of currently loaded kernel modules
+      modules:
+          required: False
+          default: True
+          description:
+            - return a list of currently loaded kernel modules
 
-    gpus:
-        required: False
-        default: True
-        description:
-          - return a list of devices of the pci gpu class (0x030000)
-notes:
-   - requres python-pyusb and python-kmodpy
-requirements: [ ]
-author: "Alexander Grothe <seahawk1986@gmx.de>"
-'''
+      gpus:
+          required: False
+          default: True
+          description:
+            - return a list of devices of the pci gpu class (0x030000)
+  notes:
+     - requres python-pyusb and python-kmodpy
+  requirements: [ ]
+  author: "Alexander Grothe <seahawk1986@gmx.de>"
+  '''
 
-EXAMPLES = '''
-- name: get information about usb and pci hardware and loaded kernel modules
-  hardware_facts:
-    usb: True
-    pci: True
-    modules: True
-- debug:
-    var: usb
-- debug
-    var: pci
-- debug
-    var: modules
-- debug
-    var: gpus
-'''
+  EXAMPLES = '''
+  - name: get information about usb and pci hardware and loaded kernel modules
+    hardware_facts:
+      usb: True
+      pci: True
+      modules: True
+  - debug:
+      var: usb
+  - debug
+      var: pci
+  - debug
+      var: modules
+  - debug
+      var: gpus
+  '''
 
-import glob
-import json
-import os
-import sys
-import usb.core
-from collections import namedtuple
+  import glob
+  import json
+  import os
+  import sys
+  import usb.core
+  from collections import namedtuple
 
-import kmodpy
-from ansible.module_utils.basic import *
-
-
-PCIDevice = namedtuple("PCIDevice", ['idVendor', 'idProduct', 'idClass'])
-
-def get_pci_devices():
-    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
-        with open(os.path.join(device, 'device')) as d:
-            product_id = int(d.read().strip(), 16)
-        with open(os.path.join(device, 'vendor')) as d:
-            vendor_id = int(d.read().strip(), 16)
-        with open(os.path.join(device, 'class')) as d:
-            class_id = int(d.read().strip(), 16)
-        yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id)
-
-def format_device_list(iterator):
-    return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
-
-def format_gpu_device_list(iterator):
-    def get_entries(iterator):
-        for d in iterator:
-            if d.idClass == 0x030000:
-                yield ("{:04x}:{:04x}".format(d.idVendor, d.idProduct))
-    return [entry for entry in get_entries(iterator)]
-
-arg_specs = {
-    'usb': dict(default=True, type='bool', required=False),
-    'pci': dict(default=True, type='bool', required=False),
-    'modules': dict(default=True, type='bool', required=False),
-    'gpus': dict(default=True, type='bool', required=False),
-    }
+  import kmodpy
+  from ansible.module_utils.basic import *
 
 
-def main():
-    module = AnsibleModule(argument_spec=arg_specs, supports_check_mode=True,)
-    collect_usb = module.params['usb']
-    collect_pci = module.params['pci']
-    collect_modules = module.params['modules']
-    collect_gpus = module.params['gpus']
-    if collect_usb:
-        usb_devices = format_device_list(usb.core.find(find_all=True))
-    else:
-        usb_device = []
-    if collect_pci:
-        pci_devices = format_device_list(get_pci_devices())
-    else:
-        pci_devices = []
-    if collect_modules:
-        k = kmodpy.Kmod()
-        modules = [m[0] for m in k.loaded()]
-    else:
-        modules = []
-    if collect_gpus:
-        gpus = format_gpu_device_list(get_pci_devices())
-    else:
-        gpus = []
-    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
-    module.exit_json(changed=False, ansible_facts=data, msg=data)
+  PCIDevice = namedtuple("PCIDevice", 'idVendor idProduct idClass pciPath')
+
+  def get_pci_devices():
+      for device in glob.glob('/sys/devices/pci*/*:*:*/'):
+          with open(os.path.join(device, 'device')) as d:
+              product_id = int(d.read().strip(), 16)
+          with open(os.path.join(device, 'vendor')) as d:
+              vendor_id = int(d.read().strip(), 16)
+          with open(os.path.join(device, 'class')) as d:
+              class_id = int(d.read().strip(), 16)
+          yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id, pciPath=device)
+
+  def format_device_list(iterator):
+      return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
+
+  def format_gpu_device_list(iterator):
+      def get_entries(iterator):
+          for d in iterator:
+              if d.idClass == 0x030000:
+                  yield ("{:04x}:{:04x}".format(d.idVendor, d.idProduct))
+      return [entry for entry in get_entries(iterator)]
+
+  arg_specs = {
+      'usb': dict(default=True, type='bool', required=False),
+      'pci': dict(default=True, type='bool', required=False),
+      'modules': dict(default=True, type='bool', required=False),
+      'gpus': dict(default=True, type='bool', required=False),
+      }
 
 
-if __name__ == '__main__':  
-    main()
+  def main():
+      module = AnsibleModule(argument_spec=arg_specs, supports_check_mode=True,)
+      collect_usb = module.params['usb']
+      collect_pci = module.params['pci']
+      collect_modules = module.params['modules']
+      collect_gpus = module.params['gpus']
+      if collect_usb:
+          usb_devices = format_device_list(usb.core.find(find_all=True))
+      else:
+          usb_device = []
+      if collect_pci:
+          pci_devices = format_device_list(get_pci_devices())
+      else:
+          pci_devices = []
+      if collect_modules:
+          k = kmodpy.Kmod()
+          modules = [m[0] for m in k.loaded()]
+      else:
+          modules = []
+      if collect_gpus:
+          gpus = format_gpu_device_list(get_pci_devices())
+      else:
+          gpus = []
+      data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
+      module.exit_json(changed=False, ansible_facts=data, msg=data)
+
+
+  if __name__ == '__main__':  
+      main()
 #+END_SRC
 ** satip_facts.py
 #+BEGIN_SRC python :tangle library/satip_facts.py

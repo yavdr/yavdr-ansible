@@ -1,0 +1,17 @@
+
+---
+# file roles/autoinstall-ubuntu-drivers/tasks/main.yml
+
+- name: apt | install ubuntu-drivers-common
+  apt:
+    name: ubuntu-drivers-common
+    state: present
+
+- name: ensure /etc/yavdr exists
+  file:
+    path: /etc/yavdr
+    state: directory
+    mode: 0755
+
+- name: let ubuntu-drivers automatically install additional drivers
+  command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall

@@ -1,0 +1,16 @@
+
+---
+# file: roles/dvd/tasks/main.yml
+
+- name: preconfigure libdvd-pkg
+  shell: |
+    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
+    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
+
+- name: apt | install libdvd-pkg
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - libdvd-pkg

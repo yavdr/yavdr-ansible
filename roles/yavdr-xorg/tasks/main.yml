@@ -1,5 +1,26 @@
+
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
+
+
+# TODO: use hooks or requirements instead
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  notify: ['Start VDR']
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
 
 - name: install packages for xorg
   apt:
@@ -57,7 +78,7 @@
     group: '{{ vdr.group }}'
   with_items:
     - '{{ vdr.home }}/.config/systemd/user'
-    - '{{ vdr.home }}/.config/openbox/autostart'
+    - '{{ vdr.home }}/.config/openbox/'
 
 ### TODO: move to yavdr-xorg package? ###
 - name: create folder for customizations of vdr.service
@@ -65,6 +86,22 @@
     state: directory
     dest: /etc/systemd/system/vdr.service.d
     mode: '0775'
+
+- name: create folder for systemd user configuration
+  file:
+    state: directory
+    dest: '{{ vdr.home }}/.config/systemd/user'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create folder for openbox configuration
+  file:
+    state: directory
+    dest: '{{ vdr.home }}/.config/openbox'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: add dependency to X-server for vdr.service using a drop-in
   template:
@@ -75,7 +112,7 @@
 - name: create .xinitrc for vdr user
   template:
       src: 'templates/.xinitrc.j2'
-      dest: '/var/lib/vdr/.xinitrc'
+      dest: '{{ vdr.home }}/.xinitrc'
       mode: 0755
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
@@ -83,7 +120,23 @@
 - name: populate autostart for openbox
   template:
       src: 'templates/autostart.j2'
-      dest: '/var/lib/vdr/.config/openbox/autostart'
+      dest: '{{ vdr.home }}/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand rc.xml for openbox
+  template:
+      src: 'templates/openbox_rc.xml.j2'
+      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create yavdr.target for the user session
+  template:
+      src: 'templates/yavdr-desktop.target.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
       mode: 0755
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
@@ -96,6 +149,11 @@
       uid: '{{ vdr.uid }}'
       groups: '{{ vdr.group }}'
       append: yes
+
+# TODO: run xorg-debug and parse xrandr output
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
 
 - name: enable and start xlogin for the user vdr
   systemd:
