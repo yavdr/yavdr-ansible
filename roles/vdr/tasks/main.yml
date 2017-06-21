@@ -61,3 +61,17 @@
   with_items:
     '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
+
+- name: ensure vdr is stopped
+  systemd:
+    name: vdr.service
+    state: stopped
+  notify: [ 'Start VDR' ]
+
+- name: 'vdr configuration | expand template for remote.conf'
+  template:
+    src: templates/remote.conf.j2
+    dest: '/var/lib/vdr/remote.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644

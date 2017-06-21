@@ -20,3 +20,24 @@
 #   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
+  
+- name: restart autofs
+  systemd:
+    name: autofs
+    state: restarted
+    enabled: yes
+    masked: no
+
+- name: ensure autofs is running
+  systemd:
+    name: autofs
+    state: started
+    enabled: yes
+    masked: no
+
+- name: start avahi-linker
+  systemd:
+    name: avahi-linker
+    state: started
+    enabled: yes
+    masked: no
