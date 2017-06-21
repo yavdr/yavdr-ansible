@@ -1,0 +1,14 @@
+[Unit]
+Description=Start openbox on the second DISPLAY if it exists
+After=detect-second-display.service
+Wants=detect-second-display.service
+Before=yavdr-frontend.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+EnvironmentFile=%h/.second_display
+ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc.xml
+
+[Install]
+WantedBy=yavdr-desktop.target
