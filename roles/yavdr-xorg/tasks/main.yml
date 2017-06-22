@@ -9,6 +9,16 @@
     enabled: yes
   notify: ['Start VDR']
 
+- name: create directory /etc/systemd/system/vdr.service.d/
+  file:
+    dest: /etc/systemd/system/vdr.service.d/
+    state: directory
+
+- name: add environment file for vdr.service
+  template:
+    src: templates/systemd/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
 - name: Stop xlogin
   systemd:
     name: xlogin@vdr.service
