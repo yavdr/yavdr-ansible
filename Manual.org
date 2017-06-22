@@ -796,6 +796,7 @@ install_avahi: true
     enabled: yes
     masked: no
 #+END_SRC
+
 ** nfs-server
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/nfs-server/tasks/main.yml :mkdirp yes :padline no
@@ -816,7 +817,11 @@ install_avahi: true
     dest: /etc/exports
   notify: [ 'Restart NFS Kernel Server' ]
 
-- name populate /etc/avahi/services
+- name: populate /etc/avahi/services
+  template:
+    src: templates/avahi/service.j2
+    dest: '/etc/avahi/services/yavdr-{{ item.key }}.service'
+  with_dict: '{{ media_dirs }}'
 #+END_SRC
 *** templates
 **** /etc/exports
@@ -827,16 +832,16 @@ install_avahi: true
 {% endfor %}
 #+END_SRC
 **** avahi services
-#+BEGIN_SRC xml :tangle roles/yavdr-network/avahi/service.j2 :mkdirp yes :padline no
+#+BEGIN_SRC xml :tangle roles/nfs-server/templates/avahi/service.j2 :mkdirp yes :padline no
 <?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
 <service-group>
-<name replace-wildcards="yes">{{ item|capitalize }} on %h</name> ## Name
+<name replace-wildcards="yes">{{ item.key|capitalize }} on %h</name> ## Name
 <service>
        <type>_nfs._tcp</type>
        <port>2049</port>
-       <txt-record>path={{ item.path }}</txt-record> ## path to shared Folder
-       <txt-record>subtype={% 'vdr' if item == 'recordings' else item %}</txt-record> ## subtype
+       <txt-record>path={{ item.value }}</txt-record> ## path to shared Folder
+       <txt-record>subtype={{ 'vdr' if item.key == 'recordings' else item.key }}</txt-record> ## subtype
 </service>
 </service-group>
 #+END_SRC
@@ -884,6 +889,7 @@ install_avahi: true
 ---
 
 - name: install pulseaudio
+  apt:
     name: '{{ item }}'
     state: present
     install_recommends: no
@@ -1309,6 +1315,16 @@ b'\xde\xad\xbe\xef'
     enabled: yes
   notify: ['Start VDR']
 
+- name: create directory /etc/systemd/system/vdr.service.d/
+  file:
+    dest: /etc/systemd/system/vdr.service.d/
+    state: directory
+
+- name: add environment file for vdr.service
+  template:
+    src: templates/systemd/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
 - name: Stop xlogin
   systemd:
     name: xlogin@vdr.service
@@ -1497,6 +1513,11 @@ Wants=x@vt7.service
 #!/bin/bash
 # {{ ansible_managed_file }}
 exec openbox-session
+#+END_SRC
+**** vdr
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
+[Service]
+EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 **** Systemd User Session
 ***** yavdr-desktop.target
