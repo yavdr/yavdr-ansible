@@ -813,13 +813,30 @@ install_avahi: true
     src: templates/nfs-exports.j2
     dest: /etc/exports
   notify: [ 'Restart NFS Kernel Server' ]
+
+- name populate /etc/avahi/services
 #+END_SRC
 *** templates
+**** /etc/exports
 #+BEGIN_SRC conf :tangle roles/nfs-server/templates/nfs-exports.j2 :mkdirp yes :padline no
-  /srv *(rw,fsid=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
-  {% for name, path in media_dirs.iteritems() %}
-  {{ path }} *(rw,fsid={{ loop.index }},sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }}{{ ',insecure' if nfs.insecure else '' }})
-  {% endfor %}
+/srv *(rw,fsid=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
+{% for name, path in media_dirs.iteritems() %}
+{{ path }} *(rw,fsid={{ loop.index }},sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }}{{ ',insecure' if nfs.insecure else '' }})
+{% endfor %}
+#+END_SRC
+**** avahi services
+#+BEGIN_SRC xml :tangle roles/yavdr-network/avahi/service.j2 :mkdirp yes :padline no
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+<name replace-wildcards="yes">{{ item|capitalize }} on %h</name> ## Name
+<service>
+       <type>_nfs._tcp</type>
+       <port>2049</port>
+       <txt-record>path={{ item.path }}</txt-record> ## path to shared Folder
+       <txt-record>subtype={% 'vdr' if item == 'recordings' else item %}</txt-record> ## subtype
+</service>
+</service-group>
 #+END_SRC
 ** TODO yavdr-remote
 *** default variables
