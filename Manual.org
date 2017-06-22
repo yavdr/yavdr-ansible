@@ -30,6 +30,7 @@ Several roles are used to tie everything together:
 - yavdr-common :: installs the basic set of packages needed and preconfigures the system (package sources, package manager settings, entires for network ports, directory structure etc.). Also collects information about the system
 - autoinstall-ubuntu-drivers :: uses Ubuntu's automatic detection for additional drivers (e.g. proprietary nvidia driver, microcode updates, VirtualBox guest additions)
 - vdr :: install the vdr package and required plugins
+- pulseaudio :: install and preconfigure pulseaudio
 - yavdr-network :: configure WOL, add nfs client capabilites, install avahi-linker
 - samba-server :: install and preconfigure a samba server
 - nfs-server :: install nfs-kernelserver and preconfigure nfs exports (and avahi-announcements)
@@ -155,6 +156,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - samba-install            # install samba server
      - samba-config             # configure samba server
      - nfs-server               # install nfs server
+     - pulseaudio               # install pulseaudio
      - yavdr-xorg               # graphical session
      - yavdr-remote             # remote configuration files, services and scripts
      - autoinstall-satip        # install vdr-plugin-satip if a Sat>IP server has been found
@@ -876,6 +878,41 @@ install_avahi: true
 *** templates
 *** files
 
+** pulseaudio
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/pulseaudio/tasks/main.yml :mkdirp yes :padline no
+---
+
+- name: install pulseaudio
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - pulseaudio
+    - pavucontrol
+
+- name: create /etc/asound.conf
+  template:
+    src: templates/alsa/asound.conf.j2
+    dest: /etc/asound.conf
+#+END_SRC
+*** templates
+#+BEGIN_SRC conf :tangle roles/pulseaudio/templates/alsa/asound.conf.j2 :mkdirp yes :padline no
+# Use PulseAudio by default
+pcm.!default {
+  type pulse
+  fallback "sysdefault"
+  hint {
+    show on
+    description "Default ALSA Output (currently PulseAudio Sound Server)"
+  }
+}
+
+ctl.!default {
+  type pulse
+  fallback "sysdefault"
+}
+#+END_SRC
 ** yavdr-xorg
 *** TODO automatic X-server configuration
 - [X] detect connected display
