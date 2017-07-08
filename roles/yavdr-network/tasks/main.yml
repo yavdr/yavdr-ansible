@@ -21,7 +21,7 @@
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
   
-- name: restart autofs
+- name: restart autofs if running
   systemd:
     name: autofs
     state: restarted
@@ -32,6 +32,13 @@
   systemd:
     name: autofs
     state: started
+    enabled: yes
+    masked: no
+
+- name: restart avahi-linker if running
+  systemd:
+    name: avahi-linker
+    state: restarted
     enabled: yes
     masked: no
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+<name replace-wildcards="yes">{{ item.value|capitalize }} on %h</name> ## Name
+<service>
+       <type>_nfs._tcp</type>
+       <port>2049</port>
+       <txt-record>path={{ item.value }}</txt-record> ## path to shared Folder
+       <txt-record>subtype={% 'vdr' if item == 'recordings' else item %}</txt-record> ## subtype
+</service>
+</service-group>

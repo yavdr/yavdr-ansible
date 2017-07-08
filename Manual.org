@@ -13,7 +13,7 @@
 # Local Variables:
 # org-src-preserve-indentation: t
 # End:
-#+PROPERTY: header-args :mkdirp yes
+#+PROPERTY: header-args :mkdirp yes :padline no
 #+TITLE: Ansible Playbooks for yaVDR 0.7
 #+Author: Alexander Grothe <seahawk1986@gmx.de>
 :END:
@@ -55,7 +55,6 @@ Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, devic
 - Wie BusID der xrandr-Ausgabe zuordnen?
 *** NVIDIA-Dokumentation zur BusID:
 **** What is the format of a PCI Bus ID?
-
 Different tools have different formats for the PCI Bus ID of a PCI device.
 
 The X server's "BusID" X configuration file option interprets the BusID string in the format "bus@domain:device:function" (the "@domain" portion is only needed if the PCI domain is non-zero), in decimal. More specifically,
@@ -231,6 +230,7 @@ vdr:
   uid: 666
   gid: 666
   home: /var/lib/vdr
+  confdir: /var/lib/vdr
   recdir: /srv/vdr/video
   hide_first_recording_level: false
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
@@ -456,7 +456,7 @@ yavdr-common executes the following tasks:
     - anacron
     - at
     - bash-completion
-    - biosdevname
+    #- biosdevname  # caution: may change device names after a minimal installation!
     - debconf-utils
     - linux-firmware
     - psmisc
@@ -595,7 +595,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
 #+END_SRC
-**** expand template for remote.conf
+**** copy vdr configuration files (if they don't exist yet)
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: ensure vdr is stopped
   systemd:
@@ -603,18 +603,29 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     state: stopped
   notify: [ 'Start VDR' ]
 
-- name: 'vdr configuration | expand template for remote.conf'
-  template:
-    src: templates/remote.conf.j2
-    dest: '/var/lib/vdr/remote.conf'
+- name: "vdr configuration | copy remote.conf if it doesn't exist yet"
+  copy:
+    src: files/remote.conf
+    dest: '{{ vdr.confdir }}/remote.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
+    force: no
+
+- name: "vdr configuration | copy keymacros.conf if it doesn't exist yet"
+  copy:
+    src: files/keymacros.conf
+    dest: '{{ vdr.confdir }}/keymacros.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: no
 #+END_SRC
 
 *** templates
+*** files
 **** remote.conf
-#+BEGIN_SRC conf :tangle roles/vdr/templates/remote.conf.j2 :mkdirp yes :padline no
+#+BEGIN_SRC conf :tangle roles/vdr/files/remote.conf :mkdirp yes :padline no
 LIRC.Up KEY_UP
 LIRC.Down KEY_DOWN
 LIRC.Menu KEY_MENU
@@ -744,6 +755,25 @@ XKeySym.Play/Pause  XF86AudioPlay
 XKeySym.Prev       XF86AudioPrev
 XKeySym.Next       XF86AudioNext
 #+END_SRC
+**** keymacros.conf
+#+BEGIN_SRC conf :tangle roles/vdr/files/keymacros.conf :padline no
+# Remote control key macros for VDR
+#
+# Format:
+#
+# macrokey  key1 key2 key3...
+# macrokey  @plugin key1 key2 key3...
+#
+# See man vdr(5)
+
+Red       Recordings
+Green     Schedule
+Yellow    Info
+Blue      Timers
+User0     @osdteletext
+
+
+#+END_SRC
 ** STARTED yavdr-network
 *** default variables
 
@@ -775,7 +805,7 @@ install_avahi: true
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
   
-- name: restart autofs
+- name: restart autofs if running
   systemd:
     name: autofs
     state: restarted
@@ -789,6 +819,13 @@ install_avahi: true
     enabled: yes
     masked: no
 
+- name: restart avahi-linker if running
+  systemd:
+    name: avahi-linker
+    state: restarted
+    enabled: yes
+    masked: no
+
 - name: start avahi-linker
   systemd:
     name: avahi-linker
@@ -798,6 +835,7 @@ install_avahi: true
 #+END_SRC
 
 ** nfs-server
+*** TODO avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/nfs-server/tasks/main.yml :mkdirp yes :padline no
 ---
@@ -864,12 +902,24 @@ install_avahi: true
   when:
     - install_lircd is defined and install_lircd
 
+- name: disable lircd.socket and lircd.service (conflict with eventlircd with default configuration)
+  systemd:
+    name: '{{ item }}'
+    enabled: no
+    state: stopped
+    masked: yes
+  with_items:
+    - lircd.service
+    - lircd.socket
+  ignore_errors: yes
+
 - name: install eventlircd
   apt:
     name: eventlircd
     state: present
   when:
       install_eventlircd is defined and install_eventlircd
+
 
 # TODO: upload lircd2uinput package to PPA
 #- name: install lircd2uinput
@@ -1349,6 +1399,7 @@ b'\xde\xad\xbe\xef'
     - openbox
     - tmux
     - kiosk-browser
+    - read-edid
     #- yavdr-xorg
 
 - name: "stop x@vt7.service"
@@ -1360,6 +1411,11 @@ b'\xde\xad\xbe\xef'
   template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
+
+- name: "expand template for xorg-verbose.conf"
+  template:
+    src: "templates/xorg-verbose.conf.j2"
+    dest: "/etc/X11/xorg-verbose.conf"
 
 - name: "start x-verbose@.service"
   systemd:
@@ -1376,6 +1432,13 @@ b'\xde\xad\xbe\xef'
 - name: "detect xorg configuration"
   action: xrandr_facts
 
+- debug:
+    var: xorg.primary
+
+- debug:
+    var: xorg.secondary
+  when: xorg.secondary is defined
+
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -1384,6 +1447,11 @@ b'\xde\xad\xbe\xef'
     masked: true
 
 ### TODO: Create xorg configuration
+- name: create xorg.conf (test)
+  template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: yes
 
 - name: create folders for user session
   file:
@@ -1497,7 +1565,7 @@ Before=graphical.target
 
 [Service]
 Type=forking
-ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I
+ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config /etc/X11/xorg-debug.conf
 #+END_SRC
 ***** Drop-in snippet for vdr.service
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes :padline no
@@ -1514,6 +1582,329 @@ Wants=x@vt7.service
 # {{ ansible_managed_file }}
 exec openbox-session
 #+END_SRC
+***** xorg.conf
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
+Section "Device"
+        Identifier "nvidia"
+        Driver  "nvidia"
+        Option  "NoLogo"              "true"
+        Option  "DynamicTwinView"     "true"
+        Option  "NoFlip"              "false"
+#        Option  "FlatPanelProperties" "Scaling = Native"
+#        Option  "ModeValidation"      "NoVesaModes, NoXServerModes"
+#        Option  "ModeDebug"           "true"
+#        Option  "HWCursor"            "false"
+EndSection
+
+Section "Screen"
+        Identifier      "screen"
+        Device          "nvidia"
+EndSection
+
+Section "Extensions"
+        Option  "Composite"           "false"
+EndSection
+#+END_SRC
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.j2
+{{ ansible_managed_file | comment }}
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen         0  "Screen0"
+{% if xorg.secondary is defined %}
+    Screen         1  "Screen1" RightOf "Screen0"
+{% endif %}
+    #InputDevice    "Keyboard0" "CoreKeyboard"
+    #InputDevice    "Mouse0" "CorePointer"
+EndSection
+
+Section "InputClass"
+    Identifier "exclude eventlircd devices"
+    MatchTag   "eventlircd"
+    Option     "Ignore"    "True"
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor0"
+    VendorName     "{{ xorg.primary.vendor }}"
+    ModelName      "{{ xorg.primary.model }}"
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+EndSection
+
+Section "Device"
+    Identifier     "Device0"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    Option  "NoLogo"              "true"
+{% if xorg.primary.bus_id is defined %}
+    BoardName      "{{ xorg.primary.gpu_name }}"
+    BusID          "{{ xorg.primary.bus_id }}"
+{% else %}
+    BoardName      "Unknown"
+{% endif %}
+    Screen          0
+EndSection
+
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
+    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}"
+    Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
+    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin"
+    Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0"
+    Option         "SLI" "Off"
+    Option         "MultiGPU" "Off"
+    Option         "BaseMosaic" "off"
+    SubSection     "Display"
+        Depth       24
+    EndSubSection
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Device"
+    Identifier     "Device1"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    Option  "NoLogo"              "true"
+{% if xorg.secondary.bus_id is defined %}
+    BoardName      "{{ xorg.primary.gpu_name }}"
+    BusID          "{{ xorg.primary.bus_id }}"
+{% else %}
+    BoardName      "Unknown"
+{% endif %}
+    Screen          1
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor1"
+    VendorName     "{{ xorg.secondary.vendor }}"
+    ModelName      "{{ xorg.secondary.model }}"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen1"
+    Device         "Device1"
+    Monitor        "Monitor1"
+    DefaultDepth    24
+    Option         "nvidiaXineramaInfoOrder" "{{ xorg.secondary.connector }}"
+    Option         "ConnectedMonitor" "{{ xorg.secondary.connector }}"
+    Option         "UseDisplayDevice" "{{ xorg.secondary.connector }}"
+    Option         "CustomEDID" "{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin"
+    Option         "metamodes" "{{ xorg.secondary.connector }}: {{ xorg.secondary.mode }} +0+0"
+    Option         "SLI" "Off"
+    Option         "MultiGPU" "Off"
+    Option         "BaseMosaic" "off"
+    SubSection     "Display"
+        Depth       24
+    EndSubSection
+EndSection
+{% endif %}
+
+
+
+
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
+{{ ansible_managed_file | comment }}
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0"
+    {% if xorg.best_tv_mode.secondary is defined %}
+    Screen      1  "Screen1" RightOf "Screen0"
+    {% endif %}
+    InputDevice    "Keyboard0" "CoreKeyboard"
+    InputDevice    "Mouse0" "CorePointer"
+EndSection
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Mouse0"
+    Driver         "mouse"
+    Option         "Protocol" "auto"
+    Option         "Device" "/dev/psaux"
+    Option         "Emulate3Buttons" "no"
+    Option         "ZAxisMapping" "4 5"
+EndSection
+
+# ignore devices with eventlircd tag 
+# ENV{ID_INPUT.tags}+="eventlircd"
+# must be set by an udev rule
+Section "InputClass"
+    Identifier "ignore eventlircd devices"
+    MatchTag "eventlircd"
+    Option "Ignore" "True"
+EndSection
+
+
+
+Section "InputDevice"
+    # generated from default
+    Identifier     "Keyboard0"
+    Driver         "kbd"
+EndSection
+
+
+Section "Monitor"
+    Identifier     "Monitor0"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{# TODO: VGA2SCART support (if needed)
+{% if system.x11.display.0.default == "VGA2Scart_4_3" or system.x11.display.0.default == "VGA2Scart_16_9" %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.0.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.0.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+{% endif %}
+#}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+EndSection
+
+
+{% if xrandr.best_tv_mode.secondary is defined %}
+Section "Monitor"
+    Identifier     "Monitor1"
+    VendorName     "Unknown"
+    ModelName      "Unknown"
+{#
+{% if system.x11.display.1.default in ("VGA2Scart_4_3",  "VGA2Scart_16_9") %}
+    HorizSync       14-17
+    VertRefresh     49-61
+    {% if system.x11.display.1.default == "VGA2Scart_4_3" %}
+    Modeline "VGA2Scart_4_3" 13.875 720 744 808 888 576 580 585 625 -HSync -Vsync interlace
+    {% elif system.x11.display.1.default == "VGA2Scart_16_9" %}
+    Modeline "VGA2Scart_16_9" 19 1024 1032 1120 1216 576 581 586 625 -Hsync -Vsync interlace
+    {% endif %}
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+{% endif %}
+#}
+EndSection
+{% endif %}
+
+Section "Device"
+    Identifier     "Device0"
+{% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+{% endif %}
+    Screen          0
+    Option         "DPI" "100x100"
+{% if system.hardware.nvidia.busid is defined and system.hardware.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+{% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+    Option         "OnDemandVBlankinterrupts" "on"
+    Option         "FlatPanelProperties" "Scaling = Native"
+EndSection
+
+{% if xrandr.best_tv_mode.secondary is defined %}
+Section "Device"
+    Identifier     "Device1"
+    {% if system.hardware.nvidia.detected %}
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    {% endif %}
+    Screen          1
+    {% if system.hardware.nvidia.busid is defined and system.hardware.nvidia.busid %}
+    BusID          "PCI: {{ system.hardware.nvidia.busid }}"
+    {% endif %}
+    Option         "NoLogo" "True"
+    Option         "UseEvents" "True"
+    Option         "TripleBuffer" "False"
+    Option         "AddARGBGLXVisuals" "True"
+    Option         "TwinView" "0"
+    Option         "DynamicTwinView" "0"
+EndSection
+{% endif %}
+
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    SubSection     "Display"
+        Depth       24
+{% if xrandr.best_tv_mode.primary is defined %}
+        Modes      "{{ xrandr.best_tv_mode.primary.mode }}"{#{% for mode in xrandr %}{% if mode != system.x11.display.0.default %} "{{ mode }}"{% endif %}{% endfor %}#} nvidia-auto-select
+
+{% elif system.hardware.nvidia.detected == 1 %}
+        Modes      "nvidia-auto-select"
+{% endif %}
+    EndSubSection
+{% if system.x11.display.0.default or system.x11.default %}
+    {% if system.x11.display.0.device is definded and system.x11.display.0.device %}
+    Option         "ConnectedMonitor" {{ system.x11.display.0.device }}
+    {% else %}
+    Option         "ConnectedMonitor" {{ system.x11.default }}
+    {% endif %}
+    #     Option         "ConnectedMonitor" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?><?cs if:(?system.x11.dualhead.enabled && system.x11.dualhead.enabled == 1) ?>, <?cs call:fix_display_name(system.x11.display.1.device) ?><?cs /if ?>"
+    #Option         "ConnectedMonitor"
+    "<?cs if:(?system.x11.display.0.device) ?>
+          <?cs call:fix_display_name(system.x11.display.0.device) ?>
+     <?cs else ?>
+          <?cs var:system.x11.default ?>
+     <?cs /if ?>
+     <?cs if:(?system.x11.dualhead.enabled && system.x11.dualhead.enabled == 1) ?>, <?cs call:fix_display_name(system.x11.display.1.device) ?><?cs /if ?>"
+#     Option         "UseDisplayDevice" "<?cs if:(?system.x11.display.0.device) ?><?cs call:fix_display_name(system.x11.display.0.device) ?><?cs else ?><?cs var:system.x11.default ?><?cs /if ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.0.edid && system.hardware.nvidia.0.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.0.device) ?>:/etc/X11/edid.0.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.0.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:system.x11.display.0.default ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.0.mode ?><?cs if:(mode != system.x11.display.0.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?> 
+{% endif %}
+EndSection
+
+{% if system.x11.dualhead.enabled == "1" %}
+Section "Screen"
+
+     Identifier     "Screen1"
+     Device         "Device1"
+     Monitor        "Monitor1"
+     DefaultDepth    24
+     SubSection     "Display"
+         Depth       24
+{% if system.x11.display.0.default is defined and system.x11.display.0.default %}
+         Modes      "{{ system.x11.display.1.default }}"{% for mode in system.x11.display.1.mode %}{% if mode != system.x11.display.1.default %} "{{ mode }}"{% endif %}{% endfor %}
+
+{% elif system.hardware.nvidia.detected == "1" %}
+         Modes      "nvidia-auto-select"
+{% endif %}
+      EndSubSection
+
+# <?cs if:(?system.x11.display.1.default && system.x11.display.1.default != "" && system.x11.display.1.default != "disabled") ?>
+#     Option         "UseDisplayDevice" "<?cs call:fix_display_name(system.x11.display.1.device) ?>"
+# <?cs /if ?>
+# <?cs if:(?system.hardware.nvidia.1.edid && system.hardware.nvidia.1.edid == "1") ?>
+#     Option         "CustomEDID" "<?cs call:fix_display_name(system.x11.display.1.device) ?>:/etc/X11/edid.1.yavdr"
+# <?cs /if ?>
+# <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.1.device) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:system.x11.display.1.default ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"
+# <?cs each:mode = system.x11.display.1.mode ?><?cs if:(mode != system.x11.display.1.default) ?>
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.1.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.1.viewport.in.x ?>x<?cs var:system.x11.display.1.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.1.viewport.out.x ?>x<?cs var:system.x11.display.1.viewport.out.y ?>+<?cs var:system.x11.display.1.viewport.out.plusx ?>+<?cs var:system.x11.display.1.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?>
+# <?cs /if ?>
+EndSection
+{% endif %}
+#+END_SRC
 **** vdr
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
 [Service]
@@ -1529,9 +1920,7 @@ After=default.target pulseaudio.service
 Wants=dbus.service pulseaudio.service
 AllowIsolate=yes
 #+END_SRC
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.yavdr :mkdirp yes
 
-#+END_SRC
 ***** detect-second-display
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/detect-second-display.service.j2 :mkdirp yes :padline no
 [Unit]
@@ -2588,13 +2977,13 @@ include = /etc/samba/smb.conf.custom
 #+END_SRC
 ** STARTED autoinstall-drivers
 It would be nice to be able to detect if it is suitable to install those drivers:
-*** sundtek for Sundtek devices (local or network connection)
+*** TODO sundtek for Sundtek devices (local or network connection)
 Vendor-IDs:
 - eb1a:5[1b2] (alte Generation)
 - 2659:*      (neuere Sticks)
-*** dddvb-dkms if only newer DD cards are detected
-*** media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
-*** newly merged DD drivers
+*** TODO dddvb-dkms if only newer DD cards are detected
+*** TODO media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
+*** TODO newly merged DD drivers
 from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
 
 ** autoinstall-ubuntu-drivers
@@ -2770,6 +3159,19 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
+- name: create kodi user directory
+  file:
+      dest: '{{ vdr.home }}/{{ item }}'
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: "0775"
+  with_items:
+      - .kodi
+      - .kodi/userdata
+      - .kodi/userdata/keymaps
+
+# TODO: Add configuration files
 #+END_SRC
 *** templates
 **** kodi.service
@@ -2786,6 +3188,613 @@ ExecStop=/bin/bash -c "/usr/bin/kodi-send --action=QUIT; while /usr/bin/pgrep ko
 TimeoutStopSec=10
 SuccessExitStatus=0 127
 Restart=on-failure
+#+END_SRC
+*** files
+**** Lircmap.xml
+#+BEGIN_SRC xml :tangle roles/kodi/files/userdata/Lircmap.xml :padline no :mkdirp yes
+<lircmap>
+	<remote device="linux-input-layer">
+	<altname>cx23885_remote</altname>
+	<altname>devinput</altname>
+		<up>KEY_UP</up>
+		<down>KEY_DOWN</down>
+                <menu>KEY_MENU</menu>
+		<select>KEY_OK</select>
+		<back>KEY_ESC</back>
+		<left>KEY_LEFT</left>
+		<right>KEY_RIGHT</right>
+		<red>KEY_RED</red>
+		<green>KEY_GREEN</green>
+		<yellow>KEY_YELLOW</yellow>
+		<blue>KEY_BLUE</blue>
+		<zero>KEY_0</zero>
+		<one>KEY_1</one>
+		<two>KEY_2</two>
+		<three>KEY_3</three>
+		<four>KEY_4</four>
+		<five>KEY_5</five>
+		<six>KEY_6</six>
+		<seven>KEY_7</seven>
+		<eight>KEY_8</eight>
+		<nine>KEY_9</nine>
+		<info>KEY_INFO</info>
+		<play>KEY_PLAY</play>
+		<play>KEY_PLAYPAUSE</play>
+		<pause>KEY_PAUSE</pause>
+		<stop>KEY_STOP</stop>
+		<record>KEY_RECORD</record>
+		<forward>KEY_FASTFORWARD</forward>
+		<reverse>KEY_REWIND</reverse>
+		<skipplus>KEY_NEXT</skipplus>
+		<skipminus>KEY_BACK</skipminus>
+		<power>KEY_POWER2</power>
+		<channelplus>KEY_CHANNELUP</channelplus>
+		<channelminus>KEY_CHANNELDOWN</channelminus>
+		<title>KEY_PROG3</title>
+		<volumeplus>KEY_VOLUMEUP</volumeplus>
+		<volumeminus>KEY_VOLUMEDOWN</volumeminus>
+                <teletext>KEY_TEXT</teletext>
+		<mute>KEY_MUTE</mute>
+		<start>KEY_SELECT</start>
+		<subtitle>KEY_SUBTITLE</subtitle>
+                <audio>KEY_MODE</audio>
+		<mute>KEY_MUTE</mute>
+		<myvideo>KEY_VIDEO</myvideo>
+		<mymusic>KEY_AUDIO</mymusic>
+		<mypictures>KEY_IMAGES</mypictures>
+		<recordedtv>KEY_PVR</recordedtv>
+                <guide>KEY_EPG</guide>
+                <display>KEY_SCREEN</display>
+                <enter>KEY_PROG4</enter>
+                <playlist>KEY_ZOOM</playlist>
+                <livetv>KEY_CHANNEL</livetv>
+                <mytv>KEY_TV</mytv>
+                <liveradio>KEY_FN</liveradio>
+	</remote>
+</lircmap>
+#+END_SRC
+**** keymaps
+***** remote.xml
+#+BEGIN_SRC xml :tangle roles/kodi/files/userdata/keymaps/remote.xml :padline no :mkdirp yes
+<!-- This file contains the mapping of keys (gamepad, remote, and keyboard) to actions within XBMC -->
+<!-- The <global> section is a fall through - they will only be used if the button is not          -->
+<!-- used in the current window's section.  Note that there is only handling                       -->
+<!-- for a single action per button at this stage.                                                 -->
+<!-- For joystick/gamepad configuration under linux/win32, see below as it differs from xbox       -->
+<!-- gamepads.                                                                                     -->
+
+<!-- The format is:                      -->
+<!--    <device>                         -->
+<!--      <button>action</button>        -->
+<!--    </device>                        -->
+
+<!-- To map keys from other remotes using the RCA protocol, you may add <universalremote> blocks -->
+<!-- In this case, the tags used are <obc#> where # is the original button code (OBC) of the key -->
+<!-- You set it up by adding a <universalremote> block to the window or <global> section:       -->
+<!--    <universalremote>             -->
+<!--       <obc45>Stop</obc45>         -->
+<!--    </universalremote>            -->
+<!-- To find out the OBC's of your remote, try enabling the <displayremotecodes> tag in AdvancedSettings.xml -->
+
+<!-- Note that the action can be a built-in function.                 -->
+<!--  eg <B>XBMC.ActivateWindow(MyMusic)</B>                         -->
+<!-- would automatically go to My Music on the press of the B button. -->
+
+<!-- Joysticks / Gamepads:                                                                    -->
+<!--   See the sample PS3 controller configuration below for the format.                      -->
+<!--                                                                                          -->
+<!--  Joystick Name:                                                                          -->
+<!--   Do 'cat /proc/bus/input/devices' or see your xbmc log file  to find the names of       -->
+<!--   detected joysticks. The name used in the configuration should match the detected name. -->
+<!--                                                                                          -->
+<!--  Button Ids:                                                                             -->
+<!--   'id' is the button ID used by SDL. Joystick button ids of connected joysticks appear   -->
+<!--   in xbmc.log when they are pressed. Use your log to map custom buttons to actions.      -->
+<!--                                                                                          -->
+<!--  Axis Ids / Analog Controls                                                              -->
+<!--   Coming soon.                                                                           -->
+<keymap>
+  <global>
+    <universalremote>
+       <obc150>XBMC.ejecttray()</obc150>
+       <obc151>Playlist</obc151>
+    </universalremote>
+    <remote>
+      <play>PlayPause</play>
+      <pause>Pause</pause>
+      <stop>Stop</stop>
+      <forward>FastForward</forward>
+      <reverse>Rewind</reverse>
+      <left>Left</left>
+      <right>Right</right>
+      <up>Up</up>
+      <down>Down</down>
+      <select>Select</select>
+      <pageplus>PageUp</pageplus>
+      <pageminus>PageDown</pageminus>
+      <back>ParentDir</back>
+      <menu>PreviousMenu</menu>
+      <title>ContextMenu</title>
+      <info>Info</info>
+      <skipplus>SkipNext</skipplus>
+      <skipminus>SkipPrevious</skipminus>
+      <display>FullScreen</display>
+      <start>PreviousMenu</start>
+      <record>Screenshot</record>
+      <volumeplus>VolumeUp</volumeplus>
+      <volumeminus>VolumeDown</volumeminus>
+      <mute>Mute</mute>
+      <power>XBMC.Quit()</power>
+      <myvideo>XBMC.ActivateWindow(MyVideos)</myvideo>
+      <mymusic>XBMC.ActivateWindow(MyMusic)</mymusic>
+      <mypictures>XBMC.ActivateWindow(MyPictures)</mypictures>
+      <!--- <mytv>XBMC.ActivateWindow(Home)</mytv> -->
+      <recordedtv>XBMC.ActivateWindowAndFocus(MyPVR, 34,0, 13,0)</recordedtv>
+      <!-- PVR: EPG -->
+      <guide>XBMC.ActivateWindowAndFocus(MyPVR, 31,0, 10,0)</guide>
+      <!-- PVR: Channellist -->
+      <livetv>XBMC.ActivateWindowAndFocus(MyPVR, 32,0, 11,0)</livetv>
+      <!-- PVR: Radio -->
+      <liveradio>XBMC.ActivateWindowAndFocus(MyPVR, 33,0, 12,0)</liveradio>
+      <red>XBMC.ActivateWindow(Home)</red>
+      <yellow>XBMC.ActivateWindow(MyVideos)</yellow>
+      <green>XBMC.ActivateWindow(MyMusic)</green>
+      <!-- <blue>XBMC.ActivateWindow(MyPictures)</blue> -->
+      <zero>Number0</zero>
+      <one>Number1</one>
+      <two>JumpSMS2</two>
+      <three>JumpSMS3</three>
+      <four>JumpSMS4</four>
+      <five>JumpSMS5</five>
+      <six>JumpSMS6</six>
+      <seven>JumpSMS7</seven>
+      <eight>JumpSMS8</eight>
+      <nine>JumpSMS9</nine>
+      <audio>AudioNextLanguage</audio>
+      <subtitle>ShowSubtitles</subtitle>
+      <enter>FullScreen</enter>
+      <blue>ContextMenu</blue>
+      <playlist>XBMC.ActivateWindow(MyMusicPlaylist)</playlist>
+    </remote>
+  </global>
+  <Home>
+    <remote>
+      <menu>XBMC.Skin.ToggleSetting(HomeViewToggle)</menu>
+      <info>XBMC.ActivateWindow(SystemInfo)</info>
+      <clear>XBMC.ActivateWindow(Weather)</clear>
+      <blue>XBMC.ActivateWindow(Settings)</blue>
+      <red>FullScreen</red>
+      <back>FullScreen</back>
+    </remote>
+  </Home>
+  <MyFiles>
+    <remote>
+      <clear>Delete</clear>
+    </remote>
+  </MyFiles>
+  <MyMusicPlaylist>
+    <remote>
+      <back>Playlist</back>      <!-- Close playlist -->
+      <clear>Delete</clear>
+    </remote>
+  </MyMusicPlaylist>
+  <MyMusicPlaylistEditor>
+    <remote>
+      <zero>Queue</zero>
+    </remote>
+  </MyMusicPlaylistEditor>
+  <MyMusicFiles>
+    <remote>
+      <zero>Queue</zero>
+      <star>Queue</star>
+      <start>ContextMenu</start>
+    </remote>
+  </MyMusicFiles>
+  <MyMusicLibrary>
+    <remote>
+      <zero>Queue</zero>
+      <star>Queue</star>
+    </remote>
+  </MyMusicLibrary>
+  <FullscreenVideo>
+    <remote>
+      <back>FullScreen</back>
+      <zero>Number0</zero>
+      <one>Number1</one>
+      <two>Number2</two>
+      <three>Number3</three>
+      <four>Number4</four>
+      <five>Number5</five>
+      <six>Number6</six>
+      <seven>Number7</seven>
+      <eight>Number8</eight>
+      <nine>Number9</nine>
+      <left>Rewind</left>
+      <right>FastForward</right>
+      <up>Play</up>
+      <down>Pause</down>
+      <yellow>StepForward</yellow>
+      <green>StepBack</green>
+      <blue>CodecInfo</blue>
+      <menu>OSD</menu>
+      <start>OSD</start>
+      <info>XBMC.ActivateWindow(PVROSDChannels)</info>
+      <title>XBMC.ActivateWindow(PVROSDChannels)</title>
+      <display>AspectRatio</display>
+      <select>Info</select>
+      <teletext>XBMC.ActivateWindow(Teletext)</teletext>
+      <channelplus>SkipNext</channelplus>
+      <channelminus>SkipPrevious</channelminus>
+      <record>XBMC.PlayerControl(Record)</record>
+    </remote>
+  </FullscreenVideo>
+  <FullscreenInfo>
+    <remote>
+      <back>FullScreen</back>
+      <left>Rewind</left>
+      <right>FastForward</right>
+      <up>Play</up>
+      <down>Pause</down>
+      <yellow>StepForward</yellow>
+      <green>StepBack</green>
+      <display>AspectRatio</display>
+      <info>CodecInfo</info>
+      <select>Close</select>
+      <menu>OSD</menu>
+    </remote>
+  </FullscreenInfo>
+  <PlayerControls>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+    </remote>
+  </PlayerControls>
+  <Visualisation>
+    <universalremote>
+       <obc151>XBMC.ActivateWindow(MyMusicPlaylist)</obc151>
+    </universalremote>
+    <remote>
+      <red>FullScreen</red>
+      <yellow>AnalogSeekForward</yellow>
+      <green>AnalogSeekBack</green>
+      <blue>CodecInfo</blue>
+      <left>Rewind</left>
+      <right>FastForward</right>
+      <pageplus>SkipNext</pageplus>
+      <pageminus>SkipPrevious</pageminus>
+      <up>Play</up>
+      <down>Pause</down>
+      <info>XBMC.ActivateWindow(PVROSDChannels)</info>
+      <back>XBMC.ActivateWindow(MyMusicPlaylist)</back>
+      <select>Info</select>
+      <menu>XBMC.ActivateWindow(MusicOSD)</menu>
+      <start>XBMC.ActivateWindow(MusicOSD)</start>
+    </remote>
+  </Visualisation>
+  <MusicOSD>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+      <start>Close</start>
+      <info>CodecInfo</info>
+    </remote>
+  </MusicOSD>
+  <VisualisationSettings>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+    </remote>
+  </VisualisationSettings>
+  <VisualisationPresetList>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+    </remote>
+  </VisualisationPresetList>
+  <SlideShow>
+    <remote>
+      <zero>ZoomNormal</zero>
+      <one>ZoomLevel1</one>
+      <two>ZoomLevel2</two>
+      <three>ZoomLevel3</three>
+      <four>ZoomLevel4</four>
+      <five>ZoomLevel5</five>
+      <six>ZoomLevel6</six>
+      <seven>ZoomLevel7</seven>
+      <eight>ZoomLevel8</eight>
+      <nine>ZoomLevel9</nine>
+      <info>CodecInfo</info>
+      <pageplus>ZoomIn</pageplus>
+      <pageminus>ZoomOut</pageminus>
+      <select>Rotate</select>
+      <up>Pause</up>
+      <down>Play</down>
+      <back>PreviousMenu</back>
+    </remote>
+  </SlideShow>
+  <ScreenCalibration>
+    <remote>
+      <select>NextCalibration</select>
+      <enter>NextCalibration</enter>
+      <zero>ResetCalibration</zero>
+      <display>NextResolution</display>
+      <xbox>NextResolution</xbox>
+    </remote>
+  </ScreenCalibration>
+  <GUICalibration>
+    <remote>
+      <select>NextCalibration</select>
+      <enter>NextCalibration</enter>
+      <zero>ResetCalibration</zero>
+    </remote>
+  </GUICalibration>
+  <SelectDialog>
+    <remote>
+      <back>Close</back>
+    </remote>
+  </SelectDialog>
+  <VideoOSD>
+    <remote>
+      <back>PreviousMenu</back>
+      <menu>Close</menu>
+      <start>Close</start>
+    </remote>
+  </VideoOSD>
+  <VideoMenu>
+    <remote>
+      <menu>OSD</menu>
+      <back>PreviousMenu</back>
+      <info>Info</info>
+      <title>CodecInfo</title>
+      <zero>Number0</zero>
+      <one>Number1</one>
+      <two>Number2</two>
+      <three>Number3</three>
+      <four>Number4</four>
+      <five>Number5</five>
+      <six>Number6</six>
+      <seven>Number7</seven>
+      <eight>Number8</eight>
+      <nine>Number9</nine>
+    </remote>
+  </VideoMenu>
+  <OSDVideoSettings>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+      <start>Close</start>
+    </remote>
+  </OSDVideoSettings>
+  <OSDAudioSettings>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+      <start>Close</start>
+    </remote>
+  </OSDAudioSettings>
+  <VideoBookmarks>
+    <remote>
+      <back>Close</back>
+      <menu>Close</menu>
+      <start>Close</start>
+      <zero>Delete</zero>
+    </remote>
+  </VideoBookmarks>
+  <MyVideoLibrary>
+    <remote>
+      <zero>Queue</zero>
+      <clear>Delete</clear>
+      <green>ToggleWatched</green>
+      <yellow>Queue</yellow>
+    </remote>
+  </MyVideoLibrary>
+  <MyVideoFiles>
+    <remote>
+      <zero>Queue</zero>
+      <star>Queue</star>
+      <blue>ContextMenu</blue>
+      <green>ToggleWatched</green>
+      <yellow>Queue</yellow>
+    </remote>
+  </MyVideoFiles>
+  <MyPictures>
+    <remote>
+      <zero>Queue</zero>
+      <star>Queue</star>
+      <start>ContextMenu</start>
+    </remote>
+  </MyPictures>
+  <MyVideoPlaylist>
+    <remote>
+      <back>Playlist</back>      <!-- Close playlist -->
+      <clear>Delete</clear>
+      <zero>Delete</zero>
+    </remote>
+  </MyVideoPlaylist>
+  <VirtualKeyboard>
+    <remote>
+      <back>BackSpace</back>
+      <star>Shift</star>
+      <hash>Symbols</hash>
+      <zero>Number0</zero>
+      <one>Number1</one>
+      <two>Number2</two>
+      <three>Number3</three>
+      <four>Number4</four>
+      <five>Number5</five>
+      <six>Number6</six>
+      <seven>Number7</seven>
+      <eight>Number8</eight>
+      <nine>Number9</nine>
+      <pageminus>CursorLeft</pageminus>
+      <pageplus>CursorRight</pageplus>
+    </remote>
+  </VirtualKeyboard>
+  <ContextMenu>
+    <remote>
+      <blue>Close</blue>
+      <back>Close</back>
+    </remote>
+  </ContextMenu>
+  <FileStackingDialog>
+    <remote>
+      <back>Close</back>
+    </remote>
+  </FileStackingDialog>
+  <Scripts>
+    <remote>
+      <info>XBMC.ActivateWindow(ScriptsDebugInfo)</info>
+    </remote>
+  </Scripts>
+  <ScriptsDebugInfo>
+    <remote>
+      <info>Info</info>      <!-- clears debug python info -->
+    </remote>
+  </ScriptsDebugInfo>
+  <NumericInput>
+    <remote>
+      <zero>Number0</zero>
+      <one>Number1</one>
+      <two>Number2</two>
+      <three>Number3</three>
+      <four>Number4</four>
+      <five>Number5</five>
+      <six>Number6</six>
+      <seven>Number7</seven>
+      <eight>Number8</eight>
+      <nine>Number9</nine>
+      <back>BackSpace</back>
+    </remote>
+  </NumericInput>
+  <Weather>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </Weather>
+  <Settings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </Settings>
+  <MyPicturesSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </MyPicturesSettings>
+  <MyProgramsSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </MyProgramsSettings>
+  <MyWeatherSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </MyWeatherSettings>
+  <MyMusicSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </MyMusicSettings>
+  <SystemSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </SystemSettings>
+  <MyVideosSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </MyVideosSettings>
+  <NetworkSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </NetworkSettings>
+  <AppearanceSettings>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </AppearanceSettings>
+  <Profiles>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </Profiles>
+  <systeminfo>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </systeminfo>
+  <shutdownmenu>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </shutdownmenu>
+  <submenu>
+    <remote>
+      <back>PreviousMenu</back>
+    </remote>
+  </submenu>
+  <MusicInformation>
+    <remote>
+      <back>Close</back>
+    </remote>
+  </MusicInformation>
+  <MovieInformation>
+    <remote>
+      <back>Close</back>
+    </remote>
+  </MovieInformation>
+  <LockSettings>
+    <remote>
+      <menu>Close</menu>
+      <back>PreviousMenu</back>
+    </remote>
+  </LockSettings>
+  <ProfileSettings>
+    <remote>
+      <menu>Close</menu>
+      <back>PreviousMenu</back>
+    </remote>
+  </ProfileSettings>
+  <PictureInfo>
+    <remote>
+      <skipplus>NextPicture</skipplus>
+      <skipminus>PreviousPicture</skipminus>
+      <info>Close</info>
+      <back>Close</back>
+    </remote>
+  </PictureInfo>
+  <Teletext>
+    <remote>
+      <zero>number0</zero>
+      <one>number1</one>
+      <two>number2</two>
+      <three>number3</three>
+      <four>number4</four>
+      <five>number5</five>
+      <six>number6</six>
+      <seven>number7</seven>
+      <eight>number8</eight>
+      <nine>number9</nine>
+      <red>Red</red>
+      <green>Green</green>
+      <yellow>Yellow</yellow>
+      <blue>Blue</blue>
+      <info>Info</info>
+      <back>Close</back>
+      <menu>Close</menu>
+      <start>Close</start>
+      <teletext>Close</teletext>
+    </remote>
+  </Teletext>
+  <Favourites>
+    <remote>
+      <back>Close</back>
+    </remote>
+  </Favourites>
+</keymap>
 #+END_SRC
 ** template-test
 #+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml :padline no
@@ -3283,6 +4292,7 @@ if __name__ == '__main__':
 from __future__ import print_function
 import ast
 import binascii
+import csv
 import re
 import subprocess
 from collections import namedtuple
@@ -3303,11 +4313,6 @@ options:
         default: ":0"
         description:
           - the DISPLAY variable to use when calling xrandr
-    multi_display:
-        required: False
-        default: "False"
-        description:
-          - check additional screens (:0.0 .. :0.n) until xrandr fails to collect information
     preferred_outpus:
         required: False
         default: ["HDMI", "DP", "DVI", "VGA", "TV": 0]
@@ -3340,7 +4345,6 @@ EXAMPLES = '''
 
 ARG_SPECS = {
     'display': dict(default=":0", type='str', required=False),
-    'multi_display': dict(default=False, type='bool', required=False),
     'preferred_outputs': dict(
         default=["HDMI", "DP", "DVI", "VGA", "TV"], type='list', required=False),
     'preferred_refreshrates': dict(
@@ -3454,6 +4458,45 @@ def parse_xrandr_verbose(iterator):
                         break
     return xorg
 
+def parse_edid_data(edid):
+    vendor = "Unknown"
+    model = "Unknown"
+    data = subprocess.check_output("parse-edid < {}".format(edid), shell=True, universal_newlines=True)
+    for line in data.splitlines():
+        if "VendorName" in line:
+            vendor = line.strip().split('"')[1]
+        if "ModelName" in line:
+            model =  line.strip().split('"')[1]
+    return vendor, model
+
+def collect_nvidia_data():
+    BusID_RE = re.compile((
+        '(?P<domain>[0-9a-fA-F]+)'
+        ':'
+        '(?P<bus>[0-9a-fA-F]+)'
+        ':'
+        '(?P<device>[0-9a-fA-F]+)'
+        '\.'
+        '(?P<function>[0-9a-fA-F]+)'
+     ))    
+    try:
+        data = subprocess.check_output(["nvidia-smi", "--query-gpu=name,pci.bus_id", "--format=csv", "-i0"],
+                                universal_newlines=True)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        for row in csv.DictReader(data.splitlines(), delimiter=',', skipinitialspace=True):
+            name = row['name']
+            bus_id = row['pci.bus_id']
+            # pci.bus_id structure as reported by nvidia-smi: "domain:bus:device.function", in hex.
+            match = BusID_RE.search(bus_id)
+            if match:
+                domain, bus, device, function = (int(n, 16) for n in match.groups())
+                bus_id = "PCI:{:d}@{:d}:{:d}:{:d}".format(bus, domain, device, function)
+                return name, bus_id
+    raise ValueError
+
+
 def output_data(data, write_edids=True):
     if data:
         modes = []
@@ -3466,11 +4509,40 @@ def output_data(data, write_edids=True):
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
         if modes:
-            best_mode = max(modes, key=sort_mode)
-            data['best_tv_mode'] = best_mode
+            result = {}
+            try:
+                gpu_name, bus_id = collect_nvidia_data()
+            except ValueError:
+                gpu_name = None
+                bus_id = None
+
+            def create_entry(my_dict, name, connector, resolution, refreshrate, vendor, model):
+                my_dict[name] = {
+                    'connector': connector,
+                    'resolution': resolution,
+                    'refreshrate': refreshrate,
+                    'edid': '/etc/X11/edid.{}.bin'.format(connector),
+                    'mode': "{}_{}".format(resolution, refreshrate),
+                    'vendor': vendor,
+                    'model': model,
+                }
+                if gpu_name and bus_id:
+                    result[name]['gpu_name'] = gpu_name
+                    result[name]['bus_id'] = bus_id
+
+            connector_0, resolution_0, refreshrate_0 = max(modes, key=sort_mode)[:3]
+            vendor_0, model_0 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_0))
+            create_entry(result, 'primary', connector_0, resolution_0, refreshrate_0, vendor_0, model_0)
+
+            # check if additional monitors exist
+            other_modes = [mode for mode in modes if mode[0] != connector_0]
+            if other_modes:
+                connector_1, resolution_1, refreshrate_1 = max(other_modes, key=sort_mode)[:3]
+                vendor_1, model_1 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_1))
+                create_entry(result, 'secondary', connector_1, resolution_1, refreshrate_1, vendor_1, model_1)
 
     #print(json.dumps(data, sort_keys=True, indent=4))
-    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data})
+    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data, 'xorg': result})
 
 if __name__ == '__main__':
     module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)

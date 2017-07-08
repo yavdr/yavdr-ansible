@@ -43,6 +43,7 @@
     - openbox
     - tmux
     - kiosk-browser
+    - read-edid
     #- yavdr-xorg
 
 - name: "stop x@vt7.service"
@@ -54,6 +55,11 @@
   template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
+
+- name: "expand template for xorg-verbose.conf"
+  template:
+    src: "templates/xorg-verbose.conf.j2"
+    dest: "/etc/X11/xorg-verbose.conf"
 
 - name: "start x-verbose@.service"
   systemd:
@@ -70,6 +76,13 @@
 - name: "detect xorg configuration"
   action: xrandr_facts
 
+- debug:
+    var: xorg.primary
+
+- debug:
+    var: xorg.secondary
+  when: xorg.secondary is defined
+
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -78,6 +91,11 @@
     masked: true
 
 ### TODO: Create xorg configuration
+- name: create xorg.conf (test)
+  template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: yes
 
 - name: create folders for user session
   file:

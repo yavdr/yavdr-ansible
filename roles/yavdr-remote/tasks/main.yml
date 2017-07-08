@@ -13,12 +13,24 @@
   when:
     - install_lircd is defined and install_lircd
 
+- name: disable lircd.socket and lircd.service (conflict with eventlircd with default configuration)
+  systemd:
+    name: '{{ item }}'
+    enabled: no
+    state: stopped
+    masked: yes
+  with_items:
+    - lircd.service
+    - lircd.socket
+  ignore_errors: yes
+
 - name: install eventlircd
   apt:
     name: eventlircd
     state: present
   when:
       install_eventlircd is defined and install_eventlircd
+
 
 # TODO: upload lircd2uinput package to PPA
 #- name: install lircd2uinput

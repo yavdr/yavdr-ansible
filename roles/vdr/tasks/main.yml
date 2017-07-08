@@ -10,7 +10,6 @@
     - vdr
     - vdrctl
     - vdr-plugin-dbus2vdr
-
 - name: add svdrp to /etc/services
   lineinfile:
     dest: /etc/services
@@ -22,7 +21,6 @@
     dest: /etc/services
     state: present
     line: "svdrp-disc       6419/udp"
-
 - name: create vdr recdir
   file:
     state: directory
@@ -52,7 +50,6 @@
     vdr.hide_first_recording_level
 
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
-
 - name: apt | install additional vdr plugins
   apt:
     name: '{{ item }}'
@@ -61,17 +58,26 @@
   with_items:
     '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
-
 - name: ensure vdr is stopped
   systemd:
     name: vdr.service
     state: stopped
   notify: [ 'Start VDR' ]
 
-- name: 'vdr configuration | expand template for remote.conf'
-  template:
-    src: templates/remote.conf.j2
-    dest: '/var/lib/vdr/remote.conf'
+- name: "vdr configuration | copy remote.conf if it doesn't exist yet"
+  copy:
+    src: files/remote.conf
+    dest: '{{ vdr.confdir }}/remote.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
+    force: no
+
+- name: "vdr configuration | copy keymacros.conf if it doesn't exist yet"
+  copy:
+    src: files/keymacros.conf
+    dest: '{{ vdr.confdir }}/keymacros.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: no
