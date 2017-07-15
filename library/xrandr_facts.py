@@ -51,6 +51,9 @@ EXAMPLES = '''
 
 - debug:
     var: xrandr
+
+- debug:
+    var: xorg
 '''
 
 ARG_SPECS = {

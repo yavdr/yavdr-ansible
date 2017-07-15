@@ -10,17 +10,14 @@
     - vdr
     - vdrctl
     - vdr-plugin-dbus2vdr
-- name: add svdrp to /etc/services
+- name: add svdrp and svdrp-disc to /etc/services
   lineinfile:
     dest: /etc/services
     state: present
-    line: "svdrp        6419/tcp"
-
-- name: add svdrp-disc to /etc/services
-  lineinfile:
-    dest: /etc/services
-    state: present
-    line: "svdrp-disc       6419/udp"
+    line: "{{ item }}"
+  with_items:
+    - "svdrp            6419/tcp"
+    - "svdrp-disc       6419/udp"
 - name: create vdr recdir
   file:
     state: directory

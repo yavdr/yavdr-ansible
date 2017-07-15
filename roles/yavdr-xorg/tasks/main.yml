@@ -24,11 +24,13 @@
     name: xlogin@vdr.service
     state: stopped
     enabled: yes
+  ignore_errors: yes
 
 - name: Stop x
   systemd:
     name: x@vt7.service
     state: stopped
+  ignore_errors: yes
 
 - name: install packages for xorg
   apt:
@@ -90,8 +92,11 @@
     enabled: false
     masked: true
 
-### TODO: Create xorg configuration
-- name: create xorg.conf (test)
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
+- name: create xorg.conf (for nvidia driver)
   template:
     src: templates/xorg.conf.j2
     dest: /etc/X11/xorg.conf
@@ -185,11 +190,6 @@
   template:
     src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
-
-# TODO: run xorg-debug and parse xrandr output
-# TODO: expand template for xorg.conf (or snippets)
-#       with respect for the available graphics card driver
-#       nvidia, noveau, intel, radeon
 
 - name: enable and start xlogin for the user vdr
   systemd:

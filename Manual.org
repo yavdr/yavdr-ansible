@@ -7,8 +7,9 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
 #+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 #+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.min.js"></script>
 #+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
+
 #+OPTIONS: ^:nil
 # Local Variables:
 # org-src-preserve-indentation: t
@@ -16,6 +17,19 @@
 #+PROPERTY: header-args :mkdirp yes :padline no
 #+TITLE: Ansible Playbooks for yaVDR 0.7
 #+Author: Alexander Grothe <seahawk1986@gmx.de>
+# #+LATEX_CLASS: article
+#+STARTUP: latexpreview
+#+LATEX_CLASS_OPTIONS: [ngerman,a4paper,locale=DE,koma,palatino,DIV=15,BCOR=15mm]
+#+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
+#+LATEX_HEADER: \usepackage[ngerman]{babel}
+#+LATEX_HEADER: \usepackage{palatino}
+#+LATEX_HEADER: \usepackage{inconsolata}
+#+LATEX_HEADER: \usepackage{rotating}
+#+LATEX_HEADER: \usepackage{paralist}
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
+#+LaTeX_HEADER: \usemintedstyle{lovelace}
+#+LATEX_HEADER_EXTRA:
 :END:
 
 * User Stories
@@ -68,33 +82,34 @@ The lspci(8) utility, in contrast, reports the PCI BusID of a PCI device in the 
 in printf(3) syntax. The "Bus Location" reported in the /proc/driver/nvidia/gpus/0..N/information files matches the lspci format.
 **** Parsen der /proc/driver/nvidia/gpus/*/information Dateien
 #+BEGIN_SRC python
-  # read the BusID for nvidia cards and the model name from the /proc/driver/nvidia/gpus/*/information file(s)
-  from __future__ import print_function
-  import glob
-  import re
+# read the BusID for nvidia cards and the model name
+# from the /proc/driver/nvidia/gpus/*/information file(s)
+from __future__ import print_function
+import glob
+import re
 
-  BusID_RE = re.compile((
-      '(?P<domain>[0-9a-fA-F]+)'
-      ':'
-      '(?P<bus>[0-9a-fA-F]+)'
-      ':'
-      '(?P<device>[0-9a-fA-F]+)'
-      '\.'
-      '(?P<function>[0-9a-fA-F]+)'
-  ))
-  Model_RE = re.compile('Model:\s+(.*)')
+BusID_RE = re.compile((
+    '(?P<domain>[0-9a-fA-F]+)'
+    ':'
+    '(?P<bus>[0-9a-fA-F]+)'
+    ':'
+    '(?P<device>[0-9a-fA-F]+)'
+    '\.'
+    '(?P<function>[0-9a-fA-F]+)'
+))
+Model_RE = re.compile('Model:\s+(.*)')
 
-  def get_BusIDs():
-      for gpu_info in glob.glob('/proc/driver/nvidia/gpus/*/information'):
-          with open(gpu_info) as f:
-              data = f.read()
-          match = BusID_RE.search(data)
-          if match:
-              BusID = "{:d}@{:d}:{:d}:{:d}".format(*(int(n, 16) for n in match.groups()))
-              yield BusID, Model_RE.match(data).groups()[0]
-  if __name__ == '__main__':
-      BusIDs = [BusID for BusID in get_BusIDs()]
-      print(BusIDs)
+def get_BusIDs():
+    for gpu_info in glob.glob('/proc/driver/nvidia/gpus/*/information'):
+        with open(gpu_info) as f:
+            data = f.read()
+        match = BusID_RE.search(data)
+        if match:
+            BusID = "{:d}@{:d}:{:d}:{:d}".format(*(int(n, 16) for n in match.groups()))
+            yield BusID, Model_RE.match(data).groups()[0]
+if __name__ == '__main__':
+    BusIDs = [BusID for BusID in get_BusIDs()]
+    print(BusIDs)
 #+END_SRC
 ** TODO [#B] plan for customization of xorg settings by the user
 either directly or using a configuration wizard or a web frontend
@@ -148,24 +163,26 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   hosts: all
   become: true
   roles:
-     - yavdr-common             # install and configure the basic system
-     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers (e.g. nvidia, virtualbox)
-     - vdr                      # install vdr and related packages
-     - yavdr-network            # enable network client capabilities
-     - samba-install            # install samba server
-     - samba-config             # configure samba server
-     - nfs-server               # install nfs server
-     - pulseaudio               # install pulseaudio
-     - yavdr-xorg               # graphical session
-     - yavdr-remote             # remote configuration files, services and scripts
-     - autoinstall-satip        # install vdr-plugin-satip if a Sat>IP server has been found
-     - autoinstall-targavfd     # install vdr-plugin-targavfd if display is connected
-     - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
-     #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
-     #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
+     - yavdr-common               # install and configure the basic system
+     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
+                                  # (e.g. nvidia, virtualbox)
+     - vdr                        # install vdr and related packages
+     - yavdr-network              # enable network client capabilities
+     - samba-install              # install samba server
+     - samba-config               # configure samba server
+     - nfs-server                 # install nfs server
+     - pulseaudio                 # install pulseaudio
+     - yavdr-xorg                 # graphical session
+     - yavdr-remote               # remote configuration files, services and scripts
+     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+     - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
      - kodi
-     - dvd
-     - grub-config          # configure grub
+     - dvd                        # set up packages and a udev rule to allow kodi and other players
+                                  # to play and eject optical media
+     - grub-config                # configure grub
 
   handlers:
     - include: handlers/main.yml
@@ -273,6 +290,7 @@ extra_packages:
   - vim
   - tree
   - w-scan
+  - bpython
   - bpython3
 #+END_SRC
 ** System pre-configuration
@@ -539,17 +557,14 @@ APT::Install-Suggests "0";
 #+END_SRC
 **** Add svdrp/svdrp-disc to /etc/services
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-- name: add svdrp to /etc/services
+- name: add svdrp and svdrp-disc to /etc/services
   lineinfile:
     dest: /etc/services
     state: present
-    line: "svdrp        6419/tcp"
-
-- name: add svdrp-disc to /etc/services
-  lineinfile:
-    dest: /etc/services
-    state: present
-    line: "svdrp-disc       6419/udp"
+    line: "{{ item }}"
+  with_items:
+    - "svdrp            6419/tcp"
+    - "svdrp-disc       6419/udp"
 #+END_SRC
 **** Set up the recording directory for the vdr user
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
@@ -776,7 +791,6 @@ User0     @osdteletext
 #+END_SRC
 ** STARTED yavdr-network
 *** default variables
-
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/main.yml :mkdirp yes :padline no
 install_avahi: true
 #+END_SRC
@@ -890,19 +904,26 @@ install_avahi: true
 ---
 # This role is used to set up the yaVDR remote control configuration.
 
-- name: install yavdr-remote
+- name: apt | install yavdr-remote
   apt:
     name: yavdr-remote
     state: present
 
-- name: install lirc
+- name: apt | install eventlircd
+  apt:
+    name: eventlircd
+    state: present
+  when:
+      install_eventlircd is defined and install_eventlircd
+
+- name: apt | install lirc
   apt:
     name: lircd
     state: present
   when:
     - install_lircd is defined and install_lircd
 
-- name: disable lircd.socket and lircd.service (conflict with eventlircd with default configuration)
+- name: stop, mask and disable lircd.socket and lircd.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
     name: '{{ item }}'
     enabled: no
@@ -912,14 +933,6 @@ install_avahi: true
     - lircd.service
     - lircd.socket
   ignore_errors: yes
-
-- name: install eventlircd
-  apt:
-    name: eventlircd
-    state: present
-  when:
-      install_eventlircd is defined and install_eventlircd
-
 
 # TODO: upload lircd2uinput package to PPA
 #- name: install lircd2uinput
@@ -938,7 +951,7 @@ install_avahi: true
 #+BEGIN_SRC yaml :tangle roles/pulseaudio/tasks/main.yml :mkdirp yes :padline no
 ---
 
-- name: install pulseaudio
+- name: apt | install pulseaudio and pavucontrol
   apt:
     name: '{{ item }}'
     state: present
@@ -947,7 +960,7 @@ install_avahi: true
     - pulseaudio
     - pavucontrol
 
-- name: create /etc/asound.conf
+- name: create /etc/asound.conf with pulseaudio as default device
   template:
     src: templates/alsa/asound.conf.j2
     dest: /etc/asound.conf
@@ -1380,11 +1393,13 @@ b'\xde\xad\xbe\xef'
     name: xlogin@vdr.service
     state: stopped
     enabled: yes
+  ignore_errors: yes
 
 - name: Stop x
   systemd:
     name: x@vt7.service
     state: stopped
+  ignore_errors: yes
 
 - name: install packages for xorg
   apt:
@@ -3102,37 +3117,11 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
     - '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]
 #+END_SRC
-** dvd
-*** tasks
-**** install libdvd-pkg
-#+BEGIN_SRC yaml :tangle roles/dvd/tasks/main.yml :mkdirp yes :padline no
----
-# file: roles/dvd/tasks/main.yml
-
-- name: preconfigure libdvd-pkg
-  shell: |
-    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
-    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
-
-- name: apt | install libdvd-pkg
-  apt:
-    name: '{{ item }}'
-    state: present
-    install_recommends: no
-  with_items:
-    - libdvd-pkg
-#+END_SRC
-
 ** kodi
 *** tasks
 **** Install KODI
 #+BEGIN_SRC yaml :tangle roles/kodi/tasks/main.yml :mkdirp yes :padline no
 ---
-
-- name: change udev rule to allow KODI to eject optical disks
-  shell: sed 's/--lock-media //' /lib/udev/rules.d/60-cdrom_id.rules > /etc/udev/rules.d/60-cdrom_id.rules
-  args:
-    creates: /etc/udev/rules.d/60-cdrom_id.rules
 
 - name: apt | install kodi packages
   apt:
@@ -3789,6 +3778,31 @@ Restart=on-failure
   </Favourites>
 </keymap>
 #+END_SRC
+** dvd
+*** tasks
+**** install libdvd-pkg, allow programs to eject optical media
+#+BEGIN_SRC yaml :tangle roles/dvd/tasks/main.yml :mkdirp yes :padline no
+---
+# file: roles/dvd/tasks/main.yml
+
+- name: preconfigure libdvd-pkg
+  shell: |
+    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
+    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
+
+- name: apt | install libdvd-pkg
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - libdvd-pkg
+
+- name: change udev rule to allow KODI to eject optical disks
+  shell: sed 's/--lock-media //' /lib/udev/rules.d/60-cdrom_id.rules > /etc/udev/rules.d/60-cdrom_id.rules
+  args:
+    creates: /etc/udev/rules.d/60-cdrom_id.rules
+#+END_SRC
 ** template-test
 #+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml :padline no
 ---
@@ -4334,6 +4348,9 @@ EXAMPLES = '''
 
 - debug:
     var: xrandr
+
+- debug:
+    var: xorg
 '''
 
 ARG_SPECS = {
