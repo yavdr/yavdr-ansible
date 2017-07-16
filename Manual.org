@@ -296,6 +296,7 @@ extra_packages:
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+frontend: vdr
 #system:
 #  shutdown: poweroff
 grub:
@@ -959,8 +960,10 @@ install_avahi: true
 #+END_SRC
 *** templates
 #+BEGIN_SRC :tangle roles/yavdr-remote/templates/03-vdr-lircd.conf.j2 :mkdirp yes :padline no
+{% if frontend != 'kodi' %}
 [vdr]
 --lirc=/var/run/lirc/lircd
+{% endif %}
 #+END_SRC
 *** files
 
