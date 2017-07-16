@@ -19,6 +19,11 @@
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
+- name: load environment file for vdr.service
+  template:
+    src: templates/systemd/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
 - name: set a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
@@ -27,12 +32,6 @@
       uid: '{{ vdr.uid }}'
       groups: '{{ vdr.group }}'
       append: yes
-
-
-- name: add environment file for vdr.service
-  template:
-    src: templates/systemd/vdr-environ.j2
-    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
 - name: install packages for xorg
   apt:
