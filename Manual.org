@@ -910,7 +910,7 @@ install_avahi: true
 </service>
 </service-group>
 #+END_SRC
-** TODO yavdr-remote
+** STARTED yavdr-remote
 *** default variables
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/yavdr-remote/tasks/main.yml :mkdirp yes :padline no
@@ -1637,12 +1637,13 @@ EndSection
 
 Section "ServerLayout"
     Identifier     "Layout0"
-    Screen         0  "Screen0"
+    Screen         0  "Screen0" 0 0
 {% if xorg.secondary is defined %}
     Screen         1  "Screen1" RightOf "Screen0"
 {% endif %}
     #InputDevice    "Keyboard0" "CoreKeyboard"
     #InputDevice    "Mouse0" "CorePointer"
+    Option         "Xinerama" "0"
 EndSection
 
 Section "InputClass"
@@ -1663,7 +1664,7 @@ Section "Device"
     Identifier     "Device0"
     Driver         "nvidia"
     VendorName     "NVIDIA Corporation"
-    Option  "NoLogo"              "true"
+    Option         "NoLogo"              "true"
 {% if xorg.primary.bus_id is defined %}
     BoardName      "{{ xorg.primary.gpu_name }}"
     BusID          "{{ xorg.primary.bus_id }}"
@@ -1679,7 +1680,7 @@ Section "Screen"
     Monitor        "Monitor0"
     DefaultDepth    24
     Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
-    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}"
+    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"
     Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
     Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin"
     Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0"
