@@ -19,19 +19,6 @@
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: Stop xlogin
-  systemd:
-    name: xlogin@vdr.service
-    state: stopped
-    enabled: yes
-  ignore_errors: yes
-
-- name: Stop x
-  systemd:
-    name: x@vt7.service
-    state: stopped
-  ignore_errors: yes
-
 - name: install packages for xorg
   apt:
     name: '{{ item }}'
@@ -48,9 +35,15 @@
     - read-edid
     #- yavdr-xorg
 
-- name: "stop x@vt7.service"
+- name: Stop xlogin
   systemd:
-    name: "x@vt7.service"
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yesg
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
     state: stopped
 
 - name: "expand template for x-verbose@.service"
