@@ -288,6 +288,7 @@ samba:
 # additional packages you want to install
 extra_packages:
   - vim
+  - htop
   - tree
   - w-scan
   - bpython
@@ -846,6 +847,17 @@ install_avahi: true
     state: started
     enabled: yes
     masked: no
+
+- name: enable and start additional services for avahi-linker
+  systemd:
+    name: '{{ item }}'
+    state: started
+    enabled: yes
+    masked: no
+  with_items:
+    - vdr-net-monitor
+    - vdr-update-monitor
+    - prevent-umount-on-pause
 #+END_SRC
 
 ** nfs-server

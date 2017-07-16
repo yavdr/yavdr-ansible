@@ -48,3 +48,14 @@
     state: started
     enabled: yes
     masked: no
+
+- name: enable and start additional services for avahi-linker
+  systemd:
+    name: '{{ item }}'
+    state: started
+    enabled: yes
+    masked: no
+  with_items:
+    - vdr-net-monitor
+    - vdr-update-monitor
+    - prevent-umount-on-pause
