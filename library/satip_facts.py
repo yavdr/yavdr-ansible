@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-
 DOCUMENTATION = '''
 ---
 module: hardware_facts

@@ -1,8 +1,8 @@
+---
 # file: group_vars/all
 
 # this is the standard text to put in templates
 ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
-
 branch: unstable
 ppa_owner: 'ppa:yavdr'
 # a list of all package repositories to be added to the installation
@@ -12,7 +12,6 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-yavdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
-
 # properties of the user vdr and vdr-related options
 vdr:
   user: vdr
@@ -20,6 +19,7 @@ vdr:
   uid: 666
   gid: 666
   home: /var/lib/vdr
+  confdir: /var/lib/vdr
   recdir: /srv/vdr/video
   hide_first_recording_level: false
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
@@ -40,21 +40,19 @@ media_dirs:
   files: /srv/files
   backups: /srv/backups
   recordings: '{{ vdr.recdir }}'
-
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
-
 samba:
   workgroup: YAVDR
   windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
-
 # additional packages you want to install
 extra_packages:
   - vim
+  - htop
   - tree
   - w-scan
+  - bpython
   - bpython3
-
 #system:
 #  shutdown: poweroff
 grub:

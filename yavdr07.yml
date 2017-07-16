@@ -6,20 +6,26 @@
   hosts: all
   become: true
   roles:
-     - yavdr-common             # install and configure the basic system
-     - vdr                      # install vdr and related packages
-     - yavdr-network            # enable network client capabilities
-     - samba-install            # install samba server
-     - samba-config             # configure samba server
-     - nfs-server               # install nfs server
-     - yavdr-xorg               # graphical session
-     - yavdr-remote             # remote configuration files, services and scripts
-     - autoinstall-satip        # install vdr-plugin-satip if a Sat>IP server has been found
-     - autoinstall-targavfd     # install vdr-plugin-targavfd if display is connected
-     - autoinstall-imonlcd      # install vdr-plugin-imonlcd if a matchind display is connected
-     #- autoinstall-pv350        # install vdr-plugin-pvr350 if a matching card is detected
-     #- autoinstall-dvbsddevice  # install vdr-plugin-dvbsddevice if a matching card is detected
-     - grub-config          # configure grub
+     - yavdr-common               # install and configure the basic system
+     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
+                                  # (e.g. nvidia, virtualbox)
+     - vdr                        # install vdr and related packages
+     - yavdr-network              # enable network client capabilities
+     - samba-install              # install samba server
+     - samba-config               # configure samba server
+     - nfs-server                 # install nfs server
+     - pulseaudio                 # install pulseaudio
+     - yavdr-xorg                 # graphical session
+     - yavdr-remote               # remote configuration files, services and scripts
+     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+     - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+     - kodi
+     - dvd                        # set up packages and a udev rule to allow kodi and other players
+                                  # to play and eject optical media
+     - grub-config                # configure grub
 
   handlers:
     - include: handlers/main.yml

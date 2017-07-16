@@ -1,0 +1,15 @@
+---
+
+- name: apt | install pulseaudio and pavucontrol
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - pulseaudio
+    - pavucontrol
+
+- name: create /etc/asound.conf with pulseaudio as default device
+  template:
+    src: templates/alsa/asound.conf.j2
+    dest: /etc/asound.conf

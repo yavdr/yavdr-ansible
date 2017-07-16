@@ -1,0 +1,12 @@
+[Unit]
+Description=Start kodi in user session
+
+[Service]
+Type=simple
+PassEnvironment=DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+ExecStartPre=-/usr/bin/set-kodi-display
+ExecStart=/usr/bin/kodi
+ExecStop=/bin/bash -c "/usr/bin/kodi-send --action=QUIT; while /usr/bin/pgrep kodi; do sleep 1;  done; sleep 1"
+TimeoutStopSec=10
+SuccessExitStatus=0 127
+Restart=on-failure

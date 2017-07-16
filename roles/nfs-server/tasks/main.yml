@@ -1,3 +1,5 @@
+---
+
 - name: install nfs server packages
   apt:
     name: '{{ item }}'
@@ -12,3 +14,9 @@
     src: templates/nfs-exports.j2
     dest: /etc/exports
   notify: [ 'Restart NFS Kernel Server' ]
+
+- name: populate /etc/avahi/services
+  template:
+    src: templates/avahi/service.j2
+    dest: '/etc/avahi/services/yavdr-{{ item.key }}.service'
+  with_dict: '{{ media_dirs }}'

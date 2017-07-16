@@ -2,6 +2,7 @@
 from __future__ import print_function
 import ast
 import binascii
+import csv
 import re
 import subprocess
 from collections import namedtuple
@@ -22,11 +23,6 @@ options:
         default: ":0"
         description:
           - the DISPLAY variable to use when calling xrandr
-    multi_display:
-        required: False
-        default: "False"
-        description:
-          - check additional screens (:0.0 .. :0.n) until xrandr fails to collect information
     preferred_outpus:
         required: False
         default: ["HDMI", "DP", "DVI", "VGA", "TV": 0]
@@ -42,6 +38,11 @@ options:
         default: ["7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"]
         description:
            - ranking of the preferred display resolutions
+    write_edids:
+        required: False
+        default: True
+        description:
+           - write edid data to /etc/X11/edid.{connector}.bin
 '''
 EXAMPLES = '''
 - name: "collect facts for connected displays"
@@ -50,11 +51,13 @@ EXAMPLES = '''
 
 - debug:
     var: xrandr
+
+- debug:
+    var: xorg
 '''
 
 ARG_SPECS = {
     'display': dict(default=":0", type='str', required=False),
-    'multi_display': dict(default=False, type='bool', required=False),
     'preferred_outputs': dict(
         default=["HDMI", "DP", "DVI", "VGA", "TV"], type='list', required=False),
     'preferred_refreshrates': dict(
@@ -168,6 +171,45 @@ def parse_xrandr_verbose(iterator):
                         break
     return xorg
 
+def parse_edid_data(edid):
+    vendor = "Unknown"
+    model = "Unknown"
+    data = subprocess.check_output("parse-edid < {}".format(edid), shell=True, universal_newlines=True)
+    for line in data.splitlines():
+        if "VendorName" in line:
+            vendor = line.strip().split('"')[1]
+        if "ModelName" in line:
+            model =  line.strip().split('"')[1]
+    return vendor, model
+
+def collect_nvidia_data():
+    BusID_RE = re.compile((
+        '(?P<domain>[0-9a-fA-F]+)'
+        ':'
+        '(?P<bus>[0-9a-fA-F]+)'
+        ':'
+        '(?P<device>[0-9a-fA-F]+)'
+        '\.'
+        '(?P<function>[0-9a-fA-F]+)'
+     ))    
+    try:
+        data = subprocess.check_output(["nvidia-smi", "--query-gpu=name,pci.bus_id", "--format=csv", "-i0"],
+                                universal_newlines=True)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        for row in csv.DictReader(data.splitlines(), delimiter=',', skipinitialspace=True):
+            name = row['name']
+            bus_id = row['pci.bus_id']
+            # pci.bus_id structure as reported by nvidia-smi: "domain:bus:device.function", in hex.
+            match = BusID_RE.search(bus_id)
+            if match:
+                domain, bus, device, function = (int(n, 16) for n in match.groups())
+                bus_id = "PCI:{:d}@{:d}:{:d}:{:d}".format(bus, domain, device, function)
+                return name, bus_id
+    raise ValueError
+
+
 def output_data(data, write_edids=True):
     if data:
         modes = []
@@ -180,11 +222,40 @@ def output_data(data, write_edids=True):
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
         if modes:
-            best_mode = max(modes, key=sort_mode)
-            data['best_tv_mode'] = best_mode
+            result = {}
+            try:
+                gpu_name, bus_id = collect_nvidia_data()
+            except ValueError:
+                gpu_name = None
+                bus_id = None
+
+            def create_entry(my_dict, name, connector, resolution, refreshrate, vendor, model):
+                my_dict[name] = {
+                    'connector': connector,
+                    'resolution': resolution,
+                    'refreshrate': refreshrate,
+                    'edid': '/etc/X11/edid.{}.bin'.format(connector),
+                    'mode': "{}_{}".format(resolution, refreshrate),
+                    'vendor': vendor,
+                    'model': model,
+                }
+                if gpu_name and bus_id:
+                    result[name]['gpu_name'] = gpu_name
+                    result[name]['bus_id'] = bus_id
+
+            connector_0, resolution_0, refreshrate_0 = max(modes, key=sort_mode)[:3]
+            vendor_0, model_0 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_0))
+            create_entry(result, 'primary', connector_0, resolution_0, refreshrate_0, vendor_0, model_0)
+
+            # check if additional monitors exist
+            other_modes = [mode for mode in modes if mode[0] != connector_0]
+            if other_modes:
+                connector_1, resolution_1, refreshrate_1 = max(other_modes, key=sort_mode)[:3]
+                vendor_1, model_1 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_1))
+                create_entry(result, 'secondary', connector_1, resolution_1, refreshrate_1, vendor_1, model_1)
 
     #print(json.dumps(data, sort_keys=True, indent=4))
-    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data})
+    module.exit_json(changed=True if write_edids else False, ansible_facts={'xrandr': data, 'xorg': result})
 
 if __name__ == '__main__':
     module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)

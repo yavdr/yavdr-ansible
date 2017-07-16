@@ -1,19 +1,18 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env/python
 # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
 DOCUMENTATION = '''
----
-module: hardware_facts
-short_description: collects facts for kernel modules, usb and pci devices
-description:
-     - This Module collects the vendor- and device ids for USB- and PCI(e)-devices and
-       currently loaded kernel modules.
-options:
-    usb:
-        required: False
-        default: True
-        description:
-          - return a list of vendor- and device ids for usb devices in '04x:04x' notation
+  ---
+  module: hardware_facts
+  short_description: collects facts for kernel modules, usb and pci devices
+  description:
+       - This Module collects the vendor- and device ids for USB- and PCI(e)-devices and
+         currently loaded kernel modules.
+  options:
+      usb:
+          required: False
+          default: True
+          description:
+            - return a list of vendor- and device ids for usb devices in '04x:04x' notation
 
     pci:
         required: False
@@ -65,17 +64,27 @@ import kmodpy
 from ansible.module_utils.basic import *
 
 
-PCIDevice = namedtuple("PCIDevice", ['idVendor', 'idProduct', 'idClass'])
+PCIDevice = namedtuple("PCIDevice", 'idVendor idProduct idClass pciPath')
+
+vendor_dict = {
+    0x10de: 'nvidia',
+    0x8086: 'intel',
+    0x1002: 'amd',
+    0x80ee: 'virtualbox',
+    }
 
 def get_pci_devices():
-    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
-        with open(os.path.join(device, 'device')) as d:
-            product_id = int(d.read().strip(), 16)
-        with open(os.path.join(device, 'vendor')) as d:
-            vendor_id = int(d.read().strip(), 16)
-        with open(os.path.join(device, 'class')) as d:
-            class_id = int(d.read().strip(), 16)
-        yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id)
+    for device in glob.glob('/sys/devices/pci*/*:*:*/*:*:*/'):
+        try:
+            with open(os.path.join(device, 'device')) as d:
+                product_id = int(d.read().strip(), 16)
+            with open(os.path.join(device, 'vendor')) as d:
+                vendor_id = int(d.read().strip(), 16)
+            with open(os.path.join(device, 'class')) as d:
+                class_id = int(d.read().strip(), 16)
+            yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id, pciPath=device)
+        except IOError:
+            pass
 
 def format_device_list(iterator):
     return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
@@ -84,7 +93,8 @@ def format_gpu_device_list(iterator):
     def get_entries(iterator):
         for d in iterator:
             if d.idClass == 0x030000:
-                yield ("{:04x}:{:04x}".format(d.idVendor, d.idProduct))
+                yield {"VendorName": vendor_dict.get(d.idVendor, "unknown"),
+                       "VendorID": d.idVendor, "ProductID": d.idProduct}
     return [entry for entry in get_entries(iterator)]
 
 arg_specs = {

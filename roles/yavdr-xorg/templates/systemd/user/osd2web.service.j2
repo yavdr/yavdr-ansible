@@ -1,0 +1,13 @@
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "http://localhost:4444/skins/horchiTft/index.html?theme=blue&onlyView=1"'
+
+[Install]
+WantedBy=yavdr-desktop.target

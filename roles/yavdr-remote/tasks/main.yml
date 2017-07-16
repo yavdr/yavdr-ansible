@@ -1,24 +1,35 @@
 ---
 # This role is used to set up the yaVDR remote control configuration.
 
-- name: install yavdr-remote
+- name: apt | install yavdr-remote
   apt:
     name: yavdr-remote
     state: present
 
-- name: install lirc
+- name: apt | install eventlircd
+  apt:
+    name: eventlircd
+    state: present
+  when:
+      install_eventlircd is defined and install_eventlircd
+
+- name: apt | install lirc
   apt:
     name: lircd
     state: present
   when:
     - install_lircd is defined and install_lircd
 
-- name: install eventlircd
-  apt:
-    name: eventlircd
-    state: present
-  when:
-      install_eventlircd is defined and install_eventlircd
+- name: stop, mask and disable lircd.socket and lircd.service # (the default lirc configuration conflicts with eventlircd)
+  systemd:
+    name: '{{ item }}'
+    enabled: no
+    state: stopped
+    masked: yes
+  with_items:
+    - lircd.service
+    - lircd.socket
+  ignore_errors: yes
 
 # TODO: upload lircd2uinput package to PPA
 #- name: install lircd2uinput
