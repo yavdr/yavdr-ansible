@@ -925,15 +925,11 @@ install_avahi: true
   apt:
     name: eventlircd
     state: present
-  when:
-      install_eventlircd is defined and install_eventlircd
 
 - name: apt | install lirc
   apt:
     name: lircd
     state: present
-  when:
-    - install_lircd is defined and install_lircd
 
 - name: stop, mask and disable lircd.socket and lircd.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
@@ -946,6 +942,12 @@ install_avahi: true
     - lircd.socket
   ignore_errors: yes
 
+- name: configure vdr to read from a lircd-compatible socket
+  template:
+    src: templates/03-vdr-lirc.conf.j2
+    dest: /etc/vdr/conf.d/03-vdr-lirc.conf
+  notify: notify: ['Restart VDR']
+
 # TODO: upload lircd2uinput package to PPA
 #- name: install lircd2uinput
 #  tag: install
@@ -956,6 +958,10 @@ install_avahi: true
 #      install_eventlircd is defined and install_eventlircd
 #+END_SRC
 *** templates
+#+BEGIN_SRC :tangle roles/yavdr-remote/templates/03-vdr-lircd.conf.j2 :mkdirp yes :padline no
+[vdr]
+--lirc=/var/run/lirc/lircd
+#+END_SRC
 *** files
 
 ** pulseaudio
