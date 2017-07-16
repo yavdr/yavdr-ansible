@@ -93,7 +93,7 @@ def format_gpu_device_list(iterator):
     def get_entries(iterator):
         for d in iterator:
             if d.idClass == 0x030000:
-                yield (vendor_dict.get(d.id_Vendor, "unknown"), "{:04x}:{:04x}".format(d.idVendor, d.idProduct))
+                yield (vendor_dict.get(d.idVendor, "unknown"), "{:04x}:{:04x}".format(d.idVendor, d.idProduct))
     return [entry for entry in get_entries(iterator)]
 
 arg_specs = {
