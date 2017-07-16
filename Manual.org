@@ -932,7 +932,7 @@ install_avahi: true
     name: lirc
     state: present
 
-- name: stop, mask and disable lircd.socket and lircd.service # (the default lirc configuration conflicts with eventlircd)
+- name: stop, mask and disable lircd.socket, lircd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
     name: '{{ item }}'
     enabled: no
@@ -941,6 +941,7 @@ install_avahi: true
   with_items:
     - lircd.service
     - lircd.socket
+    - lircd-uinput.service
   ignore_errors: yes
 
 - name: configure vdr to read from a lircd-compatible socket
