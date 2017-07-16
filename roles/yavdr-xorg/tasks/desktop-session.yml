@@ -1,0 +1,72 @@
+---
+# file: roles/yavdr-xorg/tasks/desktop-session.yml
+
+- name: create folders for user session
+  file:
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox/'
+
+- name: create folders for user configuration files
+  file:
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox'
+    - '{{ vdr.home }}/.config/pulse'
+
+- name: expand template for .xinitrc for vdr user
+  template:
+      src: 'templates/.xinitrc.j2'
+      dest: '{{ vdr.home }}/.xinitrc'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand template for openbox autostart
+  template:
+      src: 'templates/openbox/autostart.j2'
+      dest: '{{ vdr.home }}/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand rc.xml for openbox
+  template:
+      src: 'templates/openbox/rc.xml.j2'
+      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create yavdr-desktop.target for the user session
+  template:
+      src: 'templates/systemd/user/yavdr-desktop.target.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: disable pulseaudio autospawning
+  lineinfile:
+    path: '{{ vdr.home }}/.config/pulse/client.conf'
+    line: 'autospawn = no'
+    create: yes
+    state: present
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+
+- name: create tmux.service for the session
+  template:
+    src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'

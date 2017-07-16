@@ -1,7 +1,7 @@
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
 
-# TODO: use hooks or requirements instead
+# IDEA: use hooks or requirements instead
 - name: Stop VDR
   systemd:
     name: vdr.service
@@ -13,6 +13,21 @@
   file:
     dest: /etc/systemd/system/vdr.service.d/
     state: directory
+
+- name: add dependency to X-server for vdr.service using a drop-in
+  template:
+    src: templates/vdr-xorg.conf
+    dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+
+- name: set a login shell for the user vdr
+  user:
+      name: '{{ vdr.user }}'
+      shell: '/bin/bash'
+      state: present
+      uid: '{{ vdr.uid }}'
+      groups: '{{ vdr.group }}'
+      append: yes
+
 
 - name: add environment file for vdr.service
   template:
@@ -46,44 +61,7 @@
     name: x@vt7.service
     state: stopped
 
-- name: "expand template for x-verbose@.service"
-  template:
-    src: "templates/systemd/system/x-verbose@.service.j2"
-    dest: "/etc/systemd/system/x-verbose@.service"
-
-- name: "expand template for xorg-verbose.conf"
-  template:
-    src: "templates/xorg-verbose.conf.j2"
-    dest: "/etc/X11/xorg-verbose.conf"
-
-- name: "start x-verbose@.service"
-  systemd:
-    name: "x-verbose@vt7.service"
-    state: started
-    enabled: false
-    masked: false
-    daemon_reload: true
-
-- name: "wait a little bit, so X has some time to start up (needed?)"
-  wait_for:
-    timeout: 3
-
-- name: "detect xorg configuration"
-  action: xrandr_facts
-
-- debug:
-    var: xorg.primary
-
-- debug:
-    var: xorg.secondary
-  when: xorg.secondary is defined
-
-- name: "stop x-verbose@vt7.service"
-  systemd:
-    name: "x-verbose@vt7.service"
-    state: stopped
-    enabled: false
-    masked: true
+- include: detect-xorg.yml
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
@@ -95,94 +73,7 @@
     dest: /etc/X11/xorg.conf
     backup: yes
 
-- name: create folders for user session
-  file:
-    state: directory
-    dest: '{{ item }}'
-    mode: '0775'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-  with_items:
-    - '{{ vdr.home }}/.config/systemd/user'
-    - '{{ vdr.home }}/.config/openbox/'
-
-- name: create folder for customizations of vdr.service
-  file:
-    state: directory
-    dest: /etc/systemd/system/vdr.service.d
-    mode: '0775'
-
-- name: add dependency to X-server for vdr.service using a drop-in
-  template:
-    src: templates/vdr-xorg.conf
-    dest: /etc/systemd/system/vdr.service.d/
-
-- name: create folders for user configuration files
-  file:
-    state: directory
-    dest: '{{ item }}'
-    mode: '0775'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-  with_items:
-    - '{{ vdr.home }}/.config/systemd/user'
-    - '{{ vdr.home }}/.config/openbox'
-    - '{{ vdr.home }}/.config/pulse'
-
-- name: expand template for .xinitrc for vdr user
-  template:
-      src: 'templates/.xinitrc.j2'
-      dest: '{{ vdr.home }}/.xinitrc'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: expand template for openbox autostart
-  template:
-      src: 'templates/openbox/autostart.j2'
-      dest: '{{ vdr.home }}/.config/openbox/autostart'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: expand rc.xml for openbox
-  template:
-      src: 'templates/openbox/rc.xml.j2'
-      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: create yavdr-desktop.target for the user session
-  template:
-      src: 'templates/systemd/user/yavdr-desktop.target.j2'
-      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: disable pulseaudio autospawning
-  lineinfile:
-    path: '{{ vdr.home }}/.config/pulse/client.conf'
-    line: 'autospawn = no'
-    create: yes
-    state: present
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: set a login shell for the user vdr
-  user:
-      name: '{{ vdr.user }}'
-      shell: '/bin/bash'
-      state: present
-      uid: '{{ vdr.uid }}'
-      groups: '{{ vdr.group }}'
-      append: yes
-
-- name: create tmux.service for the session
-  template:
-    src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+- include: desktop-session.yml
 
 - name: enable and start xlogin for the user vdr
   systemd:

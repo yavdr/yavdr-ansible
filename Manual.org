@@ -1392,7 +1392,7 @@ b'\xde\xad\xbe\xef'
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
 
-# TODO: use hooks or requirements instead
+# IDEA: use hooks or requirements instead
 - name: Stop VDR
   systemd:
     name: vdr.service
@@ -1405,10 +1405,24 @@ b'\xde\xad\xbe\xef'
     dest: /etc/systemd/system/vdr.service.d/
     state: directory
 
-- name: add environment file for vdr.service
+- name: add dependency to X-server for vdr.service using a drop-in
+  template:
+    src: templates/vdr-xorg.conf
+    dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+
+- name: load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
+- name: set a login shell for the user vdr
+  user:
+      name: '{{ vdr.user }}'
+      shell: '/bin/bash'
+      state: present
+      uid: '{{ vdr.uid }}'
+      groups: '{{ vdr.group }}'
+      append: yes
 
 - name: install packages for xorg
   apt:
@@ -1436,6 +1450,32 @@ b'\xde\xad\xbe\xef'
   systemd:
     name: x@vt7.service
     state: stopped
+
+- include: detect-xorg.yml
+
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
+- name: create xorg.conf (for nvidia driver)
+  template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: yes
+
+- include: desktop-session.yml
+
+- name: enable and start xlogin for the user vdr
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
+#+END_SRC
+
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-xorg/tasks/detect-xorg.yml
 
 - name: "expand template for x-verbose@.service"
   template:
@@ -1475,16 +1515,11 @@ b'\xde\xad\xbe\xef'
     state: stopped
     enabled: false
     masked: true
+#+END_SRC
 
-# TODO: expand template for xorg.conf (or snippets)
-#       with respect for the available graphics card driver
-#       nvidia, noveau, intel, radeon
-
-- name: create xorg.conf (for nvidia driver)
-  template:
-    src: templates/xorg.conf.j2
-    dest: /etc/X11/xorg.conf
-    backup: yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-xorg/tasks/desktop-session.yml
 
 - name: create folders for user session
   file:
@@ -1496,17 +1531,6 @@ b'\xde\xad\xbe\xef'
   with_items:
     - '{{ vdr.home }}/.config/systemd/user'
     - '{{ vdr.home }}/.config/openbox/'
-
-- name: create folder for customizations of vdr.service
-  file:
-    state: directory
-    dest: /etc/systemd/system/vdr.service.d
-    mode: '0775'
-
-- name: add dependency to X-server for vdr.service using a drop-in
-  template:
-    src: templates/vdr-xorg.conf
-    dest: /etc/systemd/system/vdr.service.d/
 
 - name: create folders for user configuration files
   file:
@@ -1561,26 +1585,11 @@ b'\xde\xad\xbe\xef'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: set a login shell for the user vdr
-  user:
-      name: '{{ vdr.user }}'
-      shell: '/bin/bash'
-      state: present
-      uid: '{{ vdr.uid }}'
-      groups: '{{ vdr.group }}'
-      append: yes
 
 - name: create tmux.service for the session
   template:
     src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
-
-- name: enable and start xlogin for the user vdr
-  systemd:
-    daemon_reload: yes
-    name: 'xlogin@{{ vdr.user }}'
-    enabled: yes
-    state: started
 #+END_SRC
 *** templates
 **** xorg
