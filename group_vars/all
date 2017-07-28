@@ -3,6 +3,7 @@
 
 # this is the standard text to put in templates
 ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
+
 branch: unstable
 ppa_owner: 'ppa:yavdr'
 # a list of all package repositories to be added to the installation
@@ -12,6 +13,7 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-yavdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
+
 # properties of the user vdr and vdr-related options
 vdr:
   user: vdr
@@ -31,6 +33,7 @@ vdr_plugins:
   - vdr-plugin-markad
   - vdr-plugin-restfulapi
   - vdr-plugin-softhddevice-vpp
+
 # dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
 media_dirs:
   audio: /srv/audio
@@ -39,11 +42,14 @@ media_dirs:
   files: /srv/files
   backups: /srv/backups
   recordings: '{{ vdr.recdir }}'
+
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
+
 samba:
   workgroup: YAVDR
   windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
+
 # additional packages you want to install
 extra_packages:
   - vim
@@ -52,6 +58,7 @@ extra_packages:
   - w-scan
   - bpython
   - bpython3
+
 frontend: vdr
 #system:
 #  shutdown: poweroff
