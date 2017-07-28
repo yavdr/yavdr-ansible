@@ -76,18 +76,15 @@
     pci: True
     modules: True
     gpus: True
+    
 - debug:
-    var: usb
+    var: '{{ item }}'
     verbosity: 1
-- debug:
-    var: pci
-    verbosity: 1
-- debug:
-    var: modules
-    verbosity: 1
-- debug:
-    var: gpus
-    verbosity: 1
+  with_items:
+    - usb
+    - pci
+    - gpus
+    - modules
 - name: create media directories
   file:
     dest: '{{ item.value }}'
