@@ -348,13 +348,12 @@ This role is used to set up a basic yaVDR installation. It creates the directori
 This section is for reference only, please use the files in ~global_vars~ for customizations.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline no
 ---
-
 # file: roles/yavdr-common/defaults/main.yml
 #+END_SRC
 
 **** Repositories
 You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 branch: unstable
 repositories:
   - 'ppa:yavdr/main'
@@ -365,18 +364,18 @@ repositories:
 #+END_SRC
 **** Drivers
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 drivers:
   sundtek: auto
   ddvb-dkms: auto
 #+END_SRC
 **** Additional Packages
 Add additional packages you would like to have on your installation to this list
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
-  extra_packages:
-      - vim
-      - tree
-      - w-scan
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
+extra_packages:
+  - vim
+  - tree
+  - w-scan
 #+END_SRC
 **** VDR
 This section allows you to set the recording directory, the user and group that runs the vdr and it's home directory.
@@ -389,7 +388,7 @@ This section allows you to set the recording directory, the user and group that 
  - hide_first_recording_level :: let vdr hide the first directory level of it's recording directory so the content of multiple directories is shown merged together
  - safe_dirnames :: replace special characters which are not compatible with Windows file systems and Samba shares
  - override_vdr_charset :: workaround for channels with weird EPG encodings, e.g. Sky
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 vdr:
     user: vdr
     group: vdr
@@ -510,18 +509,15 @@ yavdr-common executes the following tasks:
     pci: True
     modules: True
     gpus: True
+    
 - debug:
-    var: usb
+    var: '{{ item }}'
     verbosity: 1
-- debug:
-    var: pci
-    verbosity: 1
-- debug:
-    var: modules
-    verbosity: 1
-- debug:
-    var: gpus
-    verbosity: 1
+  with_items:
+    - usb
+    - pci
+    - gpus
+    - modules
 #+END_SRC
 ***** create media directories
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
