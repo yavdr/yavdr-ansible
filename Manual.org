@@ -150,7 +150,7 @@ apt-get update
 apt-get -y install ansible
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags=install
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -184,6 +184,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
      - grub-config                # configure grub
+  tags:
+     - always
 
   handlers:
     - include: handlers/main.yml
@@ -207,6 +209,8 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - nfs-server
     - grub-config
     - autoinstall-satip
+  tags:
+    - always
   handlers:
     - include: handlers/main.yml
 #+END_SRC
@@ -1432,6 +1436,7 @@ b'\xde\xad\xbe\xef'
     - tmux
     - kiosk-browser
     - read-edid
+    - python3-dbus2vdr
     - python3-yavdrfrontend
     #- yavdr-xorg
 #+END_SRC
