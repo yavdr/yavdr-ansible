@@ -1,0 +1,25 @@
+---
+# file roles/autoinstall-hauppauge-pvr/tasks/main.yml
+
+- name: apt | install vdr-plugin-pvrinput if a haupauge pvr card is found
+  apt:
+    name: vdr-plugin-pvrinput
+  when: 
+    - '"0070:4000" in pci'
+    - '"4444:0016" in pci'
+  notify: [ 'Restart VDR' ]
+
+** TODO autoinstall-dvbhddevice
+Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/tasks/main.yml :padline no
+---
+# file roles/autoinstall-dvbhddevice/tasks/main.yml
+
+- name: apt | install vdr-plugin-dvbhddevice if connected
+  apt:
+    name: vdr-plugin-dvbhddevice
+  when: 
+    - '"13c2:300a" in pci'
+    - '"13c2:300b" in pci'
+  notify: [ 'Restart VDR' ]
