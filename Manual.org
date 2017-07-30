@@ -1389,6 +1389,7 @@ b'\xde\xad\xbe\xef'
 #+END_SRC
 *** default variables
 *** tasks
+**** main
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
@@ -1396,7 +1397,7 @@ b'\xde\xad\xbe\xef'
 - include: desktop-session.yml tags=install,update
 - include: detect-xorg.yml tags=xorg:detect,install
 #+END_SRC
-
+**** setup-xorg
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
 - name: create directory /etc/systemd/system/vdr.service.d/
   file:
@@ -1438,9 +1439,10 @@ b'\xde\xad\xbe\xef'
     - read-edid
     - python3-dbus2vdr
     - python3-yavdrfrontend
+    - vdr-plugin-desktop
     #- yavdr-xorg
 #+END_SRC
-
+**** detect-xorg
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
@@ -1522,7 +1524,7 @@ b'\xde\xad\xbe\xef'
     enabled: yes
     state: started
 #+END_SRC
-
+**** desktop-session
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/desktop-session.yml
@@ -1591,7 +1593,6 @@ b'\xde\xad\xbe\xef'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-
 - name: create tmux.service for the session
   template:
     src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
@@ -1611,6 +1612,13 @@ b'\xde\xad\xbe\xef'
   template:
     src: templates/systemd/user/osd2web.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+
+- name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
+  file:
+    src: /usr/bin/start-desktop
+    dest: /var/lib/vdr/plugins/desktop/starter
+    state: link
+  
 #+END_SRC
 *** templates
 **** xorg
@@ -2042,7 +2050,10 @@ WantedBy=default.target
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 
-enabled_services=("tmux.service" "detect-second-display.service" "openbox-second.service" "osd2web.service")
+enabled_services=(
+    "tmux.service" "detect-second-display.service"
+    "openbox-second.service" "osd2web.service"
+    "yavdr-frontend.service")
 disabled_services=()
 
 # enable configured services for the user session
