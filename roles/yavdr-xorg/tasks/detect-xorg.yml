@@ -11,6 +11,26 @@
     src: "templates/xorg-verbose.conf.j2"
     dest: "/etc/X11/xorg-verbose.conf"
 
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  notify: ['Start VDR']
+
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
+
+
 - name: "start x-verbose@.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -39,3 +59,21 @@
     state: stopped
     enabled: false
     masked: true
+
+# IDEA: use hooks or requirements instead
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
+- name: create xorg.conf (for nvidia driver)
+  template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: yes
+
+- name: enable and start xlogin for the user vdr
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started

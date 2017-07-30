@@ -1392,15 +1392,12 @@ b'\xde\xad\xbe\xef'
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
+- include: setup-xorg.yml tags:install,update
+- include: desktop-session.yml
+- include: detect-xorg.yml tags=xorg:detect,install
+#+END_SRC
 
-# IDEA: use hooks or requirements instead
-- name: Stop VDR
-  systemd:
-    name: vdr.service
-    state: stopped
-    enabled: yes
-  notify: ['Start VDR']
-
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
 - name: create directory /etc/systemd/system/vdr.service.d/
   file:
     dest: /etc/systemd/system/vdr.service.d/
@@ -1439,39 +1436,8 @@ b'\xde\xad\xbe\xef'
     - tmux
     - kiosk-browser
     - read-edid
+    - python3-yavdrfrontend
     #- yavdr-xorg
-
-- name: Stop xlogin
-  systemd:
-    name: xlogin@vdr.service
-    state: stopped
-    enabled: yes
-
-- name: Stop x
-  systemd:
-    name: x@vt7.service
-    state: stopped
-
-- include: detect-xorg.yml
-
-# TODO: expand template for xorg.conf (or snippets)
-#       with respect for the available graphics card driver
-#       nvidia, noveau, intel, radeon
-
-- name: create xorg.conf (for nvidia driver)
-  template:
-    src: templates/xorg.conf.j2
-    dest: /etc/X11/xorg.conf
-    backup: yes
-
-- include: desktop-session.yml
-
-- name: enable and start xlogin for the user vdr
-  systemd:
-    daemon_reload: yes
-    name: 'xlogin@{{ vdr.user }}'
-    enabled: yes
-    state: started
 #+END_SRC
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
@@ -1487,6 +1453,26 @@ b'\xde\xad\xbe\xef'
   template:
     src: "templates/xorg-verbose.conf.j2"
     dest: "/etc/X11/xorg-verbose.conf"
+
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+    enabled: yes
+  notify: ['Start VDR']
+
+
+- name: Stop xlogin
+  systemd:
+    name: xlogin@vdr.service
+    state: stopped
+    enabled: yes
+
+- name: Stop x
+  systemd:
+    name: x@vt7.service
+    state: stopped
+
 
 - name: "start x-verbose@.service"
   systemd:
@@ -1516,6 +1502,24 @@ b'\xde\xad\xbe\xef'
     state: stopped
     enabled: false
     masked: true
+
+# IDEA: use hooks or requirements instead
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
+- name: create xorg.conf (for nvidia driver)
+  template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: yes
+
+- name: enable and start xlogin for the user vdr
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
 #+END_SRC
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
@@ -3162,6 +3166,10 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 *** tasks
 **** Install KODI
 #+BEGIN_SRC yaml :tangle roles/kodi/tasks/main.yml :mkdirp yes :padline no
+- include: install-kodi.yml tags=install,update,kodi:install
+- include: configure-kodi.yml tags=install,update,kodi:configure
+#+END_SRC
+#+BEGIN_SRC yaml :tangle roles/kodi/tasks/install-kodi.yml :mkdirp yes :padline no
 ---
 
 - name: apt | install kodi packages
@@ -3173,7 +3181,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
     - kodi
     - kodi-pvr-vdr-vnsi
     - kodi-eventclients-xbmc-send  
-
+#+END_SRC
+#+BEGIN_SRC yaml :tangle roles/kodi/tasks/configure-kodi.yml :mkdirp yes :padline no
 - name: create kodi.service for the user session
   template:
       src: 'templates/kodi.service.j2'
@@ -3194,6 +3203,23 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
       - .kodi/userdata
       - .kodi/userdata/keymaps
 
+- name: copy Lircmap.xml if it does not exist yet
+  copy:
+      dest: '{{ vdr.home }}/.kodi/userdata/Lircmap.xml'
+      src: 'files/userdata/Lircmap.xml'
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'    
+      mode: "0664"
+      force: no
+
+- name: copy remote.xml if it does not exist yes
+  copy:
+      dest: '{{ vdr.home }}/.kodi/userdata/keymaps/remote.xml'
+      src: 'files/userdata/keymaps/remote.xml'
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'    
+      mode: "0664"
+      force: no
 # TODO: Add configuration files
 #+END_SRC
 *** templates

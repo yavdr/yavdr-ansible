@@ -1,0 +1,38 @@
+- name: create kodi.service for the user session
+  template:
+      src: 'templates/kodi.service.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/kodi.service'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create kodi user directory
+  file:
+      dest: '{{ vdr.home }}/{{ item }}'
+      state: directory
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+      mode: "0775"
+  with_items:
+      - .kodi
+      - .kodi/userdata
+      - .kodi/userdata/keymaps
+
+- name: copy Lircmap.xml if it does not exist yet
+  copy:
+      dest: '{{ vdr.home }}/.kodi/userdata/Lircmap.xml'
+      src: 'files/userdata/Lircmap.xml'
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'    
+      mode: "0664"
+      force: no
+
+- name: copy remote.xml if it does not exist yes
+  copy:
+      dest: '{{ vdr.home }}/.kodi/userdata/keymaps/remote.xml'
+      src: 'files/userdata/keymaps/remote.xml'
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'    
+      mode: "0664"
+      force: no
+# TODO: Add configuration files

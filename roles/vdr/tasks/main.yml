@@ -10,7 +10,6 @@
     - vdr
     - vdrctl
     - vdr-plugin-dbus2vdr
-
 - name: add svdrp and svdrp-disc to /etc/services
   lineinfile:
     dest: /etc/services
@@ -19,7 +18,6 @@
   with_items:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
-
 - name: create vdr recdir
   file:
     state: directory
@@ -49,7 +47,6 @@
     vdr.hide_first_recording_level
 
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
-
 - name: apt | install additional vdr plugins
   apt:
     name: '{{ item }}'
@@ -58,7 +55,6 @@
   with_items:
     '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
-
 - name: ensure vdr is stopped
   systemd:
     name: vdr.service

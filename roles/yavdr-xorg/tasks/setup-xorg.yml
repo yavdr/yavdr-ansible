@@ -1,0 +1,40 @@
+- name: create directory /etc/systemd/system/vdr.service.d/
+  file:
+    dest: /etc/systemd/system/vdr.service.d/
+    state: directory
+
+- name: add dependency to X-server for vdr.service using a drop-in
+  template:
+    src: templates/vdr-xorg.conf
+    dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+
+- name: load environment file for vdr.service
+  template:
+    src: templates/systemd/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
+- name: set a login shell for the user vdr
+  user:
+      name: '{{ vdr.user }}'
+      shell: '/bin/bash'
+      state: present
+      uid: '{{ vdr.uid }}'
+      groups: '{{ vdr.group }}'
+      append: yes
+
+- name: install packages for xorg
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - xorg
+    - xserver-xorg-video-all
+    - xserver-xorg-input-all
+    - xlogin
+    - xterm
+    - openbox
+    - tmux
+    - kiosk-browser
+    - read-edid
+    - python3-yavdrfrontend
+    #- yavdr-xorg
