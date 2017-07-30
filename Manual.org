@@ -178,7 +178,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
      - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
      - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
-     - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+     - autoinstall-pvr350         # install vdr-plugin-pgvr350 if a matching card is detected
+     - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
      - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
@@ -1968,6 +1969,7 @@ EndSection
 **** vdr
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
 [Service]
+Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 **** Systemd User Session
