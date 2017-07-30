@@ -231,7 +231,7 @@ ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***"
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 branch: unstable
 ppa_owner: 'ppa:yavdr'
-# a list of all package repositories to be added to the installation
+# add the following PPAs
 repositories:
   - '{{ ppa_owner }}/main'
   - '{{ ppa_owner }}/unstable-main'
@@ -453,14 +453,14 @@ yavdr-common executes the following tasks:
 #+END_SRC
 ***** Set up package repositories
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: add yaVDR PPAs
+- name: add PPAs
   apt_repository:
       repo: '{{ item }}'
       state: present
       update_cache: yes
   with_items: '{{ repositories }}'
 
-- name: upgrade existing packages
+- name: run apt-get dist-upgrade
   apt:
       upgrade: dist
       update_cache: yes

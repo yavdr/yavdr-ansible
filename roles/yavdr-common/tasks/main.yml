@@ -30,14 +30,14 @@
     state: present
     regexp: '^(Prompt=).*$'
     line: '\1never'
-- name: add yaVDR PPAs
+- name: add PPAs
   apt_repository:
       repo: '{{ item }}'
       state: present
       update_cache: yes
   with_items: '{{ repositories }}'
 
-- name: upgrade existing packages
+- name: run apt-get dist-upgrade
   apt:
       upgrade: dist
       update_cache: yes
