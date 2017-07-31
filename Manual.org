@@ -1426,7 +1426,7 @@ b'\xde\xad\xbe\xef'
 
 - name: user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
-    src: templates/user@666.sergvice.d/x-dependency.conf.j2
+    src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
 - name: start softhddevice detached and set audio to pulseaudio
@@ -2051,6 +2051,7 @@ ConditionFileNotEmpty=%h/.second_display
 EnvironmentFile=%h/.second_display
 PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "http://localhost:4444/skins/horchiTft/index.html?theme=blue&onlyView=1"'
+KillSignal=SIGINT
 
 [Install]
 WantedBy=yavdr-desktop.target
