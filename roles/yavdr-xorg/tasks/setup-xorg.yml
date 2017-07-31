@@ -1,12 +1,20 @@
-- name: create directory /etc/systemd/system/vdr.service.d/
+- name: create directories for systemd drop-in files
   file:
-    dest: /etc/systemd/system/vdr.service.d/
+    dest: '{{ item }}'
     state: directory
+  with_items:
+    - /etc/systemd/system/x@.service.d/
+    - /etc/systemd/system/vdr.service.d/
 
 - name: add dependency to X-server for vdr.service using a drop-in
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+
+- name: start x@.service before xlogin@.service
+  template:
+    src: templates/x@service.d/xlogin.conf.j2
+    dest: /etc/systemd/system/x@.service.d/xlogin.conf
 
 - name: load environment file for vdr.service
   template:
