@@ -1415,6 +1415,14 @@ b'\xde\xad\xbe\xef'
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
+- name: start softhddevice detached and set audio to pulseaudio
+  lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    line: {{ item }}
+  with_items:
+      - '-D'
+      # - '-a pulse' # do we need this with our existing asound.conf?
+
 - name: set a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
