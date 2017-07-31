@@ -5,6 +5,7 @@
   with_items:
     - /etc/systemd/system/x@.service.d/
     - /etc/systemd/system/vdr.service.d/
+    - '/etc/systemd/system/user@{{ vdr.uid }}.service.d/'
 
 - name: add dependency to X-server for vdr.service using a drop-in
   template:
@@ -20,6 +21,11 @@
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
+- name: user@{{ vdr.uid }}.service depends on x@vt7.service
+  template:
+    src: templates/systemd/user@666.service.d/x-dependency.conf.j2
+    dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
 - name: start softhddevice detached and set audio to pulseaudio
   lineinfile:
