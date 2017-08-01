@@ -24,13 +24,14 @@
 #+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
 #+LATEX_HEADER: \usepackage[ngerman]{babel}
 #+LATEX_HEADER: \usepackage{palatino}
-#+LATEX_HEADER: \usepackage{inconsolata}
+#+LATEX_HEADER: \renewcommand*\ttdefault{cmvtt}
 #+LATEX_HEADER: \usepackage{rotating}
 #+LATEX_HEADER: \usepackage{paralist}
 #+LATEX_HEADER: \usepackage{booktabs}
 #+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
-#+LaTeX_HEADER: \usemintedstyle{lovelace}
-#+LATEX_HEADER_EXTRA:
+#+LATEX_HEADER: \usemintedstyle{lovelace}
+#+LATEX_HEADER: \defaultfontfeatures{Ligatures=TeX}
+# #+LATEX_HEADER_EXTRA:
 :END:
 
 * User Stories
@@ -1007,6 +1008,26 @@ ctl.!default {
 }
 #+END_SRC
 ** yavdr-xorg
+*** About the GUI session
+**** Starting the X-server and the Session
+The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.
+The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
+
+~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.
+~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
+
+To prevent stopping the X-server when vdr is running, additional dependencies are set up - see the drop-in rules created in ~/etc/systemd/system/vdr.service.d/~.
+
+Basic Services like the session DBus, pulseaudio etc. are started for the ~default.target~ of the session.
+**** openbox autostart and yavdr-desktop.target
+The openbox autostart script is used to update the systemd session with the needed session variables.  It creates a file =~/.session-env= which is used as an environment file by ~vdr.service~ (so the vdr knows the *DISPLAY* and can access pulseaudio).
+
+The autostart script then enables all services to be pulled in by yavdr-desktop.target.  As the last step ~yavdr-desktop.target~ is startet, which results in staring ~yavdr-frontend.service~ and additional Units for a second display (openbox and a browser for osd2eb, if available).
+
+**** yavdr-frontend
+**** Shutdown of the Session
+In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a dependency of ~user@666.service~ and all processes within the session must be shutdown properly when stopping ~xlogin@vdr.service~.
+If systemd units are used within the user session, they must stop their process(es) successfully (you should set them up to accept expected exit codes appropriately).  The window manager /openbox/ is started using the =~/.xinitrc= and stopped using the systemd unit ~exit-wm.service~ (which runs on stopping the jobs pulled in by the ~default.target~ of the session).
 *** TODO automatic X-server configuration
 - [X] detect connected display
 - [X] read EDID from displays
