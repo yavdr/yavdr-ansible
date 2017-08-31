@@ -1,8 +1,5 @@
 # -*- mode: org; -*-
-* Settings for Export
-# Local Variables:
-# org-src-preserve-indentation: t
-# End:
+* Settings for Export :noexport:
 :DOCUMENT_OPTIONS: 
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
@@ -18,7 +15,6 @@
 #+PROPERTY: header-args :mkdirp yes :padline no
 #+TITLE: Ansible Playbooks for yaVDR 0.7
 #+Author: Alexander Grothe <seahawk1986@gmx.de>
-# #+LATEX_CLASS: article
 #+STARTUP: latexpreview
 #+LATEX_CLASS_OPTIONS: [ngerman,a4paper,locale=DE,koma,palatino,DIV=15,BCOR=15mm]
 #+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
@@ -28,10 +24,14 @@
 #+LATEX_HEADER: \usepackage{rotating}
 #+LATEX_HEADER: \usepackage{paralist}
 #+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage{titlesec}
 #+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
 #+LATEX_HEADER: \usemintedstyle{lovelace}
-#+LATEX_HEADER: \defaultfontfeatures{Ligatures=TeX}
+#+LATEX: \defaultfontfeatures{Ligatures=TeX}
+#+LATEX_HEADER: \usepackage{parskip}
 # #+LATEX_HEADER_EXTRA:
+
+#+EXCLUDE_TAGS: noexport
 :END:
 
 * User Stories
@@ -812,7 +812,7 @@ install_avahi: true
   with_items:
       - avahi-daemon
       - avahi-utils
-      - biosdevname
+      #- biosdevname # caution: this may change device names after a minimal installation!
       - ethtool
       - nfs-common
       - vdr-addon-avahi-linker
@@ -1009,26 +1009,21 @@ ctl.!default {
 #+END_SRC
 ** yavdr-xorg
 *** About the GUI session
-**** Starting the X-server and the Session
-The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.
-The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
+The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
 
-~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.
-~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
+~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
 
 To prevent stopping the X-server when vdr is running, additional dependencies are set up - see the drop-in rules created in ~/etc/systemd/system/vdr.service.d/~.
 
 Basic Services like the session DBus, pulseaudio etc. are started for the ~default.target~ of the session.
-**** openbox autostart and yavdr-desktop.target
 The openbox autostart script is used to update the systemd session with the needed session variables.  It creates a file =~/.session-env= which is used as an environment file by ~vdr.service~ (so the vdr knows the *DISPLAY* and can access pulseaudio).
 
 The autostart script then enables all services to be pulled in by yavdr-desktop.target.  As the last step ~yavdr-desktop.target~ is startet, which results in staring ~yavdr-frontend.service~ and additional Units for a second display (openbox and a browser for osd2eb, if available).
 
-**** yavdr-frontend
-**** Shutdown of the Session
-In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a dependency of ~user@666.service~ and all processes within the session must be shutdown properly when stopping ~xlogin@vdr.service~.
-If systemd units are used within the user session, they must stop their process(es) successfully (you should set them up to accept expected exit codes appropriately).  The window manager /openbox/ is started using the =~/.xinitrc= and stopped using the systemd unit ~exit-wm.service~ (which runs on stopping the jobs pulled in by the ~default.target~ of the session).
-*** TODO automatic X-server configuration
+# TODO: describe yavdr-frontend
+
+In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a dependency of the systemd unit instance ~user@666.service~ and all processes within the session must be shutdown properly when stopping ~xlogin@vdr.service~.  If systemd units are used within the user session, they must stop their process(es) successfully (you should set them up to accept expected exit codes appropriately).  The window manager /openbox/ is started using the =~/.xinitrc= and stopped using the systemd unit ~exit-wm.service~ (which runs on stopping the jobs pulled in by the ~default.target~ of the session).
+*** TODO automatic X-server configuration                        :noexport:
 - [X] detect connected display
 - [X] read EDID from displays
 - [ ] create a xorg.conf for nvidia/intel/amd gpus
@@ -1411,7 +1406,7 @@ b'\xde\xad\xbe\xef'
 #+END_SRC
 *** default variables
 *** tasks
-**** main
+
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
@@ -1419,8 +1414,10 @@ b'\xde\xad\xbe\xef'
 - include: detect-xorg.yml tags=xorg:detect,install
 - include: desktop-session.yml tags=install,update
 #+END_SRC
-**** setup-xorg
+
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-xorg/tasks/setup-xorg.yml
 - name: create directories for systemd drop-in files
   file:
     dest: '{{ item }}'
@@ -1486,7 +1483,7 @@ b'\xde\xad\xbe\xef'
     - vdr-plugin-desktop
     #- yavdr-xorg
 #+END_SRC
-**** detect-xorg
+
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
@@ -1508,7 +1505,6 @@ b'\xde\xad\xbe\xef'
     enabled: yes
   notify: ['Start VDR']
 
-
 - name: Stop xlogin
   systemd:
     name: 'xlogin@{{ vdr.user }}.service'
@@ -1518,7 +1514,6 @@ b'\xde\xad\xbe\xef'
   systemd:
     name: x@vt7.service
     state: stopped
-
 
 - name: "start x-verbose@.service"
   systemd:
@@ -1549,18 +1544,16 @@ b'\xde\xad\xbe\xef'
     enabled: false
     masked: true
 
-# IDEA: use hooks or requirements instead
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
-
 - name: create xorg.conf (for nvidia driver)
   template:
     src: templates/xorg.conf.j2
     dest: /etc/X11/xorg.conf
     backup: yes
 #+END_SRC
-**** desktop-session
+
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/desktop-session.yml
@@ -1660,6 +1653,8 @@ b'\xde\xad\xbe\xef'
 **** xorg
 ***** x-verbose@.service
 #+BEGIN_SRC conf :tangle "roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2" :padline no
+---
+# file: roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2
 [Unit]
 Description=X with verbose logging on %I
 Wants=graphical.target
@@ -1689,12 +1684,12 @@ KillMode=mixed
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes :padline no
 # file: roles/yavdr-xorg/templates/vdr-xorg.conf
 # {{ ansible_managed_file }}
-
 [Unit]
 After=x@vt7.service
 Wants=x@vt7.service
 #BindsTo=x@vt7.service
 #+END_SRC
+***** .xinitrc 
 #+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes :padline no
 #!/bin/bash
 # {{ ansible_managed_file }}
@@ -3170,7 +3165,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: vdr-plugin-targavfd
   when: 
-    - '"19c2:6a11" in usb'
+    - "19c2:6a11" in usb
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-imonlcd
@@ -3183,8 +3178,8 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: vdr-plugin-imonlcd
   when: 
-    - '"15c2:0038" in usb'
-    - '"15c2:ffdc" in usb'
+    - "15c2:0038" in usb
+    - "15c2:ffdc" in usb
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-libcecdaemon
@@ -3197,7 +3192,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: libcec-daemon
   when: 
-    - '"2548:1002" in usb'
+    - "2548:1002" in usb
 #+END_SRC
 ** autoinstall-pvr350
 *** tasks
@@ -3209,7 +3204,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: vdr-plugin-pvr350
   when: 
-    - '"0070:4000" in pci'
+    - "0070:4000" in pci
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hauppauge-pvr
@@ -3221,8 +3216,8 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: vdr-plugin-pvrinput
   when: 
-    - '"0070:4000" in pci'
-    - '"4444:0016" in pci'
+    - "0070:4000" in pci
+    - "4444:0016" in pci
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** TODO autoinstall-dvbhddevice
