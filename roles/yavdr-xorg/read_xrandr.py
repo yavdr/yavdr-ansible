@@ -20,30 +20,32 @@ for line in xrandr_data.splitlines():
     if line.startswith('Screen'):
         print_modelines(resolutions)
         new_connection = False
-        screen = line.split(':', maxsplit=1)[0].split()[-1]
+        screen = line.split(':', 1)[0].split()[-1]
         new_screen = True
         print('Screen: {}'.format(screen))
-
-    elif new_screen and not new_connection and ' connected ' in line:
+    elif ' connected ' in line:
         connection = line.split()[0]
         new_screen = False
         new_connection = True
-        print('Connection: {}'.format(connection))
+        print('Display connected: {}'.format(connection))
         resolutions = {}
-
-    elif new_connection and line.startswith(' '):
-        resolution, *refreshrates = line.split()
+    elif ' disconnected ' in line:
+        #Print debug information during detection
+        connection = line.split()[0]
+        print('Display disconnected: {}'.format(connection))
+    elif line.startswith(' '):
+        r = []
+        connectionDetails = list(filter(None,line.split(' ')))
+        #Get first entry with resolution. Rest can contain multiple refreshrates
+        resolution = connectionDetails.pop(0)
         res_x, res_y = resolution.split('x')
         resolution = (int(res_x), int(res_y))
-        r = []
-        for refreshrate in refreshrates:
+        for refreshrate in connectionDetails:
             if '+' in refreshrate:
-                current_mode = (resolution,
-                                cleanup_refreshrate(refreshrate))
+                current_mode = (resolution, cleanup_refreshrate(refreshrate))
                 print('Current Mode: {}@{}'.format(*current_mode))
             if '*' in refreshrate:
-                preferred_mode = (resolution,
-                                  cleanup_refreshrate(refreshrate))
+                preferred_mode = (resolution, cleanup_refreshrate(refreshrate))
                 print('Preferred Mode: {}@{}'.format(*preferred_mode))
             r.append(cleanup_refreshrate(refreshrate))
         resolutions[resolution] = r
