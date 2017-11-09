@@ -1466,7 +1466,7 @@ b'\xde\xad\xbe\xef'
       groups: '{{ vdr.group }}'
       append: yes
 
-- name: install packages for xorg
+- name: apt | install packages for xorg
   apt:
     name: '{{ item }}'
     state: present
@@ -1481,10 +1481,16 @@ b'\xde\xad\xbe\xef'
     - read-edid
     - tmux
     - vdr-plugin-desktop
+    #- yavdr-xorg
+
+- name: apt | install desktop programs
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
     - xterm
     - firefox
     - kiosk-browser
-    #- yavdr-xorg
 #+END_SRC
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
