@@ -168,6 +168,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - yavdr-common               # install and configure the basic system
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
+     # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
      - yavdr-network              # enable network client capabilities
      - samba-install              # install samba server
@@ -327,11 +328,11 @@ grub:
     '{{ packages }}'
 #+END_SRC
 
-** nvidia-381 drivers
-install nvidia-381 from ppa:graphics-drivers/ppa
+** nvidia-387 drivers
+install nvidia-387 from ppa:graphics-drivers/ppa
 *** tasks
 **** main.yml
-#+BEGIN_SRC yaml :tangle roles/nvidia-381/tasks/main.yml :mkdirp yes :padline no
+#+BEGIN_SRC yaml :tangle roles/nvidia-387/tasks/main.yml :mkdirp yes :padline no
 ---
 
 - name: add ppa:graphics-drivers/ppa
@@ -340,13 +341,13 @@ install nvidia-381 from ppa:graphics-drivers/ppa
       state: present
       update_cache: yes
 
-- name: install nvidia-381 and other required packages
+- name: install nvidia-387 and other required packages
   apt:
     name: '{{ item }}'
     state: present
     install_recommends: no
   with_items:
-    - nvidia-381
+    - nvidia-387
     - nvidia-settings
 #+END_SRC
 ** yavdr-common
