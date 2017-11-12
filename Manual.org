@@ -191,7 +191,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - always
 
   handlers:
-    - include: handlers/main.yml
+    - import_tasks: handlers/main.yml
 #+END_SRC
 ** yavdr07-headless.yml
 For a headless server installation ~yavdr07-headless.yml~ is a good choice
@@ -215,7 +215,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
   tags:
     - always
   handlers:
-    - include: handlers/main.yml
+    - import_tasks: handlers/main.yml
 #+END_SRC
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
@@ -1414,9 +1414,9 @@ b'\xde\xad\xbe\xef'
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
-- include: setup-xorg.yml tags=install,update
-- include: detect-xorg.yml tags=xorg:detect,install
-- include: desktop-session.yml tags=install,update
+- import_tasks: setup-xorg.yml tags=install,update
+- import_tasks: detect-xorg.yml tags=xorg:detect,install
+- import_tasks: desktop-session.yml tags=install,update
 #+END_SRC
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
