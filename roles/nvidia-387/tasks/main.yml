@@ -1,0 +1,16 @@
+---
+
+- name: add ppa:graphics-drivers/ppa
+  apt_repository:
+      repo: 'ppa:graphics-drivers/ppa'
+      state: present
+      update_cache: yes
+
+- name: install nvidia-387 and other required packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    install_recommends: no
+  with_items:
+    - nvidia-387
+    - nvidia-settings
