@@ -1,10 +1,10 @@
 ---
 # file: roles/dvd/tasks/main.yml
 
-- name: preconfigure libdvd-pkg
-  shell: |
-    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
-    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
+#- name: preconfigure libdvd-pkg
+#  shell: |
+#    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
+#    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
 
 - name: apt | install libdvd-pkg
   apt:
@@ -14,6 +14,16 @@
   with_items:
     - libdvd-pkg
 
+- name: configure package libdvd-pkg
+  debconf:
+    name: 'libdvd-pkg'
+    question: '{{ item }}'
+    vtype: boolean
+    value: true
+  - with_items:
+      - libdvd-pkg/post-invoke_hook-install
+      - libdvd-pkg/build boolean
+    
 - name: change udev rule to allow KODI to eject optical disks
   shell: sed 's/--lock-media //' /lib/udev/rules.d/60-cdrom_id.rules > /etc/udev/rules.d/60-cdrom_id.rules
   args:
