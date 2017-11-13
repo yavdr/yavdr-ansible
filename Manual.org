@@ -183,6 +183,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-pvr350         # install vdr-plugin-pgvr350 if a matching card is detected
      - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
      - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+     - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
@@ -3250,6 +3251,20 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   when: '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]
 #+END_SRC
+** autoinstall-hardware-irmp
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/tasks/main.yml :padline no
+---
+# file roles/autoinstall-hardware-irmp/tasks/main.yml
+
+- name: apt | install yavdr-hardware-irmp if connected
+  apt:
+    name: yavdr-hardware-irmp
+  when: '"1209:4444" in usb'
+#+END_SRC
+
+**** TODO add other device ids if necessary
+
 ** kodi
 *** tasks
 **** Install KODI
@@ -4116,6 +4131,9 @@ if __name__ == '__main__':
 #+END_SRC
 * Handlers
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
+- name: Reconfigure unattended upgrades with dpkg
+  command: '/usr/sbin/dpkg-reconfigure --frontend noninteractive unattended-upgrades'
+  
 - name: Restart Samba
   systemd:
     name: smbd.service
