@@ -23,7 +23,8 @@
   with_items:
       - 'libdvd-pkg/post-invoke_hook-install'
       - 'libdvd-pkg/build boolean'
-    
+  notify: ['Reconfigure unattended upgrades with dpkg']
+
 - name: change udev rule to allow KODI to eject optical disks
   shell: sed 's/--lock-media //' /lib/udev/rules.d/60-cdrom_id.rules > /etc/udev/rules.d/60-cdrom_id.rules
   args:
