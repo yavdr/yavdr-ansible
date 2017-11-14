@@ -1,0 +1,36 @@
+---
+# file: yavdr07.yml
+# this playbook sets up a complete yaVDR 0.7 installation
+
+- name: set up yaVDR
+  hosts: all
+  become: true
+  roles:
+     - yavdr-common               # install and configure the basic system
+     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
+                                  # (e.g. nvidia, virtualbox)
+     # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
+     - vdr                        # install vdr and related packages
+     - yavdr-network              # enable network client capabilities
+     - samba-install              # install samba server
+     - samba-config               # configure samba server
+     - nfs-server                 # install nfs server
+     - pulseaudio                 # install pulseaudio
+     - yavdr-xorg                 # graphical session
+     - yavdr-remote               # remote configuration files, services and scripts
+     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+     - autoinstall-pvr350         # install vdr-plugin-pgvr350 if a matching card is detected
+     - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+     - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device was detected
+     - kodi
+     - dvd                        # set up packages and a udev rule to allow kodi and other players
+                                  # to play and eject optical media
+     - grub-config                # configure grub
+  tags:
+     - always
+
+  handlers:
+    - import_tasks: handlers/main.yml
