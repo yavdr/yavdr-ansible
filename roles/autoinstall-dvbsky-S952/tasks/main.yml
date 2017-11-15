@@ -1,10 +1,20 @@
 ---
 # file roles/autoinstall-DVBSky-S952/tasks/main.yml
 
-- name: Download firmware of DVBSky-S952 if detected to /lib/firmware
-  get_url:
-    url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-m88rs6000.fw
-    dest: /lib/firmware/dvb-demod-m88rs6000.fw
-  when: 
-      - "Multimedia video controller: Spin Master Ltd. Device 3038 (rev 01)" in pci 
-      - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
+#- name: Download firmware of DVBSky-S952 if detected to /lib/firmware
+#  get_url:
+#    url: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
+#    dest: /downloads/dvbsky-firmware/
+#  when: 
+#      - "Multimedia video controller: Spin Master Ltd. Device 3038 (rev 01)" in pci 
+#      - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
+
+#http://docs.ansible.com/ansible/latest/unarchive_module.html
+  - name: Download firmware of DVBSky-S952 if detected to /lib/firmware
+    unarchive:
+      src: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
+      dest: /lib/firmware
+      remote_src: yes
+    when: 
+        - "Multimedia video controller: Spin Master Ltd. Device 3038 (rev 01)" in pci 
+        - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
