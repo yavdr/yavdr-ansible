@@ -1,20 +1,11 @@
 ---
 # file roles/autoinstall-DVBSky-S952/tasks/main.yml
 
-#- name: Download firmware of DVBSky-S952 if detected to /lib/firmware
-#  get_url:
-#    url: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
-#    dest: /downloads/dvbsky-firmware/
-#  when: 
-#      - "Multimedia video controller: Spin Master Ltd. Device 3038 (rev 01)" in pci 
-#      - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
-
-#http://docs.ansible.com/ansible/latest/unarchive_module.html
   - name: Download firmware of DVBSky-S952 if detected to /lib/firmware
     unarchive:
       src: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
       dest: /lib/firmware
       remote_src: yes
     when: 
-        - "Multimedia video controller: Spin Master Ltd. Device 3038 (rev 01)" in pci 
+        - "1ade:3038" in pci 
         - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
