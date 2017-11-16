@@ -4,10 +4,8 @@
   - name: Download firmware of DVBSky-S952 if detected to /lib/firmware
     unarchive:
       src: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
-      dest: /lib/firmware
+      dest: /tmp/firmware
       remote_src: yes
     when: 
-        - "1ade:3038" in pci 
-        - version_compare('15.04', '>=')  #driver only included since Kernel 3.19
-    tags:
-         - dvbsky
+        - '"1ade:3038" in pci' 
+        - ansible_distribution_version >= '15.04'  #driver only included since Kernel 3.19
