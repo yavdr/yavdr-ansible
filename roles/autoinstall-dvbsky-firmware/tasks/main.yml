@@ -1,16 +1,16 @@
 ---
 # file roles/autoinstall-dvbsky-firmware/tasks/main.yml
 
-- name: create empty list for dvbsky device firmware files
-  set_fact:
-    dvbsky_firmware_files: []
-
-- name: add firmware for DVBSky S952 V3 to variable dvbsky_firmware_files if a card has been detected
-  set_fact:
-    dvbsky_firmware_files: dvbsky_firmware_files + [ 'dvb-demod-m88rs6000.fw']
+- name: determine needed firmware files by device ids
+  block:
+    - name: add firmware for DVBSky S952 V3 to variable dvbsky_firmware_files if a card has been detected
+      set_fact:
+        dvbsky_firmware_files: dvbsky_firmware_files + [ 'dvb-demod-m88rs6000.fw']
+      when:
+        - '"1ade:3038" in pci'
+        - ansible_distribution_version >= '15.04'  #driver only included since Kernel 3.19
   when:
-    - '"1ade:3038" in pci'
-    - ansible_distribution_version >= '15.04'  #driver only included since Kernel 3.19
+    - not dvbsky_firmware_files
 
 - name: Download firmware for DVBSky cards and copy required files to /lib/firmware
   block:
