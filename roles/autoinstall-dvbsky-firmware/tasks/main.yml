@@ -28,6 +28,7 @@
         group: root
         mode: 0644
       with_items: '{{ dvbsky_firmware_files }}'
+      notify: ['Trigger Udev']
 
     # Remove temporary files
     - file:
@@ -36,7 +37,6 @@
   when:
     - dvbsky_firmware_files is defined
     - "{{ dvbsky_firmware_files }}"
-  notify: ['Trigger Udev']
   tags:
     - install
     - autodetect
