@@ -3576,18 +3576,38 @@ wakeup_method: "acpiwakeup"
 # file roles/wakeup/tasks/main.yml
 
 - name: install and configure vdr-addon-acpiwakeup
-  block:
-    - apt:
-      name: vdr-addon-acpiwakeup
-      state: present
-      
-    - lineinfile:
-        path: /etc/vdr/vdr-addon-acpiwakeup.conf
-        regexp: '^ACPI_ENABLED='
-        line: 'ACPI_ENABLED="yes"'
-
+  apt:
+    name: vdr-addon-acpiwakeup
+    state: present
   when: wakeup_method == "acpiwakeup"
+      
+- name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
+  template:
+    src: roles/wakeup/vdr-addon-acpiwakeup.conf.j2
+    dest: /etc/vdr/vdr-addon-acpiwakeup.conf
+
 #+END_SRC
+*** templates
+#+BEGIN_SRC jinja2 :tangle roles/wakeup/templates/vdr-addon-acpiwakeup.conf.j2 :padline no
+{{ ansible_managed_file | comment }}
+
+# Activate/deactivate ACPIWakeup with yes/no:
+ACPI_ENABLED="{% if wakeup_method == 'acpiwakeup' %}yes{% else %}no{% endif %}"
+
+# How many minutes should the machine wake up before the timer starts:
+ACPI_START_AHEAD=5
+
+# If you want your VDR machine to wakeup in regular intervals (i.e. for
+# updating EPG data), specify the days of the week and the wakeup time.
+#
+# Days of the week for regular wakeup (not set=Disabled, 1=Monday...7=Sunday)
+# ACPI_REGULAR_DAYS="1 2 3 4 5 6 7"
+
+# Wakeup time
+#ACPI_REGULAR_TIME=01:00  # HH:MM
+
+#+END_SRC
+
 ** grub-config
 *** default variables
 #+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes :padline no

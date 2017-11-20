@@ -2,14 +2,12 @@
 # file roles/wakeup/tasks/main.yml
 
 - name: install and configure vdr-addon-acpiwakeup
-  block:
-    - apt:
-      name: vdr-addon-acpiwakeup
-      state: present
-      
-    - lineinfile:
-        path: /etc/vdr/vdr-addon-acpiwakeup.conf
-        regexp: '^ACPI_ENABLED='
-        line: 'ACPI_ENABLED="yes"'
-
+  apt:
+    name: vdr-addon-acpiwakeup
+    state: present
   when: wakeup_method == "acpiwakeup"
+      
+- name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
+  template:
+    src: roles/wakeup/vdr-addon-acpiwakeup.conf.j2
+    dest: /etc/vdr/vdr-addon-acpiwakeup.conf
