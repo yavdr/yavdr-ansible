@@ -1,0 +1,15 @@
+---
+# file roles/wakeup/tasks/main.yml
+
+- name: install and configure vdr-addon-acpiwakeup
+  block:
+    - apt:
+      name: vdr-addon-acpiwakeup
+      state: present
+      
+    - lineinfile:
+        path: /etc/vdr/vdr-addon-acpiwakeup.conf
+        regexp: '^ACPI_ENABLED='
+        line: 'ACPI_ENABLED=true'
+
+  when: wakeup_method == "acpiwakeup"

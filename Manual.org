@@ -189,6 +189,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
+     - wakeup                     # set up wakeup methods for rtc etc.
      - grub-config                # configure grub
   tags:
      - always
@@ -216,6 +217,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - nfs-server
     - grub-config
     - autoinstall-satip
+    - wakeup
   tags:
     - always
   handlers:
@@ -303,7 +305,6 @@ extra_packages:
   - bpython3
   - htop
   - tree
-  - vdr-addon-acpiwakeup
   - vim
   - w-scan
 #+END_SRC
@@ -312,6 +313,7 @@ extra_packages:
 frontend: vdr
 #system:
 #  shutdown: poweroff
+wakeup_method: acpiwakeup
 grub:
   timeout: 0
   boot_options: quiet nosplash
@@ -3180,6 +3182,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
 - name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
+    state: present
   when: satip_devices
   notify: [ 'Restart VDR' ]
 #+END_SRC
@@ -3275,7 +3278,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hardware-irmp
-*** sasks
+*** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-hardware-irmp/tasks/main.yml
@@ -3283,6 +3286,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 - name: apt | install yavdr-hardware-irmp if connected
   apt:
     name: yavdr-hardware-irmp
+    state: present
   when: '"1209:4444" in usb'
 #+END_SRC
 
@@ -3558,6 +3562,31 @@ system:
       1:
         mode:
           - "1280x720_60"
+#+END_SRC
+** wakeup
+*** defaults
+#+BEGIN_SRC yaml :tangle roles/wakeup/defaults/main.yml :padline no
+---
+# file roles/wakeup/defaults/main.yml
+wakeup_method: "acpiwakeup"
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/wakeup/tasks/main.yml :padline no
+---
+# file roles/wakeup/tasks/main.yml
+
+- name: install and configure vdr-addon-acpiwakeup
+  block:
+    - apt:
+      name: vdr-addon-acpiwakeup
+      state: present
+      
+    - lineinfile:
+        path: /etc/vdr/vdr-addon-acpiwakeup.conf
+        regexp: '^ACPI_ENABLED='
+        line: 'ACPI_ENABLED=true'
+
+  when: wakeup_method == "acpiwakeup"
 #+END_SRC
 ** grub-config
 *** default variables
