@@ -166,6 +166,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   become: true
   roles:
      - yavdr-common               # install and configure the basic system
+     - collect-facts              # query system facts
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
      # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
@@ -207,6 +208,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
   become: true
   roles:
     - yavdr-common
+    - collect-facts              # query system facts
     - vdr
     - yavdr-network
     - samba-server
@@ -413,9 +415,20 @@ vdr:
 *** tasks
 yavdr-common executes the following tasks:
 **** main.yml
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-common/tasks/main.yml 
+
+- name: basic installation
+  block:
+        - import_tasks: configure_apt.yml
+        - import_tasks: configure_system.yml
+        - import_tasks: create_directories.yml
+  tags: [install]
+ #+END_SRC
 ***** Disable default installation of recommended packages
  This task prevents apt to automatically install all recommended dependencies for packages:
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes :padline no
 ---
 
 - name: apt | prevent automatic installation of recommended packages
@@ -424,8 +437,22 @@ yavdr-common executes the following tasks:
     dest: /etc/apt/apt.conf.d/90norecommends
 
  #+END_SRC
+***** Set up package repositories
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes
+- name: add PPAs
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: yes
+  with_items: '{{ repositories }}'
+
+- name: run apt-get dist-upgrade
+  apt:
+      upgrade: dist
+      update_cache: yes
+ #+END_SRC
 ***** Use bash instead of dash
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: use bash instead of dash
   shell: |
     echo "set dash/sh false" | debconf-communicate
@@ -433,7 +460,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 ***** create user vdr
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :exports none :mkdirp yes
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
@@ -452,7 +479,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 ***** Disable release-upgrade notifications
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: disable release-upgrade notifications
   lineinfile:
     dest: /etc/update-manager/release-upgrades
@@ -461,22 +488,8 @@ yavdr-common executes the following tasks:
     regexp: '^(Prompt=).*$'
     line: '\1never'
 #+END_SRC
-***** Set up package repositories
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: add PPAs
-  apt_repository:
-      repo: '{{ item }}'
-      state: present
-      update_cache: yes
-  with_items: '{{ repositories }}'
-
-- name: run apt-get dist-upgrade
-  apt:
-      upgrade: dist
-      update_cache: yes
- #+END_SRC
 ***** Install essential packages
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: apt | install basic packages
   apt:
     name: '{{ item }}'
@@ -504,7 +517,7 @@ yavdr-common executes the following tasks:
 
  #+END_SRC
 ***** Install additional packages (user defined)
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml
 - name: apt | install extra packages
   apt:
     name: '{{ item }}'
@@ -513,26 +526,8 @@ yavdr-common executes the following tasks:
   with_items:
       '{{ extra_packages }}'
 #+END_SRC
-***** Gather facts with custom modules 
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: get information about usb and pci hardware and loaded kernel modules
-  hardware_facts:
-    usb: True
-    pci: True
-    modules: True
-    gpus: True
-    
-- debug:
-    var: '{{ item }}'
-    verbosity: 1
-  with_items:
-    - usb
-    - pci
-    - gpus
-    - modules
-#+END_SRC
 ***** create media directories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_directories.yml :exports none :mkdirp yes
 - name: create media directories
   file:
     dest: '{{ item.value }}'
@@ -548,6 +543,28 @@ yavdr-common executes the following tasks:
 // Recommends are as of now still abused in many packages
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
+#+END_SRC
+** collect facts about the system with custom modules 
+*** tasks
+***** main.yml
+#+BEGIN_SRC yaml :tangle roles/collect-facts/tasks/main.yml :mkdirp yes
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+    gpus: True
+    acpi_power_modes: True
+    
+- debug:
+    var: '{{ item }}'
+    verbosity: 1
+  with_items:
+    - usb
+    - pci
+    - gpus
+    - modules
+    - acpi_power_modes
 #+END_SRC
 ** vdr
 *** tasks
@@ -3226,6 +3243,11 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   when: '"0070:4000" in pci or "4444:0016" in pci'
   notify: [ 'Restart VDR' ]
 #+END_SRC
+** autoinstall-dvbsky-firmware
+*** defaults
+#+INCLUDE:  "roles/autoinstall-dvbsky-firmware/defaults/main.yml" src yaml
+*** tasks
+#+INCLUDE: "roles/autoinstall-dvbsky-firmware/tasks/main.yml" src yaml
 ** TODO autoinstall-dvbhddevice
 Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
 *** tasks
@@ -3253,7 +3275,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hardware-irmp
-*** tasks
+*** sasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-hardware-irmp/tasks/main.yml
@@ -3634,6 +3656,12 @@ DOCUMENTATION = '''
         default: True
         description:
           - return a list of devices of the pci gpu class (0x030000)
+
+    acpi_power_modes:
+        required: False
+        default: True
+        description:
+          - return a list of supported acpi power saving modes
 notes:
    - requres python-pyusb and python-kmodpy
 requirements: [ ]
@@ -3646,6 +3674,7 @@ EXAMPLES = '''
     usb: True
     pci: True
     modules: True
+    acpi_power_modes: True
 - debug:
     var: usb
 - debug
@@ -3700,11 +3729,21 @@ def format_gpu_device_list(iterator):
                        "VendorID": d.idVendor, "ProductID": d.idProduct}
     return [entry for entry in get_entries(iterator)]
 
+def list_acpi_power_modes():
+    acpi_power_modes = []
+    try:
+        with open('/sys/power/state') as f:
+            acpi_power_modes = [l for l in f.readline().split()]
+    except IOError:
+        pass
+    return acpi_power_modes
+
 arg_specs = {
     'usb': dict(default=True, type='bool', required=False),
     'pci': dict(default=True, type='bool', required=False),
     'modules': dict(default=True, type='bool', required=False),
     'gpus': dict(default=True, type='bool', required=False),
+    'acpi_power_modes': dict(default=True, type='bool', required=False),
     }
 
 
@@ -3714,24 +3753,32 @@ def main():
     collect_pci = module.params['pci']
     collect_modules = module.params['modules']
     collect_gpus = module.params['gpus']
+    collect_acpi_power_modes = module.params['acpi_power_modes']
+
+    usb_devices = []
+    pci_devices = []
+    modules = []
+    gpus = []
+    acpi_power_modes = []
+
     if collect_usb:
         usb_devices = format_device_list(usb.core.find(find_all=True))
-    else:
-        usb_device = []
+
     if collect_pci:
         pci_devices = format_device_list(get_pci_devices())
-    else:
-        pci_devices = []
+
     if collect_modules:
         k = kmodpy.Kmod()
         modules = [m[0] for m in k.loaded()]
-    else:
-        modules = []
+
     if collect_gpus:
         gpus = format_gpu_device_list(get_pci_devices())
-    else:
-        gpus = []
-    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
+
+    if collect_acpi_power_modes:
+        acpi_power_modes = list_acpi_power_modes()
+
+    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus,
+            'acpi_power_modes': acpi_power_modes}
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 

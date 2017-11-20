@@ -1,97 +1,12 @@
 ---
+# file: roles/yavdr-common/tasks/main.yml 
 
-- name: apt | prevent automatic installation of recommended packages
-  template:
-    src: templates/90-norecommends.j2
-    dest: /etc/apt/apt.conf.d/90norecommends
-- name: use bash instead of dash
-  shell: |
-    echo "set dash/sh false" | debconf-communicate
-    dpkg-reconfigure -f noninteractive dash
-- name: create vdr group
-  group:
-    gid: '{{ vdr.gid }}'
-    state: present
-    name: '{{ vdr.group }}'
+- name: basic installation
+  block:
+        - import_tasks: configure_apt.yml
+        - import_tasks: configure_system.yml
+        - import_tasks: create_directories.yml
+  tags: [install]
 
-- name: create vdr user
-  user:
-    name: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    uid: '{{ vdr.uid }}'
-    home: '{{ vdr.home }}'
-    shell: '/bin/bash'
-    state: present
-    append: true
-- name: disable release-upgrade notifications
-  lineinfile:
-    dest: /etc/update-manager/release-upgrades
-    backrefs: yes
-    state: present
-    regexp: '^(Prompt=).*$'
-    line: '\1never'
-- name: add PPAs
-  apt_repository:
-      repo: '{{ item }}'
-      state: present
-      update_cache: yes
-  with_items: '{{ repositories }}'
-
-- name: run apt-get dist-upgrade
-  apt:
-      upgrade: dist
-      update_cache: yes
-- name: apt | install basic packages
-  apt:
-    name: '{{ item }}'
-    state: present
-    install_recommends: no
-  with_items:
-    - anacron
-    - acl
-    - at
-    - bash-completion
-    #- biosdevname  # caution: may change device names after a minimal installation!
-    - debconf-utils
-    - linux-firmware
-    - psmisc
-    - python-kmodpy
-    - python-requests
-    - python-usb
-    - python3-usb
-    - software-properties-common
-    - ssh
-    - wget
-    - wpasupplicant
-    - usbutils
-    - xfsprogs
-- name: apt | install extra packages
-  apt:
-    name: '{{ item }}'
-    state: present
-    install_recommends: no
-  with_items:
-      '{{ extra_packages }}'
-- name: get information about usb and pci hardware and loaded kernel modules
-  hardware_facts:
-    usb: True
-    pci: True
-    modules: True
-    gpus: True
-    
-- debug:
-    var: '{{ item }}'
-    verbosity: 1
-  with_items:
-    - usb
-    - pci
-    - gpus
-    - modules
-- name: create media directories
-  file:
-    dest: '{{ item.value }}'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    state: directory
-    mode: '0777'
-  with_dict: '{{ media_dirs }}'
+- import_tasks: gather_facts.yml
+  tags: [install, autodetect]
