@@ -5,7 +5,19 @@
     modules: True
     gpus: True
     acpi_power_modes: True
-    
+
+- name: set variable nvidia_detected
+  set_fact:
+     nvidia_detected: 'true if {{ gpus | selectattr("VendorName", "nvidia") | list }}' else false
+
+- name: set variable intel_detected
+  set_fact:
+     intel_detected: 'true if {{ gpus | selectattr("VendorName", "intel") | list }}' else false
+
+- name: set variable amd_detected
+  set_fact:
+     amd_detected: 'true if {{ gpus | selectattr("VendorName", "amd") | list }}' else false
+
 - debug:
     var: '{{ item }}'
     verbosity: 1
@@ -15,3 +27,6 @@
     - gpus
     - modules
     - acpi_power_modes
+    - nvidia_detected
+    - intel_detected
+    - amd_detected

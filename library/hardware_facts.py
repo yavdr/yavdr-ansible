@@ -52,11 +52,11 @@ EXAMPLES = '''
     acpi_power_modes: True
 - debug:
     var: usb
-- debug
+- debug:
     var: pci
-- debug
+- debug:
     var: modules
-- debug
+- debug:
     var: gpus
 '''
 
