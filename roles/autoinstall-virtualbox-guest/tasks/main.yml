@@ -1,0 +1,18 @@
+---
+# file roles/autoinstall-virtualbox-guest/tasks/main.yml
+
+- name: install virtualbox guest additions
+  block:
+    - name: install packages
+      apt:
+        state: present
+        name: '{{ item }}'
+      with_items:
+        - virtualbox-guest-dkms
+        - virtualbox-guest-x11
+        - dkms
+  when:
+    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_role == "guest"
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version == "16.04"
