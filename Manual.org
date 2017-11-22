@@ -1470,27 +1470,27 @@ b'\xde\xad\xbe\xef'
     - "/etc/systemd/system/vdr.service.d/"
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
 
-- name: systemd-drop-in: add dependency to X-server for vdr.service
+- name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
-- name: systemd-drop-in: start x@.service before xlogin@.service
+- name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
 
-- name: systemd-drop-in: load environment file for vdr.service
+- name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: systemd-drop-in: user@{{ vdr.uid }}.service depends on x@vt7.service
+- name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
-- name: vdr-config: start softhddevice detached and set audio to pulseaudio
+- name: vdr-config | start softhddevice detached and set audio to pulseaudio
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
