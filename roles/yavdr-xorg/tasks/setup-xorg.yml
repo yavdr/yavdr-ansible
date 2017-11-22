@@ -5,31 +5,31 @@
     dest: '{{ item }}'
     state: directory
   with_items:
-    - /etc/systemd/system/x@.service.d/
-    - /etc/systemd/system/vdr.service.d/
-    - '/etc/systemd/system/user@{{ vdr.uid }}.service.d/'
+    - "/etc/systemd/system/x@.service.d/"
+    - "/etc/systemd/system/vdr.service.d/"
+    - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
 
-- name: add dependency to X-server for vdr.service using a drop-in
+- name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
-- name: start x@.service before xlogin@.service
+- name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
 
-- name: load environment file for vdr.service
+- name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: user@{{ vdr.uid }}.service depends on x@vt7.service
+- name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
-- name: start softhddevice detached and set audio to pulseaudio
+- name: vdr-config | start softhddevice detached and set audio to pulseaudio
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
@@ -37,7 +37,7 @@
       - '-D'
       # - '-a pulse' # do we need this with our existing asound.conf?
 
-- name: set a login shell for the user vdr
+- name: add a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
       shell: '/bin/bash'

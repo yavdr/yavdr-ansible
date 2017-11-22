@@ -1,0 +1,14 @@
+- name: ensure /etc/yavdr exists
+  file:
+    path: /etc/yavdr
+    state: directory
+    mode: 0755
+
+- name: create media directories
+  file:
+    dest: '{{ item.value }}'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    state: directory
+    mode: '0777'
+  with_dict: '{{ media_dirs }}'

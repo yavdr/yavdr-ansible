@@ -28,6 +28,10 @@
     name: x@vt7.service
     state: stopped
 
+- name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
+  wait_for:
+    timeout: 3
+
 - name: "start x-verbose@.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -57,11 +61,20 @@
     enabled: false
     masked: true
 
+- name: "wait a little bit, so X has some time to shut down (needed?)"
+  wait_for:
+    timeout: 3
+
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
-- name: create xorg.conf (for nvidia driver)
-  template:
-    src: templates/xorg.conf.j2
-    dest: /etc/X11/xorg.conf
-    backup: yes
+
+- name: nvidia related config
+  block:
+  - name: create xorg.conf (for nvidia driver)
+    template:
+        src: templates/xorg.conf.j2
+        dest: /etc/X11/xorg.conf
+        backup: yes
+  when:
+    - nvidia_detected

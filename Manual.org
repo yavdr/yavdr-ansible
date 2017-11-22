@@ -148,7 +148,7 @@ add-apt-repository -y ppa:ansible/ansible
 # update packages
 apt-get update
 # install required packages
-apt-get -y install ansible
+apt-get -y install --no-install-recommends ansible
 
 # TODO: run ansible on local host
 ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags=install
@@ -166,8 +166,10 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   become: true
   roles:
      - yavdr-common               # install and configure the basic system
+     - collect-facts              # query system facts
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
+     - autoinstall-virtualbox-guest
      # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
      - yavdr-network              # enable network client capabilities
@@ -184,9 +186,11 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
      - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
      - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
+     - autoinstall-dvbsky-firmware # download an install required firmware files for dvbsky cards
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
+     - wakeup                     # set up wakeup methods for rtc etc.
      - grub-config                # configure grub
   tags:
      - always
@@ -206,6 +210,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
   become: true
   roles:
     - yavdr-common
+    - collect-facts              # query system facts
     - vdr
     - yavdr-network
     - samba-server
@@ -213,6 +218,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - nfs-server
     - grub-config
     - autoinstall-satip
+    - wakeup
   tags:
     - always
   handlers:
@@ -300,7 +306,6 @@ extra_packages:
   - bpython3
   - htop
   - tree
-  - vdr-addon-acpiwakeup
   - vim
   - w-scan
 #+END_SRC
@@ -309,6 +314,7 @@ extra_packages:
 frontend: vdr
 #system:
 #  shutdown: poweroff
+wakeup_method: acpiwakeup
 grub:
   timeout: 0
   boot_options: quiet nosplash
@@ -412,9 +418,20 @@ vdr:
 *** tasks
 yavdr-common executes the following tasks:
 **** main.yml
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-common/tasks/main.yml 
+
+- name: basic installation
+  block:
+        - import_tasks: configure_apt.yml
+        - import_tasks: configure_system.yml
+        - import_tasks: create_directories.yml
+  tags: [install]
+ #+END_SRC
 ***** Disable default installation of recommended packages
  This task prevents apt to automatically install all recommended dependencies for packages:
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes :padline no
 ---
 
 - name: apt | prevent automatic installation of recommended packages
@@ -423,8 +440,22 @@ yavdr-common executes the following tasks:
     dest: /etc/apt/apt.conf.d/90norecommends
 
  #+END_SRC
+***** Set up package repositories
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes
+- name: add PPAs
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: yes
+  with_items: '{{ repositories }}'
+
+- name: run apt-get dist-upgrade
+  apt:
+      upgrade: dist
+      update_cache: yes
+ #+END_SRC
 ***** Use bash instead of dash
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: use bash instead of dash
   shell: |
     echo "set dash/sh false" | debconf-communicate
@@ -432,7 +463,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 ***** create user vdr
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :exports none :mkdirp yes
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
@@ -451,7 +482,11 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 ***** Disable release-upgrade notifications
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+****** SOMEDAY move from lineinfile to template
+:LOGBOOK:
+- State "SOMEDAY"    from "TODO"       [2017-11-22 Mi 10:59]
+:END:
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: disable release-upgrade notifications
   lineinfile:
     dest: /etc/update-manager/release-upgrades
@@ -459,23 +494,15 @@ yavdr-common executes the following tasks:
     state: present
     regexp: '^(Prompt=).*$'
     line: '\1never'
-#+END_SRC
-***** Set up package repositories
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: add PPAs
-  apt_repository:
-      repo: '{{ item }}'
-      state: present
-      update_cache: yes
-  with_items: '{{ repositories }}'
+  ignore_errors: yes
+  with_first_found:
+    - files:
+      - /etc/update-manager/release-upgrades
+      skip: true
 
-- name: run apt-get dist-upgrade
-  apt:
-      upgrade: dist
-      update_cache: yes
- #+END_SRC
+#+END_SRC
 ***** Install essential packages
- #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
+ #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: apt | install basic packages
   apt:
     name: '{{ item }}'
@@ -503,7 +530,7 @@ yavdr-common executes the following tasks:
 
  #+END_SRC
 ***** Install additional packages (user defined)
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml
 - name: apt | install extra packages
   apt:
     name: '{{ item }}'
@@ -512,26 +539,14 @@ yavdr-common executes the following tasks:
   with_items:
       '{{ extra_packages }}'
 #+END_SRC
-***** Gather facts with custom modules 
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes
-- name: get information about usb and pci hardware and loaded kernel modules
-  hardware_facts:
-    usb: True
-    pci: True
-    modules: True
-    gpus: True
-    
-- debug:
-    var: '{{ item }}'
-    verbosity: 1
-  with_items:
-    - usb
-    - pci
-    - gpus
-    - modules
-#+END_SRC
-***** create media directories
-#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :exports none :mkdirp yes
+***** create directories
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_directories.yml :exports none :mkdirp yes
+- name: ensure /etc/yavdr exists
+  file:
+    path: /etc/yavdr
+    state: directory
+    mode: 0755
+
 - name: create media directories
   file:
     dest: '{{ item.value }}'
@@ -547,6 +562,32 @@ yavdr-common executes the following tasks:
 // Recommends are as of now still abused in many packages
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
+#+END_SRC
+** collect facts about the system with custom modules 
+*** tasks
+***** main.yml
+#+BEGIN_SRC yaml :tangle roles/collect-facts/tasks/main.yml :mkdirp yes
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+    gpus: True
+    acpi_power_modes: True
+
+- debug:
+    var: '{{ item }}'
+    verbosity: 1
+  with_items:
+    - usb
+    - pci
+    - gpus
+    - modules
+    - acpi_power_modes
+    - nvidia_detected
+    - intel_detected
+    - amd_detected
+    - virtualbox_detected
 #+END_SRC
 ** vdr
 *** tasks
@@ -1031,7 +1072,10 @@ In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a d
 *** TODO automatic X-server configuration                        :noexport:
 - [X] detect connected display
 - [X] read EDID from displays
-- [ ] create a xorg.conf for nvidia/intel/amd gpus
+create a xorg.conf for
+- [X] nvidia
+- [ ] intel
+- [ ] amd gpus
 
 **** HOLD Nvidia-GPUs:read  EDID:
 
@@ -1428,31 +1472,31 @@ b'\xde\xad\xbe\xef'
     dest: '{{ item }}'
     state: directory
   with_items:
-    - /etc/systemd/system/x@.service.d/
-    - /etc/systemd/system/vdr.service.d/
-    - '/etc/systemd/system/user@{{ vdr.uid }}.service.d/'
+    - "/etc/systemd/system/x@.service.d/"
+    - "/etc/systemd/system/vdr.service.d/"
+    - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
 
-- name: add dependency to X-server for vdr.service using a drop-in
+- name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
-- name: start x@.service before xlogin@.service
+- name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
 
-- name: load environment file for vdr.service
+- name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: user@{{ vdr.uid }}.service depends on x@vt7.service
+- name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
-- name: start softhddevice detached and set audio to pulseaudio
+- name: vdr-config | start softhddevice detached and set audio to pulseaudio
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
@@ -1460,7 +1504,7 @@ b'\xde\xad\xbe\xef'
       - '-D'
       # - '-a pulse' # do we need this with our existing asound.conf?
 
-- name: set a login shell for the user vdr
+- name: add a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
       shell: '/bin/bash'
@@ -1527,6 +1571,10 @@ b'\xde\xad\xbe\xef'
     name: x@vt7.service
     state: stopped
 
+- name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
+  wait_for:
+    timeout: 3
+
 - name: "start x-verbose@.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -1556,14 +1604,24 @@ b'\xde\xad\xbe\xef'
     enabled: false
     masked: true
 
+- name: "wait a little bit, so X has some time to shut down (needed?)"
+  wait_for:
+    timeout: 3
+
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
-- name: create xorg.conf (for nvidia driver)
-  template:
-    src: templates/xorg.conf.j2
-    dest: /etc/X11/xorg.conf
-    backup: yes
+
+- name: nvidia related config
+  block:
+  - name: create xorg.conf (for nvidia driver)
+    template:
+        src: templates/xorg.conf.j2
+        dest: /etc/X11/xorg.conf
+        backup: yes
+  when:
+    - nvidia_detected
+
 #+END_SRC
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
@@ -3131,19 +3189,47 @@ The tool ubuntu-drivers is used to install the matching driver version for nvidi
 #+BEGIN_SRC yaml :tangle roles/autoinstall-ubuntu-drivers/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-ubuntu-drivers/tasks/main.yml
-- name: apt | install ubuntu-drivers-common
-  apt:
-    name: ubuntu-drivers-common
-    state: present
 
-- name: ensure /etc/yavdr exists
-  file:
-    path: /etc/yavdr
-    state: directory
-    mode: 0755
+- name: autoinstall ubuntu-drivers-common
+  block:
+    - name: apt | install ubuntu-drivers-common
+      apt:
+        name: ubuntu-drivers-common
+        state: present
 
-- name: let ubuntu-drivers automatically install additional drivers
-  command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+    - name: use ubuntu-drivers to install additional drivers automatically
+      command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+  when:
+    - ansible_virtualization_type != "virtualbox"
+    - ansible_virtualization_role != "guest"
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version != "16.04"  # ubuntu-drivers-common tries to autoinstall
+                                               # conflicting packages for virtualbox :(
+#+END_SRC
+** autoinstall-virtualbox-guest
+This role installs the guest additions for virtualbox guests on Ubuntu 16.04
+
+#+BEGIN_SRC yaml :tangle roles/autoinstall-virtualbox-guest/tasks/main.yml :padline no
+---
+# file roles/autoinstall-virtualbox-guest/tasks/main.yml
+
+- name: install virtualbox guest additions
+  block:
+    - name: install packages
+      apt:
+        state: present
+        name: '{{ item }}'
+      with_items:
+        - virtualbox-guest-dkms
+        - virtualbox-guest-x11
+        - dkms
+
+    # TODO: set xineliboutput as frontend
+  when:
+    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_role == "guest"
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version == "16.04"
 #+END_SRC
 ** autoinstall-satip
 If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip is installed.
@@ -3162,6 +3248,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
 - name: apt | install vdr-plugin-satip if a Sat>IP server has been detected
   apt:
     name: vdr-plugin-satip
+    state: present
   when: satip_devices
   notify: [ 'Restart VDR' ]
 #+END_SRC
@@ -3225,6 +3312,11 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   when: '"0070:4000" in pci or "4444:0016" in pci'
   notify: [ 'Restart VDR' ]
 #+END_SRC
+** autoinstall-dvbsky-firmware
+*** defaults
+#+INCLUDE:  "roles/autoinstall-dvbsky-firmware/defaults/main.yml" src yaml
+*** tasks
+#+INCLUDE: "roles/autoinstall-dvbsky-firmware/tasks/main.yml" src yaml
 ** TODO autoinstall-dvbhddevice
 Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
 *** tasks
@@ -3262,6 +3354,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 - name: apt | install yavdr-hardware-irmp if connected
   apt:
     name: yavdr-hardware-irmp
+    state: present
   when: '"1209:4444" in usb'
 #+END_SRC
 
@@ -3538,6 +3631,51 @@ system:
         mode:
           - "1280x720_60"
 #+END_SRC
+** wakeup
+*** defaults
+#+BEGIN_SRC yaml :tangle roles/wakeup/defaults/main.yml :padline no
+---
+# file roles/wakeup/defaults/main.yml
+wakeup_method: "acpiwakeup"
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/wakeup/tasks/main.yml :padline no
+---
+# file roles/wakeup/tasks/main.yml
+
+- name: install and configure vdr-addon-acpiwakeup
+  apt:
+    name: vdr-addon-acpiwakeup
+    state: present
+  when: wakeup_method == "acpiwakeup"
+      
+- name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
+  template:
+    src: templates/vdr-addon-acpiwakeup.conf.j2
+    dest: /etc/vdr/vdr-addon-acpiwakeup.conf
+
+#+END_SRC
+*** templates
+#+BEGIN_SRC jinja2 :tangle roles/wakeup/templates/vdr-addon-acpiwakeup.conf.j2 :padline no
+{{ ansible_managed_file | comment }}
+
+# Activate/deactivate ACPIWakeup with yes/no:
+ACPI_ENABLED="{% if wakeup_method == 'acpiwakeup' %}yes{% else %}no{% endif %}"
+
+# How many minutes should the machine wake up before the timer starts:
+ACPI_START_AHEAD=5
+
+# If you want your VDR machine to wakeup in regular intervals (i.e. for
+# updating EPG data), specify the days of the week and the wakeup time.
+#
+# Days of the week for regular wakeup (not set=Disabled, 1=Monday...7=Sunday)
+# ACPI_REGULAR_DAYS="1 2 3 4 5 6 7"
+
+# Wakeup time
+#ACPI_REGULAR_TIME=01:00  # HH:MM
+
+#+END_SRC
+
 ** grub-config
 *** default variables
 #+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes :padline no
@@ -3635,6 +3773,12 @@ DOCUMENTATION = '''
         default: True
         description:
           - return a list of devices of the pci gpu class (0x030000)
+
+    acpi_power_modes:
+        required: False
+        default: True
+        description:
+          - return a list of supported acpi power saving modes
 notes:
    - requres python-pyusb and python-kmodpy
 requirements: [ ]
@@ -3647,13 +3791,14 @@ EXAMPLES = '''
     usb: True
     pci: True
     modules: True
+    acpi_power_modes: True
 - debug:
     var: usb
-- debug
+- debug:
     var: pci
-- debug
+- debug:
     var: modules
-- debug
+- debug:
     var: gpus
 '''
 
@@ -3701,11 +3846,21 @@ def format_gpu_device_list(iterator):
                        "VendorID": d.idVendor, "ProductID": d.idProduct}
     return [entry for entry in get_entries(iterator)]
 
+def list_acpi_power_modes():
+    acpi_power_modes = []
+    try:
+        with open('/sys/power/state') as f:
+            acpi_power_modes = [l for l in f.readline().split()]
+    except IOError:
+        pass
+    return acpi_power_modes
+
 arg_specs = {
     'usb': dict(default=True, type='bool', required=False),
     'pci': dict(default=True, type='bool', required=False),
     'modules': dict(default=True, type='bool', required=False),
     'gpus': dict(default=True, type='bool', required=False),
+    'acpi_power_modes': dict(default=True, type='bool', required=False),
     }
 
 
@@ -3715,24 +3870,42 @@ def main():
     collect_pci = module.params['pci']
     collect_modules = module.params['modules']
     collect_gpus = module.params['gpus']
+    collect_acpi_power_modes = module.params['acpi_power_modes']
+
+    usb_devices = []
+    pci_devices = []
+    modules = []
+    gpus = []
+    nvidia_detected = False
+    intel_detected = False
+    amd_detected = False
+    virtualbox_detected = False
+    acpi_power_modes = []
+
     if collect_usb:
         usb_devices = format_device_list(usb.core.find(find_all=True))
-    else:
-        usb_device = []
+
     if collect_pci:
         pci_devices = format_device_list(get_pci_devices())
-    else:
-        pci_devices = []
+
     if collect_modules:
         k = kmodpy.Kmod()
         modules = [m[0] for m in k.loaded()]
-    else:
-        modules = []
+
     if collect_gpus:
         gpus = format_gpu_device_list(get_pci_devices())
-    else:
-        gpus = []
-    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
+        nvidia_detected = any((True for gpu in gpus if gpu['VendorName'] == 'nvidia'))
+        intel_detected = any((True for gpu in gpus if gpu['VendorName'] == 'intel'))
+        amd_detected = any((True for gpu in gpus if gpu['VendorName'] == 'amd'))
+        virtualbox_detected = any((True for gpu in gpus if gpu['VendorName'] == 'virtualbox'))
+
+    if collect_acpi_power_modes:
+        acpi_power_modes = list_acpi_power_modes()
+
+    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus,
+            'acpi_power_modes': acpi_power_modes, 'nvidia_detected': nvidia_detected,
+            'intel_detected': intel_detected, 'amd_detected': amd_detected,
+            'virtualbox_detected': virtualbox_detected}
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 
@@ -4061,6 +4234,9 @@ def collect_nvidia_data():
                                 universal_newlines=True)
     except subprocess.CalledProcessError:
         pass
+    except OSError:
+        # nvidia-smi is not installed
+        pass
     else:
         for row in csv.DictReader(data.splitlines(), delimiter=',', skipinitialspace=True):
             name = row['name']
@@ -4135,6 +4311,9 @@ if __name__ == '__main__':
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
 - name: Reconfigure unattended upgrades with dpkg
   command: '/usr/sbin/dpkg-reconfigure --frontend noninteractive unattended-upgrades'
+
+- name: Trigger Udev
+  command: 'udevadm trigger '
   
 - name: Restart Samba
   systemd:

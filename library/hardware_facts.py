@@ -31,6 +31,12 @@ DOCUMENTATION = '''
         default: True
         description:
           - return a list of devices of the pci gpu class (0x030000)
+
+    acpi_power_modes:
+        required: False
+        default: True
+        description:
+          - return a list of supported acpi power saving modes
 notes:
    - requres python-pyusb and python-kmodpy
 requirements: [ ]
@@ -43,13 +49,14 @@ EXAMPLES = '''
     usb: True
     pci: True
     modules: True
+    acpi_power_modes: True
 - debug:
     var: usb
-- debug
+- debug:
     var: pci
-- debug
+- debug:
     var: modules
-- debug
+- debug:
     var: gpus
 '''
 
@@ -97,11 +104,21 @@ def format_gpu_device_list(iterator):
                        "VendorID": d.idVendor, "ProductID": d.idProduct}
     return [entry for entry in get_entries(iterator)]
 
+def list_acpi_power_modes():
+    acpi_power_modes = []
+    try:
+        with open('/sys/power/state') as f:
+            acpi_power_modes = [l for l in f.readline().split()]
+    except IOError:
+        pass
+    return acpi_power_modes
+
 arg_specs = {
     'usb': dict(default=True, type='bool', required=False),
     'pci': dict(default=True, type='bool', required=False),
     'modules': dict(default=True, type='bool', required=False),
     'gpus': dict(default=True, type='bool', required=False),
+    'acpi_power_modes': dict(default=True, type='bool', required=False),
     }
 
 
@@ -111,24 +128,42 @@ def main():
     collect_pci = module.params['pci']
     collect_modules = module.params['modules']
     collect_gpus = module.params['gpus']
+    collect_acpi_power_modes = module.params['acpi_power_modes']
+
+    usb_devices = []
+    pci_devices = []
+    modules = []
+    gpus = []
+    nvidia_detected = False
+    intel_detected = False
+    amd_detected = False
+    virtualbox_detected = False
+    acpi_power_modes = []
+
     if collect_usb:
         usb_devices = format_device_list(usb.core.find(find_all=True))
-    else:
-        usb_device = []
+
     if collect_pci:
         pci_devices = format_device_list(get_pci_devices())
-    else:
-        pci_devices = []
+
     if collect_modules:
         k = kmodpy.Kmod()
         modules = [m[0] for m in k.loaded()]
-    else:
-        modules = []
+
     if collect_gpus:
         gpus = format_gpu_device_list(get_pci_devices())
-    else:
-        gpus = []
-    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus}
+        nvidia_detected = any((True for gpu in gpus if gpu['VendorName'] == 'nvidia'))
+        intel_detected = any((True for gpu in gpus if gpu['VendorName'] == 'intel'))
+        amd_detected = any((True for gpu in gpus if gpu['VendorName'] == 'amd'))
+        virtualbox_detected = any((True for gpu in gpus if gpu['VendorName'] == 'virtualbox'))
+
+    if collect_acpi_power_modes:
+        acpi_power_modes = list_acpi_power_modes()
+
+    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus,
+            'acpi_power_modes': acpi_power_modes, 'nvidia_detected': nvidia_detected,
+            'intel_detected': intel_detected, 'amd_detected': amd_detected,
+            'virtualbox_detected': virtualbox_detected}
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 

@@ -1,0 +1,21 @@
+- name: get information about usb and pci hardware and loaded kernel modules
+  hardware_facts:
+    usb: True
+    pci: True
+    modules: True
+    gpus: True
+    acpi_power_modes: True
+
+- debug:
+    var: '{{ item }}'
+    verbosity: 1
+  with_items:
+    - usb
+    - pci
+    - gpus
+    - modules
+    - acpi_power_modes
+    - nvidia_detected
+    - intel_detected
+    - amd_detected
+    - virtualbox_detected
