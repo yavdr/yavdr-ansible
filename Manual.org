@@ -169,6 +169,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - collect-facts              # query system facts
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
+     - autoinstall-virtualbox-guest
      # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
      - yavdr-network              # enable network client capabilities
@@ -528,8 +529,14 @@ yavdr-common executes the following tasks:
   with_items:
       '{{ extra_packages }}'
 #+END_SRC
-***** create media directories
+***** create directories
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_directories.yml :exports none :mkdirp yes
+- name: ensure /etc/yavdr exists
+file:
+    path: /etc/yavdr
+    state: directory
+    mode: 0755
+
 - name: create media directories
   file:
     dest: '{{ item.value }}'
@@ -3172,19 +3179,45 @@ The tool ubuntu-drivers is used to install the matching driver version for nvidi
 #+BEGIN_SRC yaml :tangle roles/autoinstall-ubuntu-drivers/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-ubuntu-drivers/tasks/main.yml
-- name: apt | install ubuntu-drivers-common
-  apt:
-    name: ubuntu-drivers-common
-    state: present
 
-- name: ensure /etc/yavdr exists
-  file:
-    path: /etc/yavdr
-    state: directory
-    mode: 0755
+- name: autoinstall ubuntu-drivers-common
+  block:
+    - name: apt | install ubuntu-drivers-common
+      apt:
+        name: ubuntu-drivers-common
+        state: present
 
-- name: let ubuntu-drivers automatically install additional drivers
-  command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+    - name: let ubuntu-drivers automatically install additional drivers
+      command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
+  when:
+    - ansible_virtualization_type =! "virtualbox"
+    - ansible_virtualization_role =! "guest"
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version != "16.04"  # ubuntu-drivers-common tries to autoinstall
+                                               # conflicting packages for virtualbox :(
+#+END_SRC
+** autoinstall-virtualbox-guest
+This role installs the guest additions for virtualbox guests on Ubuntu 16.04
+
+#+BEGIN_SRC yaml :tangle roles/autoinstall-virtualbox-guest/tasks/main.yml :padline no
+---
+# file roles/autoinstall-virtualbox-guest/tasks/main.yml
+
+- name: install virtualbox guest additions
+  block:
+    - name: install packages
+      apt:
+        state: present
+        name: '{{ item }}'
+      with_items:
+        - virtualbox-guest-dkms
+        - virtualbox-guest-x11
+        - dkms
+  when:
+    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_role == "guest"
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_version == "16.04"
 #+END_SRC
 ** autoinstall-satip
 If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip is installed.
