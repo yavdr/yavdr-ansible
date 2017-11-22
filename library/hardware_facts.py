@@ -134,6 +134,10 @@ def main():
     pci_devices = []
     modules = []
     gpus = []
+    nvidia_detected = False
+    intel_detected = False
+    amd_detected = False
+    virtualbox_detected = False
     acpi_power_modes = []
 
     if collect_usb:
@@ -148,12 +152,18 @@ def main():
 
     if collect_gpus:
         gpus = format_gpu_device_list(get_pci_devices())
+        nvidia_detected = any((True for gpu in gpus.items() if gpu['VendorName'] == 'nvidia'))
+        intel_detected = any((True for gpu in gpus.items() if gpu['VendorName'] == 'intel'))
+        amd_detected = any((True for gpu in gpus.items() if gpu['VendorName'] == 'amd'))
+        virtualbox_detected = any((True for gpu in gpus.items() if gpu['VendorName'] == 'virtualbox'))
 
     if collect_acpi_power_modes:
         acpi_power_modes = list_acpi_power_modes()
 
     data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus,
-            'acpi_power_modes': acpi_power_modes}
+            'acpi_power_modes': acpi_power_modes, 'nvidia_detected': nvidia_detected,
+            'intel_detected': intel_detected, 'amd_detected': amd_detected,
+            'virtualbox_detected': virtualbox_detected}
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 

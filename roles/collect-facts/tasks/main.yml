@@ -6,18 +6,6 @@
     gpus: True
     acpi_power_modes: True
 
-- name: set variable nvidia_detected
-  set_fact:
-     nvidia_detected: '{{ gpus | selectattr("VendorName", "equalto", "nvidia") | list | bool }}'
-
-- name: set variable intel_detected
-  set_fact:
-     intel_detected: '{{ gpus | selectattr("VendorName", "equalto", "intel") | list | bool }}'
-
-- name: set variable amd_detected
-  set_fact:
-     amd_detected: '{{ gpus | selectattr("VendorName", "equalto", "amd") | list | bool }}'
-
 - debug:
     var: '{{ item }}'
     verbosity: 1
@@ -30,3 +18,4 @@
     - nvidia_detected
     - intel_detected
     - amd_detected
+    - virtualbox_detected
