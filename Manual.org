@@ -482,6 +482,10 @@ yavdr-common executes the following tasks:
 #+END_SRC
 
 ***** Disable release-upgrade notifications
+****** SOMEDAY move from lineinfile to template
+:LOGBOOK:
+- State "SOMEDAY"    from "TODO"       [2017-11-22 Mi 10:59]
+:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: disable release-upgrade notifications
   lineinfile:
@@ -491,6 +495,11 @@ yavdr-common executes the following tasks:
     regexp: '^(Prompt=).*$'
     line: '\1never'
   ignore_errors: yes
+  with_first_found:
+    - files: 
+      - /etc/update-manager/release-upgrades
+      skip: true
+        
 #+END_SRC
 ***** Install essential packages
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
