@@ -197,6 +197,9 @@ def collect_nvidia_data():
                                 universal_newlines=True)
     except subprocess.CalledProcessError:
         pass
+    except OSError:
+        # nvidia-smi is not installed
+        pass
     else:
         for row in csv.DictReader(data.splitlines(), delimiter=',', skipinitialspace=True):
             name = row['name']
