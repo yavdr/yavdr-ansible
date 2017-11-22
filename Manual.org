@@ -560,15 +560,15 @@ APT::Install-Suggests "0";
 
 - name: set variable nvidia_detected
   set_fact:
-     nvidia_detected: 'true if {{ gpus | selectattr("VendorName", "nvidia") | list }} else false'
+     nvidia_detected: 'true if {{ gpus | selectattr("VendorName", "equalto", "nvidia") | list }} else false'
 
 - name: set variable intel_detected
   set_fact:
-     intel_detected: 'true if {{ gpus | selectattr("VendorName", "intel") | list }} else false'
+     intel_detected: 'true if {{ gpus | selectattr("VendorName", "equalto", "intel") | list }} else false'
 
 - name: set variable amd_detected
   set_fact:
-     amd_detected: 'true if {{ gpus | selectattr("VendorName", "amd") | list }} else false'
+     amd_detected: 'true if {{ gpus | selectattr("VendorName", "equalto", "amd") | list }} else false'
 
 - debug:
     var: '{{ item }}'
