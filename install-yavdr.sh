@@ -1,6 +1,6 @@
 #!/bin/bash
 if (( $EUID != 0 )); then
-    echo "This script must be run using sudo or as root"
+    echo "This script must be run using sudo -H or as root"
     exit
 fi
 
