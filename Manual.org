@@ -1477,20 +1477,9 @@ b'\xde\xad\xbe\xef'
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
     - "/etc/X11/xorg.conf.d/"
 
-- name: shell | write keyboard configuration from /etc/default/keyboard to /etc/X11/xorg.conf.d/00-keyboard.conf
-  shell: |
-    source /etc/default/keyboard
-    mkdir -p /etc/X11/xorg.conf.d/
-    cat > /etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
-    Section "InputClass"
-            Identifier "system-keyboard"
-            MatchIsKeyboard "on"
-            Option "XkbLayout" "${XKBLAYOUT}"
-            Option "XkbModel" "${XKBMODEL}"
-            Option "XkbVariant" ",${XKBVARIANT}"
-            Option "XkbOptions" "${XKBOPTIONS}"
-    EndSection
-    EOF
+- name: command | write keyboard configuration to /etc/X11/xorg.conf.d/00-keyboard.conf
+  # Note: write-x11-keyboard-config is in the xlogin package
+  command: write-x11-keyboard-config
 
 - name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
