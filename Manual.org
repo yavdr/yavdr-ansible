@@ -1662,6 +1662,14 @@ b'\xde\xad\xbe\xef'
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
+- name: "expand template for vdr's .Xresources"
+  template:
+      src: 'templates/.Xresources.j2'
+      dest: '{{ vdr.home }}/.Xresources'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
 - name: expand template for openbox autostart
   template:
       src: 'templates/openbox/autostart.j2'
@@ -2096,6 +2104,26 @@ Section "Screen"
 # <?cs /if ?>
 EndSection
 {% endif %}
+#+END_SRC
+***** .Xresources
+
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.Xresources.j2 :mkdirp yes :padline no
+xterm*background: Black
+xterm*foreground: grey
+XTerm*locale: true
+XTerm*metaSendsEscape: true
+XTerm*eightBitInput: false
+XTerm*backarrowKey: false
+XTerm*ttyModes: erase ^?
+Xterm*saveLines: 4096
+XTerm.vt100.metaSendsEscape: true
+XTerm.vt100.geometry: 80x32
+XTerm.vt100.renderFont: true
+xterm*faceName: xft:DejaVu Sans Mono
+xterm*faceSize: 14
+xterm*renderFont: true
+XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
+XTerm.vt100.font: 7x13
 #+END_SRC
 **** vdr
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
