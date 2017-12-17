@@ -3,12 +3,19 @@
 
 - name: determine needed firmware files by device ids
   block:
-    - name: add firmware for DVBSky S952 V3 to variable dvbsky_firmware_files if a card has been detected
+    - name: add firmware files for DVBSky if a card has been detected
       set_fact:
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-demod-m88ds3103.fw']"
         dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-demod-m88rs6000.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-demod-si2168-a20-01.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-demod-si2168-a30-01.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-demod-si2168-b40-01.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-fe-ds300x.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-fe-ds3103.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-fe-rs6000.fw']"
+        dvbsky_firmware_files: "{{dvbsky_firmware_files}} + ['dvb-tuner-si2158-a20-01.fw']"
       when:
         - '"1ade:3038" in pci'
-        - ansible_distribution_version >= '15.04'  #driver only included since Kernel 3.19
   when:
     - not dvbsky_firmware_files
 
