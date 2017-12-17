@@ -8,6 +8,23 @@
     - "/etc/systemd/system/x@.service.d/"
     - "/etc/systemd/system/vdr.service.d/"
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
+    - "/etc/X11/xorg.conf.d/"
+
+- name: shell | write keyboard configuration from /etc/default/keyboard to /etc/X11/xorg.conf.d/00-keyboard.conf
+  shell: |
+    source /etc/default/keyboard
+    
+    mkdir -p /etc/X11/xorg.conf.d/
+    cat > /etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
+    Section "InputClass"
+            Identifier "system-keyboard"
+            MatchIsKeyboard "on"
+            Option "XkbLayout" "${XKBLAYOUT}"
+            Option "XkbModel" "${XKBMODEL}"
+            Option "XkbVariant" ",${XKBVARIANT}"
+            Option "XkbOptions" "${XKBOPTIONS}"
+    EndSection
+    EOF
 
 - name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
@@ -23,6 +40,11 @@
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+
+- name: systemd-drop-in | start vdr.service after network-online.target
+  template:
+    src: templates/systemd/network-online.j2
+    dest: /etc/systemd/system/vdr.service.d/network-online.conf
 
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
