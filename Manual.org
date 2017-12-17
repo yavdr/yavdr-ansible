@@ -849,7 +849,7 @@ install_avahi: true
 ---
 # this playbook sets up network services for a yaVDR installation
 
-- name: apt |install packages for network services
+- name: apt | install packages for network services
   apt:
       name: '{{ item }}'
       state: present
@@ -1058,6 +1058,7 @@ ctl.!default {
 The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
+In order to use the keyboard layout configured during installation for the X-Server the script ~write-x11-keyboard-config~ reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to create ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
 
 To prevent stopping the X-server when vdr is running, additional dependencies are set up - see the drop-in rules created in ~/etc/systemd/system/vdr.service.d/~.
 
