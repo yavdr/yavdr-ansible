@@ -12,22 +12,17 @@ ANSIBLE_METADATA = {
     'supported_by': 'yavdr'
 }
 
-
+import gettext
 from ansible.errors import AnsibleFilterError
-from ansible.module_utils.six.moves.urllib.parse import urlsplit
-from ansible.module_utils._text import to_text
 from ansible.utils import helpers
 
 
-def translate_yavdr(text, language=None, **kwargs):
-    if language is None:
-        language = kwargs.get('system_language', 'en')
-    translation = kwargs.get('translations', {}).get(language, {}).get(text, None)
-    if translation:
-        return translation
-    else:
+def translate_yavdr(text):
+    gettext.textdomain('yavdr')
+    try:
+        return gettext.gettext(text)
+    except:
         return text
-
 
 # ---- Ansible filters ----
 class FilterModule(object):
