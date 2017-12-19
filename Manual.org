@@ -630,11 +630,10 @@ APT::Install-Suggests "0";
   blockinfile:
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
     create: true
+    state: "{{ 'present' if vdr.hide_first_recording_level else 'absent' }}"
     block: |
       [vdr]
       --hide-first-recording-level
-  when:
-    vdr.hide_first_recording_level
 
 - name: create local dir in recdir
   file:
@@ -4297,7 +4296,7 @@ options:
         default: ":0"
         description:
           - the DISPLAY variable to use when calling xrandr
-    preferred_outpus:
+    preferred_outputs:
         required: False
         default: ["HDMI", "DP", "DVI", "VGA", "TV": 0]
         description:
