@@ -1670,12 +1670,6 @@ b'\xde\xad\xbe\xef'
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
     - "/etc/X11/xorg.conf.d/"
 
-- name: command | write keyboard configuration to /etc/X11/xorg.conf.d/00-keyboard.conf
-  command: write-x11-keyboard-config
-  creates: /etc/X11/xorg.conf.d/00-keyboard.conf
-  # NOTE: write-x11-keyboard-config is in the xlogin package
-  # Ubuntu's systemd is patched, so it does not create the file automatically
-
 - name: systemd-drop-in | add dependency to X-server for vdr.service
   template:
     src: templates/vdr-xorg.conf
@@ -1735,6 +1729,12 @@ b'\xde\xad\xbe\xef'
     - vdr-plugin-desktop
     - vdr-plugin-osd2web
     #- yavdr-xorg
+
+- name: command | write keyboard configuration to /etc/X11/xorg.conf.d/00-keyboard.conf
+  command: write-x11-keyboard-config
+  creates: /etc/X11/xorg.conf.d/00-keyboard.conf
+  # NOTE: write-x11-keyboard-config is in the xlogin package
+  # Ubuntu's systemd is patched, so it does not create the file automatically
 
 - name: apt | install desktop programs
   apt:
