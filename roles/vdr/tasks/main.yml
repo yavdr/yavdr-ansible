@@ -30,11 +30,10 @@
   blockinfile:
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
     create: true
+    state: present if vdr.hide_first_recording_level else absent
     block: |
       [vdr]
       --hide-first-recording-level
-  when:
-    vdr.hide_first_recording_level
 
 - name: create local dir in recdir
   file:
