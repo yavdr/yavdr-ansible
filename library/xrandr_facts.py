@@ -23,9 +23,9 @@ options:
         default: ":0"
         description:
           - the DISPLAY variable to use when calling xrandr
-    preferred_outpus:
+    preferred_outputs:
         required: False
-        default: ["HDMI", "DP", "DVI", "VGA", "TV": 0]
+        default: ["HDMI", "DP", "DVI", "VGA", "TV"]
         description:
           - ranking of the preferred display connectors
     preferred_refreshrates:
