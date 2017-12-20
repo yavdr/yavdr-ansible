@@ -2384,6 +2384,7 @@ ConditionFileNotEmpty=%h/.second_display
 PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 EnvironmentFile=%h/.second_display
 ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc.xml
+ExecStartPost=/bin/bash %h/.fehbg
 
 [Install]
 WantedBy=yavdr-desktop.target
@@ -2461,6 +2462,8 @@ end
 # forward environment variables to an environment file and the systemd user session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+
+feh --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 enabled_services=(
     "tmux.service" "detect-second-display.service"
