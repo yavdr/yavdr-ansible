@@ -87,6 +87,15 @@
     src: templates/systemd/user/osd2web.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
 
+- name: create irexec configuration for the session
+  block:
+    template:
+      src: templates/systemd/user/irexec.service.j2
+      dest: '{{ vdr.home }}/.config/systemd/user/irexec.service
+    template:
+      src: templates/.lircrc.j2
+      dest: '{{ vdr.home }}/.lircrc
+
 - name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
   file:
     src: /usr/bin/start-desktop

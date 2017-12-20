@@ -1648,6 +1648,7 @@ b'\xde\xad\xbe\xef'
 *** default variables
 *** tasks
 
+**** main.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
@@ -1655,7 +1656,7 @@ b'\xde\xad\xbe\xef'
 - import_tasks: detect-xorg.yml tags=xorg:detect,install
 - import_tasks: desktop-session.yml tags=install,update
 #+END_SRC
-
+**** setup-xorg.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/setup-xorg.yml
@@ -1744,7 +1745,7 @@ b'\xde\xad\xbe\xef'
     - firefox
     - kiosk-browser
 #+END_SRC
-
+**** detect-xorg.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
@@ -1828,7 +1829,7 @@ b'\xde\xad\xbe\xef'
     - nvidia_detected
 
 #+END_SRC
-
+**** desktop-session.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/desktop-session.yml
@@ -1918,6 +1919,15 @@ b'\xde\xad\xbe\xef'
   template:
     src: templates/systemd/user/osd2web.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+
+- name: create irexec configuration for the session
+  block:
+    template:
+      src: templates/systemd/user/irexec.service.j2
+      dest: '{{ vdr.home }}/.config/systemd/user/irexec.service
+    template:
+      src: templates/.lircrc.j2
+      dest: '{{ vdr.home }}/.lircrc
 
 - name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
   file:
@@ -2411,6 +2421,28 @@ RemainAfterExit=True
 
 [Install]
 WantedBy=default.target
+#+END_SRC
+
+**** irexec
+irexec.service starts irexec for the user session
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/systemd/user/irexec.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=LIRC command handler
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/irexec %h/.lircrc
+
+[Install]
+WantedBy=yavdr-desktop.target
+#+END_SRC
+~/.lircrc contains the irexec configuration
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.lircrc.j2 :mkdirp yes :padline no
+begin
+    prog = irexec
+    button = KEY_HOME
+    config = frontend-dbus-send switchbetween kodi vdr
+end
 #+END_SRC
 **** openbox
 ***** autostart
