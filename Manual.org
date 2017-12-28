@@ -151,7 +151,7 @@ apt-get update
 apt-get -y install --no-install-recommends ansible
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags=install
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags=all
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -345,6 +345,8 @@ install nvidia-387 from ppa:graphics-drivers/ppa
       repo: 'ppa:graphics-drivers/ppa'
       state: present
       update_cache: yes
+  tags:
+    - ppa
 
 - name: install nvidia-387 and other required packages
   apt:
@@ -354,6 +356,8 @@ install nvidia-387 from ppa:graphics-drivers/ppa
   with_items:
     - nvidia-387
     - nvidia-settings
+  tags:
+    - packages
 #+END_SRC
 ** yavdr-common
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
@@ -446,6 +450,8 @@ yavdr-common executes the following tasks:
       state: present
       update_cache: yes
   with_items: '{{ repositories }}'
+  tags:
+    - ppa
 
 - name: run apt-get dist-upgrade
   apt:
@@ -572,6 +578,8 @@ APT::Install-Suggests "0";
     modules: True
     gpus: True
     acpi_power_modes: True
+  tags:
+    - always
 
 - debug:
     var: '{{ item }}'
