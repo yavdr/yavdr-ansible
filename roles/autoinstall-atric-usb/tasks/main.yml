@@ -1,0 +1,23 @@
+---
+# file roles/autoinstall-atric-usb/tasks/main.yml
+
+- name: install and configure Atric IR-WakeupUSB
+  block:
+    - name: apt | install lirc-drv-irman
+        apt:
+          name: lirc-drv-irman
+
+    - name: write lirc configuration
+        template:
+          src: templates/lircd_options.conf.j2
+          dest: /etc/lirc/lircd_options.conf
+
+    - name: enable lircd
+        systemd:
+          name: lircd.service
+          enabled: yes
+          state: started
+          masked: no
+          daemon_reload: yes
+
+  when: '"04d8:f844" in usb'
