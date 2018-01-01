@@ -1,20 +1,30 @@
 ---
 # This role is used to set up the yaVDR remote control configuration.
 
-- name: apt | install yavdr-remote
+- name: apt | install packages for remote support
   apt:
-    name: yavdr-remote
+    name: '{{ item }}'
     state: present
+  with_items:
+    - yavdr-remote
+    - lirc
+    - eventlircd
+    - lircd2uinput
+  tags:
+    - packages
 
-- name: apt | install eventlircd
-  apt:
-    name: eventlircd
-    state: present
-
-- name: apt | install lirc
-  apt:
-    name: lirc
-    state: present
+- name: add systemd drop-in for lircd to use lircd2uinput
+  block:
+    - name: create directory /etc/systemd/system/lircd.service.d/
+      file:
+        path: /etc/systemd/system/lircd.service.d/
+        state: directory
+    - name: expand template for /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+      template:
+        src: templates/lircd.service.d/lircd2uinput.conf.j2
+        dest: /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+  tags:
+    - config
 
 - name: stop, mask and disable lircd.socket, lircd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
@@ -27,24 +37,21 @@
     - lircd.socket
     - lircd-uinput.service
   ignore_errors: yes
+  tags:
+    - systemd
 
 - name: configure vdr to read from a lircd-compatible socket
   template:
     src: templates/03-vdr-lirc.conf.j2
     dest: /etc/vdr/conf.d/03-vdr-lirc.conf
   notify: ['Restart VDR']
+  tags:
+    - config
 
 - name: expand template for /etc/rc_maps.cfg
   template:
     src: templates/rc_maps.cfg.j2
     dest: /etc/rc_maps.cfg
   notify: ['Trigger Udev']
-
-# TODO: upload lircd2uinput package to PPA
-#- name: install lircd2uinput
-#  tag: install
-#  apt:
-#      name: lircd2uinput
-#      state: present
-#  when:
-#      install_eventlircd is defined and install_eventlircd
+  tags:
+    - config
