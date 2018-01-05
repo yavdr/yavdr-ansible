@@ -7,18 +7,30 @@
       apt:
         name: lirc-drv-irman
         state: present
+      tags:
+        - packages
 
     - name: write lirc configuration
       template:
         src: templates/lirc_options.conf.j2
         dest: /etc/lirc/lirc_options.conf
+      tags:
+        - config
+        - systemd
 
-    - name: enable lircd
+    - name: enable lircd, eventlircd, lircd2uinput
       systemd:
-        name: lircd.service
+        name: '{{ item }}'
         enabled: yes
         state: started
         masked: no
         daemon_reload: yes
+      with_items:
+        - eventlircd.service
+        - eventlircd.soclet
+        - lircd2uinput.service
+        - lircd.service
+      tags:
+        - systemd
 
   when: '"04d8:f844" in usb'
