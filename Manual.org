@@ -154,7 +154,7 @@ apt-get update
 apt-get -y install --no-install-recommends ansible
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=true"
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -571,6 +571,11 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 #+END_SRC
 ** collect facts about the system with custom modules 
+
+*** variables
+#+BEGIN_SRC yaml :tangle roles/collect-facts/defaults/main.yml :mkdirp yes
+first_run: false
+#+END_SRC
 *** tasks
 ***** main.yml
 #+BEGIN_SRC yaml :tangle roles/collect-facts/tasks/main.yml :mkdirp yes
@@ -1679,6 +1684,9 @@ HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis
 b'\xde\xad\xbe\xef'
 #+END_SRC
 *** default variables
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/defaults/main.yml :mkdirp yes :padline no
+first_run: false
+#+END_SRC
 *** tasks
 
 **** main.yml
@@ -1849,7 +1857,7 @@ b'\xde\xad\xbe\xef'
         state: stopped
         enabled: false
         masked: true
-  tags: first_run
+  when: first_run
 
 - name: "wait a little bit, so X has some time to shut down (needed?)"
   wait_for:

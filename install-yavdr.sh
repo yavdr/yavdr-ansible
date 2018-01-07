@@ -13,4 +13,4 @@ apt-get update
 apt-get -y install --no-install-recommends ansible
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=true"
