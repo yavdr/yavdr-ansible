@@ -48,6 +48,14 @@
     enabled: yes
   register: xlogin_stop
 
+- name: enable and start xlogin for the vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
+  register: xlogin_start
+
 - name: Stop x
   systemd:
     name: x@vt7.service

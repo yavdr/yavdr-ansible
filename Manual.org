@@ -1818,6 +1818,7 @@ b'\xde\xad\xbe\xef'
   systemd:
     name: 'xlogin@{{ vdr.user }}.service'
     state: stopped
+  notify: ['xlogin_start']
 
 - name: Stop x
   systemd:
@@ -4773,6 +4774,14 @@ if __name__ == '__main__':
     state: stopped
     enabled: yes
   register: xlogin_stop
+
+- name: enable and start xlogin for the vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
+  register: xlogin_start
 
 - name: Stop x
   systemd:
