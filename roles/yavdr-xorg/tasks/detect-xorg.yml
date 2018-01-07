@@ -28,28 +28,31 @@
     name: x@vt7.service
     state: stopped
 
-- name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
-  wait_for:
-    timeout: 10
-
-- name: "start x-verbose@.service"
-  systemd:
-      name: "x-verbose@vt7.service"
-      state: started
-      enabled: false
-      masked: false
-      daemon_reload: true
-
-- name: "wait a little bit, so X has some time to start up (needed?)"
-  wait_for:
-    timeout: 3
-
-- name: "stop x-verbose@vt7.service"
-  systemd:
-    name: "x-verbose@vt7.service"
-    state: stopped
-    enabled: false
-    masked: true
+- name: Workaround for wrong connector names on first run
+  block:
+    - name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
+      wait_for:
+        timeout: 10
+    
+    - name: "start x-verbose@.service"
+      systemd:
+          name: "x-verbose@vt7.service"
+          state: started
+          enabled: false
+          masked: false
+          daemon_reload: true
+    
+    - name: "wait a little bit, so X has some time to start up (needed?)"
+      wait_for:
+        timeout: 3
+    
+    - name: "stop x-verbose@vt7.service"
+      systemd:
+        name: "x-verbose@vt7.service"
+        state: stopped
+        enabled: false
+        masked: true
+  tags: first_run
 
 - name: "wait a little bit, so X has some time to shut down (needed?)"
   wait_for:
