@@ -190,6 +190,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
      - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
      - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
+     - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
      - autoinstall-dvbsky-firmware # download an install required firmware files for dvbsky cards
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
@@ -3629,7 +3630,7 @@ dependencies:
       tags:
         - systemd
 
-  when: '"10c4:876c" in usb'
+  when: '"04d8:f844" in usb'
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/autoinstall-atric-usb/templates/lirc_options.conf.j2 :padline no
@@ -3700,7 +3701,7 @@ dependencies:
       tags:
         - systemd
 
-  when: '"04d8:f844" in usb'
+  when: '"10c4:876c" in usb'
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/autoinstall-yausbir/templates/lirc_options.conf.j2 :padline no
