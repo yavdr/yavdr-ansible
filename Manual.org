@@ -1682,6 +1682,7 @@ b'\xde\xad\xbe\xef'
 *** default variables
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/defaults/main.yml :mkdirp yes :padline no
 first_run: False
+xorg_data: {}
 #+END_SRC
 *** tasks
 
@@ -1889,15 +1890,6 @@ first_run: False
     var: xorg.secondary
   when: xorg.secondary is defined
 
-- name: write xorg variable to /etc/yavdr/xorg.yml
-  block:
-    - file:
-        state: directory
-        path: /etc/yavdr
-    - copy:
-        content: '{{ xorg | combine(xrandr) | to_nice_yaml }}'
-        dest: /etc/yavdr/xorg.yml
-
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -1908,6 +1900,35 @@ first_run: False
 - name: "wait a little bit, so X has some time to shut down (needed?)"
   wait_for:
     timeout: 3
+
+- name: save results
+  block:
+    - name: write xorg and xrandr variable to xorg_data dictionary
+    set_fact:
+        xorg_data: '{{ xorg_data|combine({item[0]: item[1]}) }}'
+    with_items:
+        - ('xorg', xorg)
+        - ('xrandr', xrandr['Screen 0:'])
+
+    - name: write xorg variable to /etc/yavdr/xorg.yml
+    block:
+        - file:
+            state: directory
+            path: /etc/ansible/facts.d
+        - copy:
+            content: '{{ xorg_data | to_nice_json }}'
+            dest: /etc/ansible/facts.d/xorg.fact
+  when:
+    - xrandr is defined
+    - xorg is defined
+
+- name: update xorg and xrandr variable with values from local facts if needed
+  set_fact:
+    xorg: '{{ ansible_local.xorg }}'
+    xrandr: '{{ ansible_local.xrandr }}'
+  when:
+    - xrandr is undefined
+    - xorg is undefined
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
