@@ -236,16 +236,11 @@ localhost connection=local
 
 #+END_SRC
 * Group Variables
-** default text for templates used by ansible
-#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes :padline no
+** PPAs
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 ---
 # file: group_vars/all
 
-# this is the standard text to put in templates
-ansible_managed_file: "*** YAVDR: ANSIBLE MANAGED FILE ***\norigin: {file}"
-#+END_SRC
-** PPAs
-#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 branch: experimental
 ppa_owner: 'ppa:yavdr'
 # add the following PPAs
@@ -566,7 +561,7 @@ yavdr-common executes the following tasks:
 #+END_SRC
 *** templates
 #+BEGIN_SRC c :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes :padline no
-{{ ansible_managed_file | comment('c') }}
+{{ ansible_managed | comment('c') }}
 // Recommends are as of now still abused in many packages
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
@@ -2074,7 +2069,7 @@ KillMode=mixed
 
 ***** Drop-in snippet for vdr.service
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes :padline no
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 [Unit]
 After=x@vt7.service
 Wants=x@vt7.service
@@ -2083,7 +2078,7 @@ Wants=x@vt7.service
 ***** .xinitrc 
 #+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes :padline no
 #!/bin/bash
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 exec openbox-session
 #+END_SRC
 ***** xorg.conf
@@ -2110,7 +2105,7 @@ Section "Extensions"
 EndSection
 #+END_SRC
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.j2
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 Section "ServerLayout"
     Identifier     "Layout0"
@@ -2215,7 +2210,7 @@ EndSection
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 Section "ServerLayout"
     Identifier     "Layout0"
@@ -3436,7 +3431,7 @@ systemctl --user isolate yavdr-desktop.target
 **** smb.conf
 ***** global settings
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes :padline no
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 #======================= Global Settings =======================
 
@@ -3645,7 +3640,7 @@ dependencies:
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/autoinstall-atric-usb/templates/lirc_options.conf.j2 :padline no
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 [lircd]
 nodaemon        = False
@@ -3716,7 +3711,7 @@ dependencies:
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/autoinstall-yausbir/templates/lirc_options.conf.j2 :padline no
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 [lircd]
 nodaemon        = False
@@ -3972,7 +3967,7 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
     dest: /tmp/test.txt
 #+END_SRC
 #+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 Section "ServerLayout"
     Identifier     "Layout0"
@@ -4219,7 +4214,7 @@ wakeup_method: "acpiwakeup"
 #+END_SRC
 *** templates
 #+BEGIN_SRC jinja2 :tangle roles/wakeup/templates/vdr-addon-acpiwakeup.conf.j2 :padline no
-{{ ansible_managed_file | comment }}
+{{ ansible_managed | comment }}
 
 # Activate/deactivate ACPIWakeup with yes/no:
 ACPI_ENABLED="{% if wakeup_method == 'acpiwakeup' %}yes{% else %}no{% endif %}"
