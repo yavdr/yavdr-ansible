@@ -3629,7 +3629,7 @@ dependencies:
       tags:
         - systemd
 
-  when: '"04d8:f844" in usb'
+  when: '"10c4:876c" in usb'
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/autoinstall-atric-usb/templates/lirc_options.conf.j2 :padline no
@@ -3639,6 +3639,76 @@ dependencies:
 nodaemon        = False
 driver          = irman
 device          = /dev/irman
+output          = /var/run/lirc/lircd0
+pidfile         = /var/run/lirc/lircd0.pid
+plugindir       = /usr/lib/x86_64-linux-gnu/lirc/plugins
+permission      = 666
+allow-simulate  = No
+repeat-max      = 600
+#loglevel       = 6
+#release        = true
+#release_suffix = _EVUP
+#logfile        = ...
+#driver-options = ...
+
+[lircmd]
+uinput          = False
+nodaemon        = False
+#+END_SRC
+** autoinstall-yausbir
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-yausbir/meta/main.yml :padline no
+---
+dependencies:
+    - { role: yavdr-remote }
+
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/autoinstall-yausbir/tasks/main.yml :padline no
+---
+# file roles/autoinstall-atric-usb/tasks/main.yml
+
+- name: install and configure Atric IR-WakeupUSB
+  block:
+    - name: apt | install lirc-drv-yausbir
+      apt:
+        name: lirc-drv-yausbir
+        state: present
+      tags:
+        - packages
+
+    - name: write lirc configuration
+      template:
+        src: templates/lirc_options.conf.j2
+        dest: /etc/lirc/lirc_options.conf
+      tags:
+        - config
+        - systemd
+
+    - name: enable lircd, eventlircd, lircd2uinput
+      systemd:
+        name: '{{ item }}'
+        enabled: yes
+        state: started
+        masked: no
+        daemon_reload: yes
+      with_items:
+        - eventlircd.socket
+        - eventlircd.service
+        - lircd2uinput.service
+        - lircd.service
+      tags:
+        - systemd
+
+  when: '"04d8:f844" in usb'
+#+END_SRC
+*** templates
+#+BEGIN_SRC conf :tangle roles/autoinstall-yausbir/templates/lirc_options.conf.j2 :padline no
+{{ ansible_managed_file | comment }}
+
+[lircd]
+nodaemon        = False
+driver          = yausbir
 output          = /var/run/lirc/lircd0
 pidfile         = /var/run/lirc/lircd0.pid
 plugindir       = /usr/lib/x86_64-linux-gnu/lirc/plugins
