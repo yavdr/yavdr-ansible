@@ -101,18 +101,19 @@
 
 - name: save results
   block:
-    - name: write xorg and xrandr variable to xorg_data dictionary
-    - set_fact:
+    - name: ensure facts.d directory exists
+      file:
+        state: directory
+        path: /etc/ansible/facts.d
+
+    - name: set xorg and xrandr in xorg_data dictionary
+      set_fact:
         xorg_data: '{{ xorg_data|combine({item[0]: item[1]}) }}'
       with_items:
         - ('xorg', xorg)
         - ('xrandr', xrandr['Screen 0:'])
 
     - name: write xorg variable to /etc/yavdr/xorg.yml
-    block:
-        - file:
-            state: directory
-            path: /etc/ansible/facts.d
         - copy:
             content: '{{ xorg_data | to_nice_json }}'
             dest: /etc/ansible/facts.d/xorg.fact
