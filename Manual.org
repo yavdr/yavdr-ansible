@@ -1910,10 +1910,11 @@ xorg_data: {}
 
     - name: set xorg and xrandr in xorg_data dictionary
       set_fact:
-        xorg_data: '{{ xorg_data|combine({item[0]: item[1]}) }}'
-      with_items:
-        - ('xorg', xorg)
-        - ('xrandr', xrandr['Screen 0:'])
+        xorg_data: '{{ xorg_data|combine({"xorg": xorg, "xrandr": xrandr}) }}'
+
+    - name: print xorg_data
+      debug:
+        var: xorg_data
 
     - name: write xorg variable to /etc/yavdr/xorg.yml
       copy:
