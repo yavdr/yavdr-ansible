@@ -88,6 +88,15 @@
     var: xorg.secondary
   when: xorg.secondary is defined
 
+- name: write xorg variable to /etc/yavdr/xorg.yml
+  block:
+    - file:
+        state: directory
+        path: /etc/yavdr
+    - copy:
+        content: '{{ xorg | to_nice_yaml }}'
+        dest: /etc/yavdr/xorg.yml
+
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
