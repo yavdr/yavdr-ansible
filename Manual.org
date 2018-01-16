@@ -3591,6 +3591,7 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 #+BEGIN_SRC yaml :tangle roles/autoinstall-atric-usb/meta/main.yml :padline no
 ---
 dependencies:
+    - { role: collect-facts }
     - { role: yavdr-remote }
 
 #+END_SRC
@@ -3809,6 +3810,14 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-firmware
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/meta/main.yml :padline no
+---
+dependencies:
+  - { role: collect-facts }
+
+#+END_SRC
+*** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/tasks/main.yml :padline no
 ---
 
@@ -3829,12 +3838,26 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   when: '"2040:1605" in usb'
 #+END_SRC
 ** autoinstall-dvbsky-firmware
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsky-firmware/meta/main.yml :padline no
+---
+dependencies:
+  - { role: collect-facts }
+
+#+END_SRC
 *** defaults
 #+INCLUDE:  "roles/autoinstall-dvbsky-firmware/defaults/main.yml" src yaml
 *** tasks
 #+INCLUDE: "roles/autoinstall-dvbsky-firmware/tasks/main.yml" src yaml
 ** TODO autoinstall-dvbhddevice
 Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/meta/main.yml :padline no
+---
+dependencies:
+    - { role: collect-facts }
+
+#+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/tasks/main.yml :padline no
 ---
@@ -3848,6 +3871,13 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 #+END_SRC
 
 ** autoinstall-dvbsddevice
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/meta/main.yml :padline no
+---
+dependencies:
+  - { role: collect-facts }
+
+#+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/tasks/main.yml :padline no
 ---
@@ -3862,6 +3892,13 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hardware-irmp
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/meta/main.yml :padline no
+---
+dependencies:
+  - { role: collect-facts }
+
+#+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/tasks/main.yml :padline no
 ---
