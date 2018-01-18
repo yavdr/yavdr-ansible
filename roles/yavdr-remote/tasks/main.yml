@@ -26,7 +26,7 @@
   tags:
     - config
 
-- name: stop, mask and disable lircd.socket, lircd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
+- name: stop, mask and disable lircd.socket, lircd.service, lircmd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
     name: '{{ item }}'
     enabled: no
@@ -35,6 +35,7 @@
   with_items:
     - lircd.service
     - lircd.socket
+    - lircmd.service
     - lircd-uinput.service
   ignore_errors: yes
   tags:
