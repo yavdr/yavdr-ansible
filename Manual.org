@@ -174,7 +174,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
      - autoinstall-virtualbox-guest
-     # - nvidia-387                # install very recent nvidia-387 from ppa:graphics-drivers/ppa
+     # - nvidia-experimental       # install very recent nvidia dirver from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
      - yavdr-network              # enable network client capabilities
      - samba-install              # install samba server
@@ -333,11 +333,11 @@ grub:
     '{{ packages }}'
 #+END_SRC
 
-** nvidia-387 drivers
+** nvidia experimental drivers
 install nvidia-387 from ppa:graphics-drivers/ppa
 *** tasks
 **** main.yml
-#+BEGIN_SRC yaml :tangle roles/nvidia-387/tasks/main.yml :mkdirp yes :padline no
+#+BEGIN_SRC yaml :tangle roles/nvidia-experimental/tasks/main.yml :mkdirp yes :padline no
 ---
 
 - name: add ppa:graphics-drivers/ppa
@@ -354,7 +354,7 @@ install nvidia-387 from ppa:graphics-drivers/ppa
     state: present
     install_recommends: no
   with_items:
-    - nvidia-387
+    - nvidia-390
     - nvidia-settings
   tags:
     - packages
@@ -1011,7 +1011,7 @@ lircd0_socket: /var/run/lirc/lircd0
   tags:
     - config
 
-- name: stop, mask and disable lircd.socket, lircd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
+- name: stop, mask and disable lircd.socket, lircd.service, lircmd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
   systemd:
     name: '{{ item }}'
     enabled: no
@@ -1020,6 +1020,7 @@ lircd0_socket: /var/run/lirc/lircd0
   with_items:
     - lircd.service
     - lircd.socket
+    - lircmd.service
     - lircd-uinput.service
   ignore_errors: yes
   tags:
