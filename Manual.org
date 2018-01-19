@@ -1908,18 +1908,15 @@ first_run: False
         state: directory
         path: /etc/ansible/facts.d
 
-    - name: set xorg and xrandr in xorg_data dictionary
-      set_fact:
-        xorg_data: '{{ xorg_data|combine({"xorg": xorg, "xrandr": xrandr}) }}'
-
-    - name: print xorg_data
-      debug:
-        var: xorg_data
-
-    - name: write xorg variable to /etc/yavdr/xorg.yml
+    - name: write xorg variable as local fact
       copy:
-        content: '{{ xorg_data | to_nice_json }}'
+        content: '{{ {"xorg": xorg} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg.fact
+
+    - name: write xrandr variable as local fact
+      copy:
+        content: '{{ {"xrandr": xrandr} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/xrandr.fact
   when:
     - xrandr is defined
     - xorg is defined
