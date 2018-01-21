@@ -5,9 +5,11 @@ Wants=detect-second-display.service openbox-second.service
 ConditionFileNotEmpty=%h/.second_display
 
 [Service]
-EnvironmentFile=%h/.second_display
 PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
-ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "http://localhost:4444/skins/horchiTft/index.html?theme=bluecd&onlyView=1"'
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+EnvironmentFile=-%h/.config/osd2web/url
+ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "${url}"'
 KillSignal=SIGINT
 
 [Install]

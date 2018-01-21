@@ -2015,35 +2015,57 @@ first_run: False
   template:
     src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: create wm-exit.service for the session
   template:
     src: roles/yavdr-xorg/templates/systemd/user/wm-exit.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/wm-exit.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: create detect-second-display.service for the session
   template:
     src: templates/systemd/user/detect-second-display.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: create openbox-second.service for the session
   template:
     src: templates/systemd/user/openbox-second.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/openbox-second.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: create osd2web.service for the session
   template:
     src: templates/systemd/user/osd2web.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
 
 - name: create irexec configuration for the session
   block:
     - template:
         src: templates/systemd/user/irexec.service.j2
         dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
     - template:
         src: templates/.lircrc.j2
         dest: '{{ vdr.home }}/.lircrc'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
 
 - name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
   file:
@@ -2506,9 +2528,11 @@ Wants=detect-second-display.service openbox-second.service
 ConditionFileNotEmpty=%h/.second_display
 
 [Service]
-EnvironmentFile=%h/.second_display
 PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
-ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "http://localhost:4444/skins/horchiTft/index.html?theme=bluecd&onlyView=1"'
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+EnvironmentFile=-%h/.config/osd2web/url
+ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "${url}"'
 KillSignal=SIGINT
 
 [Install]
