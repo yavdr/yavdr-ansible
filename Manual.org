@@ -1790,6 +1790,11 @@ first_run: False
   # NOTE: write-x11-keyboard-config is in the xlogin package
   # Ubuntu's systemd is patched, so it does not create the file automatically
 
+- name: add snippet to ignore eventlircd devices in xorg
+  template:
+    src: templates/xorg-ignore-eventlircd.conf.j2
+    dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
+
 - name: apt | install desktop programs
   apt:
     name: '{{ item }}'
@@ -2123,6 +2128,16 @@ Wants=x@vt7.service
 #!/bin/bash
 {{ ansible_managed | comment }}
 exec openbox-session
+#+END_SRC
+***** xorg.conf snippets
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-ignore-eventlircd.conf.j2
+{{ ansible_managed | comment }}
+
+Section "InputClass"
+    Identifier "exclude eventlircd devices"
+    MatchTag   "eventlircd"
+    Option     "Ignore"    "True"
+EndSection
 #+END_SRC
 ***** xorg.conf
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
