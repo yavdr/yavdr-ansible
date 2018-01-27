@@ -15,6 +15,11 @@
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
+- name: systemd-drop-in | start x@.service after plymouth.service
+  template:
+    src: templates/x@service.d/plymouth.conf.j2
+    dest: /etc/systemd/system/x@.service.d/plymouth.conf
+
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2

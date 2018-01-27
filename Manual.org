@@ -1717,6 +1717,11 @@ first_run: False
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
+- name: systemd-drop-in | start x@.service after plymouth.service
+  template:
+    src: templates/x@service.d/plymouth.conf.j2
+    dest: /etc/systemd/system/x@.service.d/plymouth.conf
+
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
@@ -2095,6 +2100,10 @@ Type=forking
 ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config /etc/X11/xorg-verbose.conf
 #+END_SRC
 ***** Drop-in snippet for x@.service
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/x@service.d/plymouth.conf.j2 :mkdirp yes :padline no
+[Unit]
+After=plymouth.service
+#+END_SRC
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/x@service.d/xlogin.conf.j2 :mkdirp yes :padline no
 [Unit]
 Before=xlogin@{{ vdr.user }}.service
