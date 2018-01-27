@@ -2540,8 +2540,9 @@ ConditionFileNotEmpty=%h/.second_display
 PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 EnvironmentFile=%h/.second_display
 Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
-EnvironmentFile=-%h/.config/osd2web/url
-ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "${url}"'
+Environment=browser="kiosk-browser"
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
 KillSignal=SIGINT
 
 [Install]
@@ -3968,9 +3969,6 @@ dependencies:
     state: present
   when: '"1209:4444" in usb or "16c0:27d9" in usb'
 #+END_SRC
-
-**** TODO add other device ids if necessary
-
 ** kodi
 *** tasks
 **** Install KODI
