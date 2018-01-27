@@ -69,7 +69,7 @@ Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, devic
 - Wie mit mehreren GPUs umgehen? Priorität bzw. Reihenfolge?
 - Was ist mit NVidia Optimus/Bumblebee (AFAIK keine VDPAU-Funktionalität)?
 - Wie BusID der xrandr-Ausgabe zuordnen?
-*** NVIDIA-Dokumentation zur BusID:
+*** NOTE NVIDIA-Dokumentation zur BusID:
 **** What is the format of a PCI Bus ID?
 Different tools have different formats for the PCI Bus ID of a PCI device.
 
@@ -886,7 +886,7 @@ install_avahi: true
 #   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
-  
+
 - name: restart autofs if running
   systemd:
     name: autofs
@@ -1795,6 +1795,11 @@ first_run: False
   # NOTE: write-x11-keyboard-config is in the xlogin package
   # Ubuntu's systemd is patched, so it does not create the file automatically
 
+- name: add snippet to ignore eventlircd devices in xorg
+  template:
+    src: templates/xorg-ignore-eventlircd.conf.j2
+    dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
+
 - name: apt | install desktop programs
   apt:
     name: '{{ item }}'
@@ -2132,6 +2137,16 @@ Wants=x@vt7.service
 #!/bin/bash
 {{ ansible_managed | comment }}
 exec openbox-session
+#+END_SRC
+***** xorg.conf snippets
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-ignore-eventlircd.conf.j2
+{{ ansible_managed | comment }}
+
+Section "InputClass"
+    Identifier "exclude eventlircd devices"
+    MatchTag   "eventlircd"
+    Option     "Ignore"    "True"
+EndSection
 #+END_SRC
 ***** xorg.conf
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
