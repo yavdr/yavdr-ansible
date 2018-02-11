@@ -9,5 +9,5 @@ sudo apt-get install git
 git clone https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
 git checkout bionic
-sudo ./install-yavdr.sh
+sudo -H ./install-yavdr.sh
 ```
