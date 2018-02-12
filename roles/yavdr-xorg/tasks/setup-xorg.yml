@@ -30,11 +30,6 @@
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: systemd-drop-in | start vdr.service after network-online.target
-  template:
-    src: templates/systemd/network-online.j2
-    dest: /etc/systemd/system/vdr.service.d/network-online.conf
-
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2

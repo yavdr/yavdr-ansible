@@ -706,7 +706,20 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     force: no
 #+END_SRC
 
+**** start vdr after network-online.target
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: systemd-drop-in | start vdr.service after network-online.target
+  template:
+    src: templates/systemd/network-online.j2
+    dest: /etc/systemd/system/vdr.service.d/network-online.conf
+#+END_SRC
+
 *** templates
+Start after network-online.target
+#+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
+[Unit]
+After=network-online.target
+#+END_SRC
 *** files
 **** remote.conf
 #+BEGIN_SRC conf :tangle roles/vdr/files/remote.conf :mkdirp yes :padline no
@@ -1731,11 +1744,6 @@ first_run: False
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
 
-- name: systemd-drop-in | start vdr.service after network-online.target
-  template:
-    src: templates/systemd/network-online.j2
-    dest: /etc/systemd/system/vdr.service.d/network-online.conf
-
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
@@ -1995,12 +2003,6 @@ KillMode=mixed
 After=x@vt7.service
 Wants=x@vt7.service
 #BindsTo=x@vt7.service
-#+END_SRC
-***** .xinitrc 
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
-#!/bin/bash
-{{ ansible_managed | comment }}
-exec openbox-session
 #+END_SRC
 ***** xorg.conf snippets
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-ignore-eventlircd.conf.j2
@@ -2327,16 +2329,13 @@ EndSection
 {% endif %}
 #+END_SRC
 **** vdr
+Set environment variables for user session on startup
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
 [Service]
 Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/network-online.j2
-[Unit]
-After=network-online.target
-#+END_SRC
 ** yavdr-desktop
 *** Tasks
 **** main.yml
@@ -2475,6 +2474,7 @@ After=network-online.target
     state: started
 #+END_SRC
 *** Templates
+**** xorg configuration
 ***** .Xresources
 
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.Xresources.j2 :mkdirp yes :padline no
@@ -2494,6 +2494,12 @@ xterm*faceSize: 14
 xterm*renderFont: true
 XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
+#+END_SRC
+***** .xinitrc 
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
+#!/bin/bash
+{{ ansible_managed | comment }}
+exec openbox-session
 #+END_SRC
 **** openbox
 ***** autostart
