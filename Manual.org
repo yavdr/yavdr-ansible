@@ -3673,14 +3673,21 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
     - ansible_distribution_version == "16.04"
 
 - name: set xineliboutput as frontend
-  command: '{{ item }}'
-  with_items:
-    - vdrctl disable softhddevice
-    - vdrctl disable vaapidevice
-    - vdrctl disable xine
-    - vdrctl disable pvr350
-    - vdrctl enable xineliboutput
-  ignore_errors: yes
+  block:
+    - apt:
+        name: '{{ item }}'
+        state: present
+      with_items:
+        - vdr-plugin-xineliboutput
+        - xineliboutput-sxfe
+    - command: '{{ item }}'
+      with_items:
+        - vdrctl disable softhddevice
+        - vdrctl disable vaapidevice
+        - vdrctl disable xine
+        - vdrctl disable pvr350
+        - vdrctl enable xineliboutput
+      ignore_errors: yes
   when:
     - ansible_virtualization_type == "virtualbox"
     - ansible_virtualization_role == "guest"
