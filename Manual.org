@@ -708,6 +708,13 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 
 **** start vdr after network-online.target
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: create directory for vdr.service systemd drop-in files
+  file:
+    dest: '{{ item }}'
+    state: directory
+  with_items:
+    - "/etc/systemd/system/vdr.service.d/"
+
 - name: systemd-drop-in | start vdr.service after network-online.target
   template:
     src: templates/systemd/network-online.j2
