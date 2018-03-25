@@ -3392,7 +3392,6 @@ Before=yavdr-frontend.service
 ConditionFileNotEmpty=%h/.second_display
 
 [Service]
-PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 EnvironmentFile=%h/.second_display
 ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc.xml
 ExecStartPost=/bin/bash %h/.fehbg
@@ -3409,7 +3408,6 @@ Wants=detect-second-display.service openbox-second.service
 ConditionFileNotEmpty=%h/.second_display
 
 [Service]
-PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 EnvironmentFile=%h/.second_display
 Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
 Environment=browser="kiosk-browser"
@@ -4050,6 +4048,154 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 :UNNUMBERED: t
 :END:
 #+INCLUDE: "roles/dvd/tasks/main.yml" src yaml
+** install-sundtek
+*** variables
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/install-sundtek/tasks/main.yml :padline no
+---
+# file roles/install-sundtek/tasks/main.yml
+
+- name: apt | install yavdr-hardware-sundtek
+  apt:
+    name: yavdr-hardware-sundtek
+
+# TODO: include LD_PRELOAD in yavdr-hardware-sundtek!
+#- name: set LD_PRELOAD for sundtek driver to VDR's environment
+#  file:
+#    src: files/sundtek_LD_PRELOAD.conf
+#    dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
+
+- name: systemd | start sundtek.service
+  systemd:
+    name: sundtek.service
+    state: started
+    enabled: yes
+    masked: no
+    daemon-reload: yes
+
+- name: detect local and remote sundtek devices
+  command: scansundtek
+  register: sundtek_scan
+
+- name: set variable sundtek_scan
+  set_fact:
+    sundtek_devices: "{{ sundtek_scan.stdout | from_json }}"
+
+- name: create /etc/sundtek.conf
+  template:
+    src: templates/sundtek.conf.j2
+    dest: /etc/sundtek.conf
+  notify: Restart sundtek.service
+
+- name: systemd | start sundtek-avahi-mounter.service
+  systemd:
+    name: sundtek-avahi-mounter.service
+    state: started
+    masked: no
+    enabled: yes
+    daemon-reload: yes
+#+END_SRC
+*** templates
+#+BEGIN_SRC conf
+# ----- GLOBAL SECTION -----
+#Set loglevel for logging to /var/log/mediasrv.log
+#autoupdate=[on|off]                    #enable automatic driver update, default off
+autoupdate=off
+#loglevel=[off|min|full]	        #default: off
+					#max .. little bit more
+loglevel=off
+#pluginpath=/path/to/drivers            #set path to drivers
+#dvb_api_version=x.y                    #default API version will be parsed from
+                                        #/usr/include/linux/dvb/version.h, if no such file is
+                                        #available the latest internally supported API version will be 
+                                        #used (which will be quite new)
+#audio_skip_bytes=N                     #when changing analogTV channels, 
+                                        #skip N bytes to suppress audio noise
+#bulk_notification[on|off]              #default off, bulk_notification will only trigger device_attach once
+                                        #after the the first device scan when the driver is started up
+                                        #after this first scan, the notification will be triggered
+                                        #normally again for each device.
+                                        #
+                                        #for example when 2 devices are attached to the system only one
+                                        #notification will be triggered initially, any at a later time
+                                        #attached device will generate another device_attach notification
+                                        #by default each device will call the script which is set up with
+                                        #device_attach
+#use_tvvideo=[on|off]                   #use /dev/tvvideoN instead of /dev/video
+                                        #this works around a new Adobe Flash bug in 2012, where flash crashes
+                                        #if files (/dev/videoN) other than /dev/video0 are available
+ 
+#use_hwpidfilter=[on|off]               #For DVB-C, DVB-T, DVB-S/S2
+                                        #enable PID filter, please be careful with that, there are only 15 HW Pid filters available
+                                        #when more than 15 pids are set up the pid filter will be disabled automatically
+
+#dmhwpidfilter=[on|off]                 #default on, in some cases off might be useful to disable hw pid filter for settopboxes
+                                        #if you get a black image when capturing a TV channel and watching another channel on the
+                                        #same transponder - try this option and reboot
+
+#usb_transaction_delay=[0-20]           #throttle the USB setup transactions, this can solve problems with weak USB stacks for
+                                        #example for embedded boards, unit is milliseconds
+
+#usb_timeout=[0 - N]                    #USB timeout for each transaction in milliseconds, 0 default infinite
+#voltage_tone_off=[1 or 0]              #0 .. default, normal behaviour
+                                        #1 .. force DVB-S/S2 to not use any Voltage or Tone (ignore any user parameters)
+                                        
+#ir_disabled=[1 or 0]                   #0 .. enable remote control polling, the driver will permanently check for remote control keys
+                                        #1 .. disable remote control polling, might fix bugs with weak USB stacks on embedded boards
+
+#
+#Enable listening on network
+#enablenetwork=[on|off]			#default: off
+
+#Lowest adapter number to start with, e.g. /dev/dvb/adapter5/frontend0
+#first_adapter=5
+
+#Call attach script when new device appears
+#device_attach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_attach=/usr/bin/sundtek_attach
+
+#Call detach script when device disappears
+#device_detach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_detach=/usr/bin/sundtek_detach
+
+
+{% for device in sundtek_devices.local %}
+{% if device.serial is defined %}
+[{{ device.serial }}]
+
+#Infrared protocol to use
+#ir_protocol=[RC5|NEC|RC6]			#default: NEC
+{% if device.ir_protocol|default("") %}
+ir_protocol={{ device.ir_protocol }}
+{% endif %}
+
+#Keymap to use, e.g. "/lib/udev/rc_keymaps/vp702x"
+#rcmap=[PATH_TO_KEYMAP]			#default: keymap which comes with the device
+{% if device.rcmap|default("") %}
+rcmap={{ device.rcmap }}
+{% endif %}
+
+#Choose initial DVB mode for hybrid DVB-T/DVB-C devices only
+#initial_dvb_mode=[DVBC|DVBT]
+{% if device.initial_dvb_mode|default("") %}
+initial_dvb_mode={{ device.dvb_mode }}
+{% endif %}
+
+#Call attach script when new device appears
+#device_attach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_attach=/usr/bin/sundtek_attach
+
+#Call detach script when device disappears
+#device_detach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_detach=/usr/bin/sundtek_detach
+
+{% if device.capabilites.analog_tv %}
+disable_analogtv=1                                      #disable initialization of analogTV Frontend
+{% endif %}
+
+{% endif %}
+{% endfor %}
+#+END_SRC
 ** template-test
 :PROPERTIES:
 :EXPORT: nil
@@ -4987,6 +5133,13 @@ if __name__ == '__main__':
     enabled: yes
     #masked: no
   register: nfs_reload
+
+- name: Restart sundtek.service
+  systemd:
+    name: sundtek.service
+    state: restarted
+    enabled: yes
+    masked: no
 
 - name: Restart VDR
   systemd:
