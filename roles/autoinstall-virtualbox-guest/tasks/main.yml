@@ -18,3 +18,23 @@
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
     - ansible_distribution_version == "16.04"
+
+- name: set xineliboutput as frontend
+  block:
+    - apt:
+        name: '{{ item }}'
+        state: present
+      with_items:
+        - vdr-plugin-xineliboutput
+        - xineliboutput-sxfe
+    - command: '{{ item }}'
+      with_items:
+        - vdrctl disable softhddevice
+        - vdrctl disable vaapidevice
+        - vdrctl disable xine
+        - vdrctl disable pvr350
+        - vdrctl enable xineliboutput
+      ignore_errors: yes
+  when:
+    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_role == "guest"

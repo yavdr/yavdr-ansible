@@ -69,7 +69,7 @@ Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, devic
 - Wie mit mehreren GPUs umgehen? Priorität bzw. Reihenfolge?
 - Was ist mit NVidia Optimus/Bumblebee (AFAIK keine VDPAU-Funktionalität)?
 - Wie BusID der xrandr-Ausgabe zuordnen?
-*** NVIDIA-Dokumentation zur BusID:
+*** NOTE NVIDIA-Dokumentation zur BusID:
 **** What is the format of a PCI Bus ID?
 Different tools have different formats for the PCI Bus ID of a PCI device.
 
@@ -183,6 +183,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - pulseaudio                 # install pulseaudio
      - yavdr-xorg                 # graphical session
      - yavdr-remote               # remote configuration files, services and scripts
+     - yavdr-desktop              # openbox session with yavdr frontend script
      - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
      - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
      - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
@@ -217,7 +218,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - collect-facts              # query system facts
     - vdr
     - yavdr-network
-    - samba-server
+    - samba-install
     - samba-config
     - nfs-server
     - grub-config
@@ -254,6 +255,7 @@ repositories:
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # properties of the user vdr and vdr-related options
+# NOTE: user name, uid and confdir must match the values set by the vdr package
 vdr:
   user: vdr
   group: vdr
@@ -705,7 +707,27 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     force: no
 #+END_SRC
 
+**** start vdr after network-online.target
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: create directory for vdr.service systemd drop-in files
+  file:
+    dest: '{{ item }}'
+    state: directory
+  with_items:
+    - "/etc/systemd/system/vdr.service.d/"
+
+- name: systemd-drop-in | start vdr.service after network-online.target
+  template:
+    src: templates/systemd/network-online.j2
+    dest: /etc/systemd/system/vdr.service.d/network-online.conf
+#+END_SRC
+
 *** templates
+Start after network-online.target
+#+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
+[Unit]
+After=network-online.target
+#+END_SRC
 *** files
 **** remote.conf
 #+BEGIN_SRC conf :tangle roles/vdr/files/remote.conf :mkdirp yes :padline no
@@ -886,7 +908,7 @@ install_avahi: true
 #   shell: 'ethtool {{ item }} | grep -Po "(?<=Supports\sWake-on:\s).*$"'
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
-  
+
 - name: restart autofs if running
   systemd:
     name: autofs
@@ -1695,8 +1717,6 @@ first_run: False
   tags: [install,update]
 - import_tasks: detect-xorg.yml
   tags: [xorg.detect,install]
-- import_tasks: desktop-session.yml
-  tags: [install,update]
 #+END_SRC
 **** setup-xorg.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
@@ -1717,6 +1737,11 @@ first_run: False
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
 
+- name: systemd-drop-in | start x@.service after plymouth.service
+  template:
+    src: templates/x@service.d/plymouth.conf.j2
+    dest: /etc/systemd/system/x@.service.d/plymouth.conf
+
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
@@ -1726,11 +1751,6 @@ first_run: False
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
-
-- name: systemd-drop-in | start vdr.service after network-online.target
-  template:
-    src: templates/systemd/network-online.j2
-    dest: /etc/systemd/system/vdr.service.d/network-online.conf
 
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
@@ -1743,6 +1763,7 @@ first_run: False
     line: '{{ item }}'
   with_items:
       - '-D'
+      - '-w alsa-driver-broken'
       # - '-a pulse' # do we need this with our existing asound.conf?
 
 - name: add a login shell for the user vdr
@@ -1789,6 +1810,11 @@ first_run: False
     creates: /etc/X11/xorg.conf.d/00-keyboard.conf
   # NOTE: write-x11-keyboard-config is in the xlogin package
   # Ubuntu's systemd is patched, so it does not create the file automatically
+
+- name: add snippet to ignore eventlircd devices in xorg
+  template:
+    src: templates/xorg-ignore-eventlircd.conf.j2
+    dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
 
 - name: apt | install desktop programs
   apt:
@@ -1945,141 +1971,6 @@ first_run: False
     - nvidia_detected
 
 #+END_SRC
-**** desktop-session.yml
-#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/desktop-session.yml :mkdirp yes :padline no
----
-# file: roles/yavdr-xorg/tasks/desktop-session.yml
-
-- name: create folders for user configuration files
-  file:
-    state: directory
-    dest: '{{ item }}'
-    mode: '0775'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-  with_items:
-    - '{{ vdr.home }}/.config/systemd/user'
-    - '{{ vdr.home }}/.config/openbox'
-    - '{{ vdr.home }}/.config/pulse'
-
-- name: expand template for .xinitrc for vdr user
-  template:
-      src: 'templates/.xinitrc.j2'
-      dest: '{{ vdr.home }}/.xinitrc'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: "expand template for vdr's .Xresources"
-  template:
-      src: 'templates/.Xresources.j2'
-      dest: '{{ vdr.home }}/.Xresources'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: expand template for openbox autostart
-  template:
-      src: 'templates/openbox/autostart.j2'
-      dest: '{{ vdr.home }}/.config/openbox/autostart'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: expand rc.xml for openbox
-  template:
-      src: 'templates/openbox/rc.xml.j2'
-      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: create yavdr-desktop.target for the user session
-  template:
-      src: 'templates/systemd/user/yavdr-desktop.target.j2'
-      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
-
-- name: disable pulseaudio autospawning
-  lineinfile:
-    path: '{{ vdr.home }}/.config/pulse/client.conf'
-    line: 'autospawn = yes'
-    create: yes
-    state: present
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: create tmux.service for the session
-  template:
-    src: roles/yavdr-xorg/templates/systemd/user/tmux.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
-    mode: 0644
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: create wm-exit.service for the session
-  template:
-    src: roles/yavdr-xorg/templates/systemd/user/wm-exit.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/wm-exit.service'
-    mode: 0644
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: create detect-second-display.service for the session
-  template:
-    src: templates/systemd/user/detect-second-display.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
-    mode: 0644
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: create openbox-second.service for the session
-  template:
-    src: templates/systemd/user/openbox-second.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/openbox-second.service'
-    mode: 0644
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-
-- name: create osd2web.service for the session
-  template:
-    src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0644
-
-
-- name: create irexec configuration for the session
-  block:
-    - template:
-        src: templates/systemd/user/irexec.service.j2
-        dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
-        mode: 0644
-        owner: '{{ vdr.user }}'
-        group: '{{ vdr.group }}'
-    - template:
-        src: templates/.lircrc.j2
-        dest: '{{ vdr.home }}/.lircrc'
-        mode: 0644
-        owner: '{{ vdr.user }}'
-        group: '{{ vdr.group }}'
-
-- name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
-  file:
-    src: /usr/bin/start-desktop
-    dest: /var/lib/vdr/plugins/desktop/starter
-    state: link
-  
-- name: enable and start xlogin for the vdr user
-  systemd:
-    daemon_reload: yes
-    name: 'xlogin@{{ vdr.user }}'
-    enabled: yes
-    state: started
-#+END_SRC
 *** templates
 **** xorg
 ***** x-verbose@.service
@@ -2095,6 +1986,10 @@ Type=forking
 ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config /etc/X11/xorg-verbose.conf
 #+END_SRC
 ***** Drop-in snippet for x@.service
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/x@service.d/plymouth.conf.j2 :mkdirp yes :padline no
+[Unit]
+After=plymouth.service
+#+END_SRC
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/x@service.d/xlogin.conf.j2 :mkdirp yes :padline no
 [Unit]
 Before=xlogin@{{ vdr.user }}.service
@@ -2118,33 +2013,28 @@ After=x@vt7.service
 Wants=x@vt7.service
 #BindsTo=x@vt7.service
 #+END_SRC
-***** .xinitrc 
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.xinitrc.j2 :mkdirp yes :padline no
-#!/bin/bash
+***** xorg.conf snippets
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-ignore-eventlircd.conf.j2
 {{ ansible_managed | comment }}
-exec openbox-session
+
+Section "InputClass"
+    Identifier "exclude eventlircd devices"
+    MatchTag   "eventlircd"
+    Option     "Ignore"    "True"
+EndSection
 #+END_SRC
 ***** xorg.conf
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
 Section "Device"
         Identifier "nvidia"
         Driver  "nvidia"
-        Option  "NoLogo"              "true"
         Option  "DynamicTwinView"     "true"
         Option  "NoFlip"              "false"
-#        Option  "FlatPanelProperties" "Scaling = Native"
-#        Option  "ModeValidation"      "NoVesaModes, NoXServerModes"
-#        Option  "ModeDebug"           "true"
-#        Option  "HWCursor"            "false"
 EndSection
 
 Section "Screen"
         Identifier      "screen"
         Device          "nvidia"
-EndSection
-
-Section "Extensions"
-        Option  "Composite"           "false"
 EndSection
 #+END_SRC
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.j2
@@ -2187,6 +2077,8 @@ Section "Device"
     BoardName      "Unknown"
 {% endif %}
     Screen          0
+    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"
+    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin{% if xorg.secondary is defined %};{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin{% endif %}"
 EndSection
 
 Section "Screen"
@@ -2195,9 +2087,7 @@ Section "Screen"
     Monitor        "Monitor0"
     DefaultDepth    24
     Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
-    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"
     Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
-    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin"
     Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0 {ForceCompositionPipeline=On, ForceFullCompositionPipeline=On}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
@@ -2236,9 +2126,9 @@ Section "Screen"
     Monitor        "Monitor1"
     DefaultDepth    24
     Option         "nvidiaXineramaInfoOrder" "{{ xorg.secondary.connector }}"
-    Option         "ConnectedMonitor" "{{ xorg.secondary.connector }}"
+    #Option         "ConnectedMonitor" "{{ xorg.secondary.connector }}"
     Option         "UseDisplayDevice" "{{ xorg.secondary.connector }}"
-    Option         "CustomEDID" "{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin"
+    #Option         "CustomEDID" "{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin"
     Option         "metamodes" "{{ xorg.secondary.connector }}: {{ xorg.secondary.mode }} +0+0 {ForceCompositionPipeline=On, ForceFullCompositionPipeline=On}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
@@ -2447,9 +2337,156 @@ Section "Screen"
 EndSection
 {% endif %}
 #+END_SRC
+**** vdr
+Set environment variables for user session on startup
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
+[Service]
+Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
+EnvironmentFile=-/var/lib/vdr/.session-env
+#+END_SRC
+
+** yavdr-desktop
+*** Tasks
+**** main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-desktop/tasks/main.yml :mkdirp yes :padline no
+---
+# file: roles/yavdr-desktop/tasks/main.yml
+
+- name: create folders for user configuration files
+  file:
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox'
+    - '{{ vdr.home }}/.config/pulse'
+
+- name: expand template for .xinitrc for vdr user
+  template:
+      src: 'templates/.xinitrc.j2'
+      dest: '{{ vdr.home }}/.xinitrc'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: "expand template for vdr's .Xresources"
+  template:
+      src: 'templates/.Xresources.j2'
+      dest: '{{ vdr.home }}/.Xresources'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand template for openbox autostart
+  template:
+      src: 'templates/openbox/autostart.j2'
+      dest: '{{ vdr.home }}/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand rc.xml for openbox
+  template:
+      src: 'templates/openbox/rc.xml.j2'
+      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create yavdr-desktop.target for the user session
+  template:
+      src: 'templates/systemd/user/yavdr-desktop.target.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: disable pulseaudio autospawning
+  lineinfile:
+    path: '{{ vdr.home }}/.config/pulse/client.conf'
+    line: 'autospawn = yes'
+    create: yes
+    state: present
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create tmux.service for the session
+  template:
+    src: 'templates/systemd/user/tmux.service.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create wm-exit.service for the session
+  template:
+    src: templates/systemd/user/wm-exit.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/wm-exit.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create detect-second-display.service for the session
+  template:
+    src: templates/systemd/user/detect-second-display.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create openbox-second.service for the session
+  template:
+    src: templates/systemd/user/openbox-second.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/openbox-second.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create osd2web.service for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
+
+- name: create irexec configuration for the session
+  block:
+    - template:
+        src: templates/systemd/user/irexec.service.j2
+        dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
+    - template:
+        src: templates/.lircrc.j2
+        dest: '{{ vdr.home }}/.lircrc'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
+
+- name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
+  file:
+    src: /usr/bin/start-desktop
+    dest: /var/lib/vdr/plugins/desktop/starter
+    state: link
+  
+- name: enable and start xlogin for the vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
+#+END_SRC
+*** Templates
+**** xorg configuration
 ***** .Xresources
 
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.Xresources.j2 :mkdirp yes :padline no
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.Xresources.j2 :mkdirp yes :padline no
 xterm*background: Black
 xterm*foreground: grey
 XTerm*locale: true
@@ -2467,130 +2504,15 @@ xterm*renderFont: true
 XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
 #+END_SRC
-**** vdr
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
-[Service]
-Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
-EnvironmentFile=-/var/lib/vdr/.session-env
-#+END_SRC
-
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/network-online.j2
-[Unit]
-After=network-online.target
-#+END_SRC
-**** Systemd User Session
-***** yavdr-desktop.target
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/systemd/user/yavdr-desktop.target.j2 :mkdirp yes :padline no
-[Unit]
-Description=yaVDR Desktop
-Requires=default.target
-After=default.target pulseaudio.service
-Wants=dbus.service pulseaudio.service
-AllowIsolate=yes
-#+END_SRC
-
-***** detect-second-display
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/detect-second-display.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Detect second DISPLAY using xrandr
-
-[Service]
-Type=oneshot
-ExecStart=/bin/bash -c 'export DISPLAY=$DISPLAY.1; xrandr -q | grep "connected" && echo "DISPLAY=$DISPLAY" > ~/.second_display || rm -f ~/.second_display'
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
-***** openbox-second.service
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/openbox-second.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start openbox on the second DISPLAY if it exists
-After=detect-second-display.service
-Wants=detect-second-display.service
-Before=yavdr-frontend.service
-ConditionFileNotEmpty=%h/.second_display
-
-[Service]
-PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
-EnvironmentFile=%h/.second_display
-ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc.xml
-ExecStartPost=/bin/bash %h/.fehbg
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
-***** osd2web.service
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start a kiosk browser on the second DISPLAY if it exists
-After=detect-second-display.service openbox-second.service
-Wants=detect-second-display.service openbox-second.service
-ConditionFileNotEmpty=%h/.second_display
-
-[Service]
-PassEnvironment=XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
-EnvironmentFile=%h/.second_display
-Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
-EnvironmentFile=-%h/.config/osd2web/url
-ExecStart=/usr/bin/on_vdr -o -c 'kiosk-browser "${url}"'
-KillSignal=SIGINT
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
-***** tmux.service
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/tmux.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start tmux in detached session
-
-[Service]
-EnvironmentFile=-%h/.session-env
-Type=forking
-ExecStart=/usr/bin/tmux new-session -s use-session -d
-ExecStop=/usr/bin/tmux kill-session -t %u
-Restart=always
-
-[Install]
-WantedBy=default.target
-#+END_SRC
-***** wm-exit.service
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/user/wm-exit.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=exit window manager gracefully
-
-[Service]
-ExecStart=/bin/true
-ExecStop=/usr/bin/openbox --exit
-RemainAfterExit=True
-
-[Install]
-WantedBy=default.target
-#+END_SRC
-
-**** irexec
-irexec.service starts irexec for the user session
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/systemd/user/irexec.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=LIRC command handler
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/irexec %h/.lircrc
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
-~/.lircrc contains the irexec configuration
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/.lircrc.j2 :mkdirp yes :padline no
-begin
-    prog = irexec
-    button = KEY_HOME
-    config = frontend-dbus-send switchbetween kodi vdr
-end
+***** .xinitrc 
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
+#!/bin/bash
+{{ ansible_managed | comment }}
+exec openbox-session
 #+END_SRC
 **** openbox
 ***** autostart
-#+BEGIN_SRC shell :tangle roles/yavdr-xorg/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/bin/bash
 # forward environment variables to an environment file and the systemd user session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
@@ -2622,7 +2544,7 @@ fi
 systemctl --user isolate yavdr-desktop.target
 #+END_SRC
 ***** rc.xml
-#+BEGIN_SRC xml :tangle roles/yavdr-xorg/templates/openbox/rc.xml.j2 :mkdirp yes :padline no
+#+BEGIN_SRC xml :tangle roles/yavdr-desktop/templates/openbox/rc.xml.j2 :mkdirp yes :padline no
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc" xmlns:xi="http://www.w3.org/2001/XInclude">
 <!-- Do not edit this file, it will be overwritten on install.
@@ -3409,6 +3331,12 @@ systemctl --user isolate yavdr-desktop.target
       <!--<skip_pager>yes</skip_pager>-->
       <skip_taskbar>no</skip_taskbar>
     </application>
+    <application title="vaapidevice">
+      <decor>no</decor>
+      <maximized>yes</maximized>
+      <!--<skip_pager>yes</skip_pager>-->
+      <skip_taskbar>no</skip_taskbar>
+    </application>
     <application class="VDR">
       <decor>no</decor>
       <maximized>yes</maximized>
@@ -3430,6 +3358,114 @@ systemctl --user isolate yavdr-desktop.target
   </applications>
 </openbox_config>
 
+#+END_SRC
+
+**** Systemd User Session
+***** yavdr-desktop.target
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/systemd/user/yavdr-desktop.target.j2 :mkdirp yes :padline no
+[Unit]
+Description=yaVDR Desktop
+Requires=default.target
+After=default.target pulseaudio.service
+Wants=dbus.service pulseaudio.service
+AllowIsolate=yes
+#+END_SRC
+***** detect-second-display
+#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/detect-second-display.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=Detect second DISPLAY using xrandr
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'export DISPLAY=$DISPLAY.1; xrandr -q | grep "connected" && echo "DISPLAY=$DISPLAY" > ~/.second_display || rm -f ~/.second_display'
+
+[Install]
+WantedBy=yavdr-desktop.target
+#+END_SRC
+***** openbox-second.service
+#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/openbox-second.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=Start openbox on the second DISPLAY if it exists
+After=detect-second-display.service
+Wants=detect-second-display.service
+Before=yavdr-frontend.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc.xml
+ExecStartPost=/bin/bash %h/.fehbg
+
+[Install]
+WantedBy=yavdr-desktop.target
+#+END_SRC
+***** osd2web.service
+#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+Environment=browser="kiosk-browser"
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target
+#+END_SRC
+***** tmux.service
+#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/tmux.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=Start tmux in detached session
+
+[Service]
+EnvironmentFile=-%h/.session-env
+Type=forking
+ExecStart=/usr/bin/tmux new-session -s use-session -d
+ExecStop=/usr/bin/tmux kill-session -t %u
+Restart=always
+
+[Install]
+WantedBy=default.target
+#+END_SRC
+***** wm-exit.service
+#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/wm-exit.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=exit window manager gracefully
+
+[Service]
+ExecStart=/bin/true
+ExecStop=/usr/bin/openbox --exit
+RemainAfterExit=True
+
+[Install]
+WantedBy=default.target
+#+END_SRC
+**** irexec
+irexec.service starts irexec for the user session
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/systemd/user/irexec.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=LIRC command handler
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/irexec %h/.lircrc
+
+[Install]
+WantedBy=yavdr-desktop.target
+#+END_SRC
+~/.lircrc contains the irexec configuration
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.lircrc.j2 :mkdirp yes :padline no
+begin
+    prog = irexec
+    button = KEY_HOME
+    config = frontend-dbus-send switchbetween kodi vdr
+end
 #+END_SRC
 
 ** samba-install
@@ -3634,6 +3670,26 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
     - ansible_distribution_version == "16.04"
+
+- name: set xineliboutput as frontend
+  block:
+    - apt:
+        name: '{{ item }}'
+        state: present
+      with_items:
+        - vdr-plugin-xineliboutput
+        - xineliboutput-sxfe
+    - command: '{{ item }}'
+      with_items:
+        - vdrctl disable softhddevice
+        - vdrctl disable vaapidevice
+        - vdrctl disable xine
+        - vdrctl disable pvr350
+        - vdrctl enable xineliboutput
+      ignore_errors: yes
+  when:
+    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_role == "guest"
 #+END_SRC
 ** autoinstall-atric-usb
 *** dependencies
@@ -3959,9 +4015,6 @@ dependencies:
     state: present
   when: '"1209:4444" in usb or "16c0:27d9" in usb'
 #+END_SRC
-
-**** TODO add other device ids if necessary
-
 ** kodi
 *** tasks
 **** Install KODI
@@ -3995,6 +4048,154 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 :UNNUMBERED: t
 :END:
 #+INCLUDE: "roles/dvd/tasks/main.yml" src yaml
+** install-sundtek
+*** variables
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/install-sundtek/tasks/main.yml :padline no
+---
+# file roles/install-sundtek/tasks/main.yml
+
+- name: apt | install yavdr-hardware-sundtek
+  apt:
+    name: yavdr-hardware-sundtek
+
+# TODO: include LD_PRELOAD in yavdr-hardware-sundtek!
+#- name: set LD_PRELOAD for sundtek driver to VDR's environment
+#  file:
+#    src: files/sundtek_LD_PRELOAD.conf
+#    dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
+
+- name: systemd | start sundtek.service
+  systemd:
+    name: sundtek.service
+    state: started
+    enabled: yes
+    masked: no
+    daemon-reload: yes
+
+- name: detect local and remote sundtek devices
+  command: scansundtek
+  register: sundtek_scan
+
+- name: set variable sundtek_scan
+  set_fact:
+    sundtek_devices: "{{ sundtek_scan.stdout | from_json }}"
+
+- name: create /etc/sundtek.conf
+  template:
+    src: templates/sundtek.conf.j2
+    dest: /etc/sundtek.conf
+  notify: Restart sundtek.service
+
+- name: systemd | start sundtek-avahi-mounter.service
+  systemd:
+    name: sundtek-avahi-mounter.service
+    state: started
+    masked: no
+    enabled: yes
+    daemon-reload: yes
+#+END_SRC
+*** templates
+#+BEGIN_SRC conf
+# ----- GLOBAL SECTION -----
+#Set loglevel for logging to /var/log/mediasrv.log
+#autoupdate=[on|off]                    #enable automatic driver update, default off
+autoupdate=off
+#loglevel=[off|min|full]	        #default: off
+					#max .. little bit more
+loglevel=off
+#pluginpath=/path/to/drivers            #set path to drivers
+#dvb_api_version=x.y                    #default API version will be parsed from
+                                        #/usr/include/linux/dvb/version.h, if no such file is
+                                        #available the latest internally supported API version will be 
+                                        #used (which will be quite new)
+#audio_skip_bytes=N                     #when changing analogTV channels, 
+                                        #skip N bytes to suppress audio noise
+#bulk_notification[on|off]              #default off, bulk_notification will only trigger device_attach once
+                                        #after the the first device scan when the driver is started up
+                                        #after this first scan, the notification will be triggered
+                                        #normally again for each device.
+                                        #
+                                        #for example when 2 devices are attached to the system only one
+                                        #notification will be triggered initially, any at a later time
+                                        #attached device will generate another device_attach notification
+                                        #by default each device will call the script which is set up with
+                                        #device_attach
+#use_tvvideo=[on|off]                   #use /dev/tvvideoN instead of /dev/video
+                                        #this works around a new Adobe Flash bug in 2012, where flash crashes
+                                        #if files (/dev/videoN) other than /dev/video0 are available
+ 
+#use_hwpidfilter=[on|off]               #For DVB-C, DVB-T, DVB-S/S2
+                                        #enable PID filter, please be careful with that, there are only 15 HW Pid filters available
+                                        #when more than 15 pids are set up the pid filter will be disabled automatically
+
+#dmhwpidfilter=[on|off]                 #default on, in some cases off might be useful to disable hw pid filter for settopboxes
+                                        #if you get a black image when capturing a TV channel and watching another channel on the
+                                        #same transponder - try this option and reboot
+
+#usb_transaction_delay=[0-20]           #throttle the USB setup transactions, this can solve problems with weak USB stacks for
+                                        #example for embedded boards, unit is milliseconds
+
+#usb_timeout=[0 - N]                    #USB timeout for each transaction in milliseconds, 0 default infinite
+#voltage_tone_off=[1 or 0]              #0 .. default, normal behaviour
+                                        #1 .. force DVB-S/S2 to not use any Voltage or Tone (ignore any user parameters)
+                                        
+#ir_disabled=[1 or 0]                   #0 .. enable remote control polling, the driver will permanently check for remote control keys
+                                        #1 .. disable remote control polling, might fix bugs with weak USB stacks on embedded boards
+
+#
+#Enable listening on network
+#enablenetwork=[on|off]			#default: off
+
+#Lowest adapter number to start with, e.g. /dev/dvb/adapter5/frontend0
+#first_adapter=5
+
+#Call attach script when new device appears
+#device_attach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_attach=/usr/bin/sundtek_attach
+
+#Call detach script when device disappears
+#device_detach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_detach=/usr/bin/sundtek_detach
+
+
+{% for device in sundtek_devices.local %}
+{% if device.serial is defined %}
+[{{ device.serial }}]
+
+#Infrared protocol to use
+#ir_protocol=[RC5|NEC|RC6]			#default: NEC
+{% if device.ir_protocol|default("") %}
+ir_protocol={{ device.ir_protocol }}
+{% endif %}
+
+#Keymap to use, e.g. "/lib/udev/rc_keymaps/vp702x"
+#rcmap=[PATH_TO_KEYMAP]			#default: keymap which comes with the device
+{% if device.rcmap|default("") %}
+rcmap={{ device.rcmap }}
+{% endif %}
+
+#Choose initial DVB mode for hybrid DVB-T/DVB-C devices only
+#initial_dvb_mode=[DVBC|DVBT]
+{% if device.initial_dvb_mode|default("") %}
+initial_dvb_mode={{ device.dvb_mode }}
+{% endif %}
+
+#Call attach script when new device appears
+#device_attach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_attach=/usr/bin/sundtek_attach
+
+#Call detach script when device disappears
+#device_detach=[PATH_TO_SCRIPT] [PARAMETER|DEVID]	#"DEVID" will automatically be replaced with the device ID
+device_detach=/usr/bin/sundtek_detach
+
+{% if device.capabilites.analog_tv %}
+disable_analogtv=1                                      #disable initialization of analogTV Frontend
+{% endif %}
+
+{% endif %}
+{% endfor %}
+#+END_SRC
 ** template-test
 :PROPERTIES:
 :EXPORT: nil
@@ -4932,6 +5133,13 @@ if __name__ == '__main__':
     enabled: yes
     #masked: no
   register: nfs_reload
+
+- name: Restart sundtek.service
+  systemd:
+    name: sundtek.service
+    state: restarted
+    enabled: yes
+    masked: no
 
 - name: Restart VDR
   systemd:

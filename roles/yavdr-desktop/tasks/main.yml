@@ -1,0 +1,132 @@
+---
+# file: roles/yavdr-desktop/tasks/main.yml
+
+- name: create folders for user configuration files
+  file:
+    state: directory
+    dest: '{{ item }}'
+    mode: '0775'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - '{{ vdr.home }}/.config/systemd/user'
+    - '{{ vdr.home }}/.config/openbox'
+    - '{{ vdr.home }}/.config/pulse'
+
+- name: expand template for .xinitrc for vdr user
+  template:
+      src: 'templates/.xinitrc.j2'
+      dest: '{{ vdr.home }}/.xinitrc'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: "expand template for vdr's .Xresources"
+  template:
+      src: 'templates/.Xresources.j2'
+      dest: '{{ vdr.home }}/.Xresources'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand template for openbox autostart
+  template:
+      src: 'templates/openbox/autostart.j2'
+      dest: '{{ vdr.home }}/.config/openbox/autostart'
+      mode: 0755
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: expand rc.xml for openbox
+  template:
+      src: 'templates/openbox/rc.xml.j2'
+      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: create yavdr-desktop.target for the user session
+  template:
+      src: 'templates/systemd/user/yavdr-desktop.target.j2'
+      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
+      mode: 0644
+      owner: '{{ vdr.user }}'
+      group: '{{ vdr.group }}'
+
+- name: disable pulseaudio autospawning
+  lineinfile:
+    path: '{{ vdr.home }}/.config/pulse/client.conf'
+    line: 'autospawn = yes'
+    create: yes
+    state: present
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create tmux.service for the session
+  template:
+    src: 'templates/systemd/user/tmux.service.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create wm-exit.service for the session
+  template:
+    src: templates/systemd/user/wm-exit.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/wm-exit.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create detect-second-display.service for the session
+  template:
+    src: templates/systemd/user/detect-second-display.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create openbox-second.service for the session
+  template:
+    src: templates/systemd/user/openbox-second.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/openbox-second.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create osd2web.service for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
+
+- name: create irexec configuration for the session
+  block:
+    - template:
+        src: templates/systemd/user/irexec.service.j2
+        dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
+    - template:
+        src: templates/.lircrc.j2
+        dest: '{{ vdr.home }}/.lircrc'
+        mode: 0644
+        owner: '{{ vdr.user }}'
+        group: '{{ vdr.group }}'
+
+- name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
+  file:
+    src: /usr/bin/start-desktop
+    dest: /var/lib/vdr/plugins/desktop/starter
+    state: link
+  
+- name: enable and start xlogin for the vdr user
+  systemd:
+    daemon_reload: yes
+    name: 'xlogin@{{ vdr.user }}'
+    enabled: yes
+    state: started
