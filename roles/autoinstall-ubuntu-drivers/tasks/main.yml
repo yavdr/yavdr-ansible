@@ -10,7 +10,6 @@
 
     - name: use ubuntu-drivers to install additional drivers automatically
       command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
-  when: (ansible_virtualization_type != "virtualbox" and ansible_virtualization_role != "guest") or
-        ansible_distribution_version != "16.04"
+  when: (ansible_virtualization_type != "virtualbox" and ansible_virtualization_role != "guest")
         # ubuntu-drivers-common tries to autoinstall
-        # conflicting packages for virtualbox in Ubuntu 16.04 :(
+        # conflicting packages for virtualbox in Ubuntu 16.04 and 18.04 :(
