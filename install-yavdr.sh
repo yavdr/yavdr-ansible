@@ -5,8 +5,6 @@ if (( $EUID != 0 )); then
 fi
 
 apt-get -y install software-properties-common
-# Add repository for ansible
-add-apt-repository -y ppa:yavdr/experimental-main
 # update packages
 apt-get update
 # install required packages
