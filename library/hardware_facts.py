@@ -81,7 +81,7 @@ vendor_dict = {
     }
 
 def get_pci_devices():
-    for device in glob.glob('/sys/devices/pci*/*:*:*/*:*:*/'):
+    for device in glob.glob('/sys/devices/pci*/*:*:*/'):
         try:
             with open(os.path.join(device, 'device')) as d:
                 product_id = int(d.read().strip(), 16)
