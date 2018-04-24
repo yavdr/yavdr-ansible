@@ -1302,7 +1302,7 @@ ctl.!default {
 #+END_SRC
 ** yavdr-xorg
 *** About the GUI session
-The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
+The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
 In order to use the keyboard layout configured during installation for the X-Server the script ~write-x11-keyboard-config~ reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to create ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
@@ -1779,6 +1779,7 @@ first_run: False
     state: present
   with_items:
     - xlogin
+    - yavdr-xorg
     - xorg
     - xserver-xorg-input-all
     - xserver-xorg-video-all
@@ -1853,6 +1854,13 @@ first_run: False
     state: stopped
     enabled: yes
   notify: ['Start VDR']
+
+- name: Stop yavdr-xorg
+  systemd:
+    name: 'yavdr-xorg'
+    state: stopped
+    enabled: yes
+  notify: ['Start yavdr-xorg']
 
 - name: Stop xlogin
   systemd:
@@ -2483,10 +2491,10 @@ EnvironmentFile=-/var/lib/vdr/.session-env
     dest: /var/lib/vdr/plugins/desktop/starter
     state: link
   
-- name: enable and start xlogin for the vdr user
+- name: enable and start yavdr-xorg for the vdr user
   systemd:
     daemon_reload: yes
-    name: 'xlogin@{{ vdr.user }}'
+    name: 'yavdr-xorg'
     enabled: yes
     state: started
 #+END_SRC
@@ -5169,6 +5177,15 @@ if __name__ == '__main__':
     state: started
     enabled: yes
   register: vdr_start
+
+- name: Start yavdr-xorg
+  systemd:
+    daemon_reload: yes
+    name: 'yavdr-xorg'
+    enabled: yes
+    state: started
+  register: yavdr_xorg_start
+
 
 - name: Stop xlogin
   systemd:
