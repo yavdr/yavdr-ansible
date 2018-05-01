@@ -147,8 +147,6 @@ if (( $EUID != 0 )); then
 fi
 
 apt-get -y install software-properties-common
-# Add repository for ansible
-add-apt-repository -y ppa:yavdr/experimental-main
 # update packages
 apt-get update
 # install required packages
@@ -1305,7 +1303,7 @@ ctl.!default {
 #+END_SRC
 ** yavdr-xorg
 *** About the GUI session
-The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target.
+The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
 In order to use the keyboard layout configured during installation for the X-Server the script ~write-x11-keyboard-config~ reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to create ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
@@ -1782,6 +1780,7 @@ first_run: False
     state: present
   with_items:
     - xlogin
+    - yavdr-xorg
     - xorg
     - xserver-xorg-input-all
     - xserver-xorg-video-all
@@ -1794,6 +1793,15 @@ first_run: False
     - vdr-plugin-osd2web
     - feh
     #- yavdr-xorg
+
+- name: apt | install packages for Intel IGP
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - xserver-xorg-video-intel
+    - i965-va-driver-shaders
+  when: intel_detected
 
 - name: download yavdr logo
   block:
@@ -1847,6 +1855,13 @@ first_run: False
     state: stopped
     enabled: yes
   notify: ['Start VDR']
+
+- name: Stop yavdr-xorg
+  systemd:
+    name: 'yavdr-xorg'
+    state: stopped
+    enabled: yes
+  notify: ['Start yavdr-xorg']
 
 - name: Stop xlogin
   systemd:
@@ -2339,9 +2354,10 @@ EndSection
 {% endif %}
 #+END_SRC
 **** vdr
-Set environment variables for user session on startup
+Set environment variables for system locale and user session on startup
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
 [Service]
+EnvironmentFile=-/etc/default/locale
 Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
@@ -2476,10 +2492,10 @@ EnvironmentFile=-/var/lib/vdr/.session-env
     dest: /var/lib/vdr/plugins/desktop/starter
     state: link
   
-- name: enable and start xlogin for the vdr user
+- name: enable and start yavdr-xorg for the vdr user
   systemd:
     daemon_reload: yes
-    name: 'xlogin@{{ vdr.user }}'
+    name: 'yavdr-xorg'
     enabled: yes
     state: started
 #+END_SRC
@@ -3642,10 +3658,9 @@ The tool ubuntu-drivers is used to install the matching driver version for nvidi
 
     - name: use ubuntu-drivers to install additional drivers automatically
       command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled autoinstall
-  when: (ansible_virtualization_type != "virtualbox" and ansible_virtualization_role != "guest") or
-        ansible_distribution_version != "16.04"
+  when: (ansible_virtualization_type != "virtualbox" and ansible_virtualization_role != "guest")
         # ubuntu-drivers-common tries to autoinstall
-        # conflicting packages for virtualbox in Ubuntu 16.04 :(
+        # conflicting packages for virtualbox in Ubuntu 16.04 and 18.04 :(
 #+END_SRC
 ** autoinstall-virtualbox-guest
 This role installs the guest additions for virtualbox guests on Ubuntu 16.04
@@ -3661,16 +3676,16 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
         state: present
         name: '{{ item }}'
       with_items:
-        - virtualbox-guest-dkms
-        - virtualbox-guest-x11
         - dkms
+        - virtualbox-guest-x11-hwe
+        - virtualbox-guest-dkms-hwe
+        - virtualbox-guest-x11-hwe
 
     # TODO: set xineliboutput as frontend
   when:
     - ansible_virtualization_type == "virtualbox"
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
-    - ansible_distribution_version == "16.04"
 
 - name: set xineliboutput as frontend
   block:
@@ -4612,6 +4627,7 @@ import os
 import sys
 import usb.core
 from collections import namedtuple
+from itertools import chain
 
 import kmodpy
 from ansible.module_utils.basic import *
@@ -4627,7 +4643,7 @@ vendor_dict = {
     }
 
 def get_pci_devices():
-    for device in glob.glob('/sys/devices/pci*/*:*:*/*:*:*/'):
+    for device in chain(glob.glob('/sys/devices/pci*/*:*:*/'), glob.glob('/sys/devices/pci*/*:*:*/*:*:*/')):
         try:
             with open(os.path.join(device, 'device')) as d:
                 product_id = int(d.read().strip(), 16)
@@ -5162,6 +5178,15 @@ if __name__ == '__main__':
     state: started
     enabled: yes
   register: vdr_start
+
+- name: Start yavdr-xorg
+  systemd:
+    daemon_reload: yes
+    name: 'yavdr-xorg'
+    enabled: yes
+    state: started
+  register: yavdr_xorg_start
+
 
 - name: Stop xlogin
   systemd:

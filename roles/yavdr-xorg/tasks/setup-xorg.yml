@@ -59,6 +59,7 @@
     state: present
   with_items:
     - xlogin
+    - yavdr-xorg
     - xorg
     - xserver-xorg-input-all
     - xserver-xorg-video-all
@@ -71,6 +72,15 @@
     - vdr-plugin-osd2web
     - feh
     #- yavdr-xorg
+
+- name: apt | install packages for Intel IGP
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - xserver-xorg-video-intel
+    - i965-va-driver-shaders
+  when: intel_detected
 
 - name: download yavdr logo
   block:
