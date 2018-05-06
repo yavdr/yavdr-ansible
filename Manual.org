@@ -121,7 +121,7 @@ either directly or using a configuration wizard or a web frontend
 - nvidia :: softhddevice-openglosd (if no HEVC channels are needed)
 
 * Introduction
-One of the major problems we faced with customized Ubuntu ISO files as installation media for prior yaVDR versions has been the limited hardware support and the time consuming process to create and update them.  An interesting alternative to this approach is to enable the user to choose the installation medium himself so point releases, kernel versions and additional drivers can be chosen deliberately.  After the basic setup is complete (and a working internet connection is available), a fully customizable install script completes the yaVDR installation.
+One of the major problems we faced with customized Ubuntu ISO files as installation media for prior yaVDR versions has been the limited hardware support and the time consuming process to create and update them.  An interesting alternative to this approach is to enable the user to choose the installation medium by himself, so point releases, kernel versions and additional drivers can be chosen deliberately.  After the basic setup is complete (and a working internet connection is available), a fully customizable install script completes the yaVDR installation.
 * Installing and configuring yaVDR with Ansible
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
@@ -1013,7 +1013,6 @@ lircd0_socket: /var/run/lirc/lircd0
   with_items:
     - yavdr-remote
     - lirc
-    - eventlircd
     - lircd2uinput
   tags:
     - packages
@@ -1045,6 +1044,15 @@ lircd0_socket: /var/run/lirc/lircd0
   ignore_errors: yes
   tags:
     - systemd
+
+- name: apt | install eventlircd
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - eventlircd
+  tags:
+    - packages
 
 - name: configure vdr to read from a lircd-compatible socket
   template:
@@ -3636,11 +3644,8 @@ It would be nice to be able to detect if it is suitable to install those drivers
 Vendor-IDs:
 - eb1a:5[1b2] (alte Generation)
 - 2659:*      (neuere Sticks)
-*** TODO dddvb-dkms if only newer DD cards are detected
-*** TODO media-build-experimental (up to kernel 4.8) for "old" cards like TT S2-6400 FF
-*** TODO newly merged DD drivers
-from http://www.vdr-portal.de/board18-vdr-hardware/board102-dvb-karten/120817-treiber-der-cine-ctv6-ddbridge-ci-in-den-kernel-integrieren/
-
+*** TODO drivers for TT S2-6400 FF
+https://github.com/s-moch/linux-saa716x - kann man den relevanten Teil als dkms-Paket bauen?
 ** autoinstall-ubuntu-drivers
 The tool ubuntu-drivers is used to install the matching driver version for nvidia graphics cards, virtualbox guest additions and Intel and AMD microcode updates.
 *** tasks
