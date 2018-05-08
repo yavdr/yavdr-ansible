@@ -5035,12 +5035,17 @@ def parse_xrandr_verbose(iterator):
 def parse_edid_data(edid):
     vendor = "Unknown"
     model = "Unknown"
-    data = subprocess.check_output("parse-edid < {}".format(edid), shell=True, universal_newlines=True)
-    for line in data.splitlines():
-        if "VendorName" in line:
-            vendor = line.strip().split('"')[1]
-        if "ModelName" in line:
-            model =  line.strip().split('"')[1]
+    try:
+        data = subprocess.check_output("parse-edid < {}".format(edid),
+                                       shell=True, universal_newlines=True)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        for line in data.splitlines():
+            if "VendorName" in line:
+                vendor = line.strip().split('"')[1]
+            if "ModelName" in line:
+                model = line.strip().split('"')[1]
     return vendor, model
 
 def collect_nvidia_data():
