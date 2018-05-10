@@ -1713,6 +1713,21 @@ b'\xde\xad\xbe\xef'
 *** default variables
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/defaults/main.yml :mkdirp yes :padline no
 first_run: False
+preferred_outputs:
+  - HDMI
+  - DP
+  - DVI
+  - VGA
+  - TV
+preferred_resolutions:
+  - 7680x4320
+  - 3840x2160
+  - 1920x1080
+  - 1280x720
+  - 720x576
+preferred_refreshrates:
+  - 50
+  - 60
 #+END_SRC
 *** tasks
 
@@ -1932,7 +1947,10 @@ first_run: False
     timeout: 3
 
 - name: "detect xorg configuration"
-  action: xrandr_facts
+  xrandr_facts:
+    preferred_refreshrates: '{{ preferred_refreshrates }}'
+    preferred_resolutions: '{{ preferred_resolutions }}'
+    preferred_outputs: '{{ preferred_outputs }}'
 
 - debug:
     var: xorg.primary
