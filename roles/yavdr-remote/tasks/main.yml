@@ -8,8 +8,6 @@
   with_items:
     - yavdr-remote
     - lirc
-    - eventlircd
-    - lircd2uinput
   tags:
     - packages
 
@@ -40,6 +38,16 @@
   ignore_errors: yes
   tags:
     - systemd
+
+- name: apt | install eventlircd and lircd2uinput
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - eventlircd
+    - lircd2uinput
+  tags:
+    - packages
 
 - name: configure vdr to read from a lircd-compatible socket
   template:
