@@ -430,6 +430,7 @@ yavdr-common executes the following tasks:
         - import_tasks: configure_apt.yml
         - import_tasks: configure_system.yml
         - import_tasks: create_directories.yml
+        - import_tasks: create_sudoers.yml
   tags: [install]
  #+END_SRC
 ***** Disable default installation of recommended packages
@@ -561,12 +562,27 @@ yavdr-common executes the following tasks:
     mode: '0777'
   with_dict: '{{ media_dirs }}'
 #+END_SRC
+***** create sudoers drop-in for vdr
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_sudoers.yml :exports none :mkdirp yes
+- name: create /etc/sudoers.d/yavdr from template
+  template:
+    src: templates/yavdr.sudoers.j2
+    dest: /etc/sudoers.d/yavdr
+    mode: '0444'
+    validate: visudo -cf %s
+#+END_SRC
 *** templates
 #+BEGIN_SRC c :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment('c') }}
 // Recommends are as of now still abused in many packages
 APT::Install-Recommends "0";
 APT::Install-Suggests "0";
+#+END_SRC
+**** yavdr sudoers drop-in
+Allow the vdr user to restart ~vdr.service~ and reboot the system
+#+BEGIN_SRC shell :tangle roles/yavdr-common/templates/yavdr.sudoers.j2 :mkdirp yes :padline no
+{{ vdr.user }} ALL=NOPASSWD: /bin/systemctl --no-block restart vdr.service
+{{ vdr.user }} ALL=NOPASSWD: /bin/systemctl --no-block reboot
 #+END_SRC
 ** collect facts about the system with custom modules 
 
@@ -1333,6 +1349,7 @@ create a xorg.conf for
 - [X] nvidia
 - [ ] intel
 - [ ] amd gpus
+- [ ] allow overscan compensation in xorg.conf or via xrandr on startup
 
 **** HOLD Nvidia-GPUs:read  EDID:
 
