@@ -2147,7 +2147,7 @@ Section "Screen"
     DefaultDepth    24
     Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
     Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
-    Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0 {ForceCompositionPipeline=On, ForceFullCompositionPipeline=On}"
+    Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"
@@ -2188,7 +2188,7 @@ Section "Screen"
     #Option         "ConnectedMonitor" "{{ xorg.secondary.connector }}"
     Option         "UseDisplayDevice" "{{ xorg.secondary.connector }}"
     #Option         "CustomEDID" "{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin"
-    Option         "metamodes" "{{ xorg.secondary.connector }}: {{ xorg.secondary.mode }} +0+0 {ForceCompositionPipeline=On, ForceFullCompositionPipeline=On}"
+    Option         "metamodes" "{{ xorg.secondary.connector }}: {{ xorg.secondary.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"
@@ -2199,6 +2199,10 @@ Section "Screen"
     EndSubSection
 EndSection
 {% endif %}
+
+Section "Extensions"
+    Option         "Composite" "Disable"
+EndSection
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
