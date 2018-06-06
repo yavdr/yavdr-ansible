@@ -1747,7 +1747,6 @@ preferred_refreshrates:
   - 60
 #+END_SRC
 *** tasks
-
 **** main.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
@@ -2029,6 +2028,22 @@ preferred_refreshrates:
   when:
     - nvidia_detected
 
+#+END_SRC
+**** intel.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/intel.yml :mkdirp yes :padline no
+- name: "create initramfs hook to copy EDID files"
+  copy:
+    src: files/include-edid-data.sh
+    dest: '/etc/initramfs-tools/hooks/include-edid-data'
+    mode: 0755
+    force: yes
+
+# TODO:
+# EDID-Dateien nach /lib/firmware/edid/ schreiben
+# GRUB_CMDLINE_LINUX anpassen
+# initramfs updaten
+# grub updaten
+  notify: ['Update Initramfs', 'Update GRUB']
 #+END_SRC
 *** templates
 **** xorg
@@ -2407,6 +2422,23 @@ Set environment variables for system locale and user session on startup
 EnvironmentFile=-/etc/default/locale
 Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
+#+END_SRC
+*** files
+**** initramfs EDID hook
+#+BEGIN_SRC shell :tangle roles/yavdr-xorg/files/cp-edid-data.sh
+#!/bin/sh
+case $1 in
+prereqs)
+   echo "udev"
+   exit 0
+   ;;
+esac
+. /usr/share/initramfs-tools/hook-functions
+
+mkdir -p "${DESTDIR}/lib/firmware/edid"
+find "/lib/firmware/edid/" -name "edid*.bin" -type f -exec cp {} "${DESTDIR}/lib/firmware/edid/" +
+manual_add_modules i915 radeon
+exit 0
 #+END_SRC
 
 ** yavdr-desktop
@@ -4590,6 +4622,11 @@ fi
 *** handlers
 #+BEGIN_SRC yaml :tangle roles/grub-config/handlers/main.yml :mkdirp yes :padline no
 ---
+
+- name: Update Initramfs
+  command: "update-initramfs -u"
+  failed_when: ('error' in initramfs_register_update.stderr)
+  register: initramfs_register_update
 
 - name: Update GRUB
   command: update-grub
