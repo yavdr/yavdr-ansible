@@ -462,10 +462,25 @@ yavdr-common executes the following tasks:
  #+END_SRC
 ***** Use bash instead of dash
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
-- name: use bash instead of dash
-  shell: |
-    echo "set dash/sh false" | debconf-communicate
-    dpkg-reconfigure -f noninteractive dash
+#- name: use bash instead of dash
+#  shell: |
+#    echo "set dash/sh false" | debconf-communicate
+#    dpkg-reconfigure -f noninteractive dash
+
+- name: ensure debconf and debconf-utils are installed
+  apt:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - debconf
+    - debconf-utils
+
+- name: use bash instead of dash by default
+  debconf:
+    name: dash
+    question: dash/sh
+    value: 'false'
+    vtype: select
 #+END_SRC
 
 ***** create user vdr
