@@ -1,18 +1,7 @@
-- name: apt | ensure debconf and debconf-utils are installed
-  apt:
-    name: "{{ packages }}"
-  vars:
-    packages:
-    - debconf
-    - debconf-utils
-
-- name: use bash instead of dash by default
-  debconf:
-    name: dash
-    question: dash/sh
-    value: 'false'
-    vtype: select
-  notify: ['Reconfigure unattended upgrades with dpkg']
+- name: use bash instead of dash
+  shell: |
+    echo "set dash/sh false" | debconf-communicate
+    dpkg-reconfigure -f noninteractive dash
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
