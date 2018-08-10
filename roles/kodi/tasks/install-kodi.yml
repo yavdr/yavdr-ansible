@@ -9,14 +9,17 @@
     - kodi
     - kodi-pvr-vdr-vnsi
 
-- name: apt | install kodi-send
-  block:
-    - apt:
-        name: "kodi-eventclients-xbmc-send" # team-xbmc uses "kodi-eventclients-xbmc-send for some reason
-        state: present
-        install_recommends: no
-  rescue:
-    - apt:
-        name: "kodi-eventclients-kodi-send" # fallback to ubuntu package
-        state: present
-        install_recommends: no
+- name: apt | install kodi-send (team-xbmc PPA)
+  apt:
+    name: "kodi-eventclients-xbmc-send" # team-xbmc uses "kodi-eventclients-xbmc-send for some reason
+    state: present
+    install_recommends: no
+  register: team_xbmc_ppa
+  ignore_errors: True
+
+- name: apt | install kodi-send (Ubuntu package)
+  apt:
+    name: "kodi-eventclients-kodi-send" # fallback to ubuntu package
+    state: present
+    install_recommends: no
+  when: team_xbmc_ppa.failed
