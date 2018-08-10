@@ -8,4 +8,15 @@
   with_items:
     - kodi
     - kodi-pvr-vdr-vnsi
-    - kodi-eventclients-kodi-send # for ubuntu packages, team-xbmc uses "kodi-eventclients-xbmc-send for some reason
+
+- name: apt | install kodi-send
+  block:
+    - apt:
+        name: "kodi-eventclients-xbmc-send" # team-xbmc uses "kodi-eventclients-xbmc-send for some reason
+        state: present
+        install_recommends: no
+  rescue:
+    - apt:
+        name: "kodi-eventclients-kodi-send" # fallback to ubuntu package
+        state: present
+        install_recommends: no
