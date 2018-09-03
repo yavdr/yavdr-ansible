@@ -219,6 +219,7 @@ def collect_nvidia_data():
 
 
 def output_data(data, write_edids=True):
+    result = {}
     if data:
         modes = []
         for _, screen_data in data.items():
@@ -230,7 +231,6 @@ def output_data(data, write_edids=True):
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
         if modes:
-            result = {}
             try:
                 gpu_name, bus_id = collect_nvidia_data()
             except ValueError:
