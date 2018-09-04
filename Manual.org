@@ -171,9 +171,9 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - collect-facts              # query system facts
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
-     - autoinstall-virtualbox-guest
      # - nvidia-experimental       # install very recent nvidia dirver from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
+     - autoinstall-virtualbox-guest
      - yavdr-network              # enable network client capabilities
      - samba-install              # install samba server
      - samba-config               # configure samba server
@@ -4650,7 +4650,7 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
         - vdrctl enable xineliboutput
       ignore_errors: yes
   when:
-    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_type == "virtualbox" or ansible_virtualization_type == "VMware"
     - ansible_virtualization_role == "guest"
 #+END_SRC
 ** autoinstall-atric-usb
