@@ -141,14 +141,17 @@ We use a callback to generate tags for all roles autmatically:
 
 ** Install script for local usage
 #+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
+set -e
 if (( $EUID != 0 )); then
     echo "This script must be run using sudo -H or as root"
     exit
 fi
 
-apt-get -y install software-properties-common
 # update packages
-apt-get update
+apt update
+apt -y install software-properties-common
+add-apt-repository -y ppa:ansible/ansible-2.6
+
 # install required packages
 apt-get -y install --no-install-recommends ansible python-jmespath
 
@@ -6113,6 +6116,7 @@ def collect_nvidia_data():
 
 
 def output_data(data, write_edids=True):
+    result = {}
     if data:
         modes = []
         for _, screen_data in data.items():
@@ -6124,7 +6128,6 @@ def output_data(data, write_edids=True):
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
         if modes:
-            result = {}
             try:
                 gpu_name, bus_id = collect_nvidia_data()
             except ValueError:

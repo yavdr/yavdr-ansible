@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="de" xml:lang="de">
 <head>
-<!-- 2018-09-04 Di 13:22 -->
+<!-- 2018-09-05 Mi 12:23 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ansible Playbooks for yaVDR 0.7</title>
@@ -240,262 +240,262 @@ for the JavaScript code in this tag.
 <h2>Inhaltsverzeichnis</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#org28b95b7">1. User Stories</a>
+<li><a href="#org75524bc">1. User Stories</a>
 <ul>
-<li><a href="#orgcee35da">1.1. yavdr-full</a>
+<li><a href="#org76ff3d1">1.1. yavdr-full</a>
 <ul>
-<li><a href="#orgca4c640">1.1.1. Using vdr, pulseaudio and xorg together</a></li>
+<li><a href="#org291def0">1.1.1. Using vdr, pulseaudio and xorg together</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#org14363f3">2. Introduction</a></li>
-<li><a href="#org2d1cd15">3. Installing and configuring yaVDR with Ansible</a>
+<li><a href="#orgc15ea13">2. Introduction</a></li>
+<li><a href="#orgb1e84e8">3. Installing and configuring yaVDR with Ansible</a>
 <ul>
-<li><a href="#org96a10e7">3.1. Install script for local usage</a></li>
+<li><a href="#org6b835f2">3.1. Install script for local usage</a></li>
 </ul>
 </li>
-<li><a href="#org8b5bd8c">4. Playbooks</a>
+<li><a href="#org2887b8d">4. Playbooks</a>
 <ul>
-<li><a href="#org64994aa">4.1. yavdr07.yml</a></li>
-<li><a href="#orga1dee2e">4.2. yavdr07-headless.yml</a></li>
+<li><a href="#org5250648">4.1. yavdr07.yml</a></li>
+<li><a href="#org0de1d69">4.2. yavdr07-headless.yml</a></li>
 </ul>
 </li>
-<li><a href="#orgea28099">5. Hosts</a></li>
-<li><a href="#org33c743c">6. Group Variables</a>
+<li><a href="#org80044e8">5. Hosts</a></li>
+<li><a href="#orgabf8ba2">6. Group Variables</a>
 <ul>
-<li><a href="#org9e875ca">6.1. PPAs</a></li>
-<li><a href="#org527f176">6.2. VDR user, directories, special configuration and plugins</a></li>
-<li><a href="#org83c97e2">6.3. Media directories</a></li>
-<li><a href="#orgcccb8c1">6.4. NFS</a></li>
-<li><a href="#org9b6ba55">6.5. Samba</a></li>
-<li><a href="#org6f245a6">6.6. Additional packages</a></li>
-<li><a href="#org43c885a">6.7. System pre-configuration</a></li>
+<li><a href="#orga4078a3">6.1. PPAs</a></li>
+<li><a href="#orgd9a0fe4">6.2. VDR user, directories, special configuration and plugins</a></li>
+<li><a href="#org6d69920">6.3. Media directories</a></li>
+<li><a href="#orge31c090">6.4. NFS</a></li>
+<li><a href="#org595ba4b">6.5. Samba</a></li>
+<li><a href="#orgf3393a2">6.6. Additional packages</a></li>
+<li><a href="#org4196335">6.7. System pre-configuration</a></li>
 </ul>
 </li>
-<li><a href="#org44a4f9c">7. Roles</a>
+<li><a href="#org6901454">7. Roles</a>
 <ul>
-<li><a href="#org7ecccf6">7.1. install-dependencies</a>
+<li><a href="#orgb5f401c">7.1. install-dependencies</a>
 <ul>
-<li><a href="#org58feb06">7.1.1. tasks</a></li>
+<li><a href="#orga17cef0">7.1.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org9d6dc1c">7.2. nvidia experimental drivers</a>
+<li><a href="#orgf615099">7.2. nvidia experimental drivers</a>
 <ul>
-<li><a href="#org656cd5f">7.2.1. tasks</a></li>
+<li><a href="#orgea0dd4b">7.2.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org570e012">7.3. yavdr-common</a>
+<li><a href="#org270bea8">7.3. yavdr-common</a>
 <ul>
-<li><a href="#orgc8ff9e3">7.3.1. default variables</a></li>
-<li><a href="#orgd86a27f">7.3.2. tasks</a></li>
-<li><a href="#org1b3dd8a">7.3.3. templates</a></li>
+<li><a href="#orge38e8fc">7.3.1. default variables</a></li>
+<li><a href="#org6804613">7.3.2. tasks</a></li>
+<li><a href="#org2a25945">7.3.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#org40d9d43">7.4. collect facts about the system with custom modules</a>
+<li><a href="#org8aa43da">7.4. collect facts about the system with custom modules</a>
 <ul>
-<li><a href="#org443ee2a">7.4.1. variables</a></li>
-<li><a href="#org97d2f95">7.4.2. tasks</a></li>
+<li><a href="#org2d79707">7.4.1. variables</a></li>
+<li><a href="#org2af320b">7.4.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org61da32a">7.5. vdr</a>
+<li><a href="#org46497b1">7.5. vdr</a>
 <ul>
-<li><a href="#org1e0085c">7.5.1. tasks</a></li>
-<li><a href="#org0683042">7.5.2. templates</a></li>
-<li><a href="#orge9202a4">7.5.3. files</a></li>
+<li><a href="#org05d7134">7.5.1. tasks</a></li>
+<li><a href="#org3363446">7.5.2. templates</a></li>
+<li><a href="#org63e9288">7.5.3. files</a></li>
 </ul>
 </li>
-<li><a href="#org533b51e">7.6. <span class="todo STARTED">STARTED</span> yavdr-network</a>
+<li><a href="#orga04937b">7.6. <span class="todo STARTED">STARTED</span> yavdr-network</a>
 <ul>
-<li><a href="#org5abb3fb">7.6.1. default variables</a></li>
-<li><a href="#org50e0d15">7.6.2. tasks</a></li>
+<li><a href="#orgc284bfd">7.6.1. default variables</a></li>
+<li><a href="#org2d75b50">7.6.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#orgafdf5e0">7.7. nfs-server</a>
+<li><a href="#orgb6a2018">7.7. nfs-server</a>
 <ul>
-<li><a href="#org03b9365">7.7.1. <span class="todo TODO">TODO</span> avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen</a></li>
-<li><a href="#org0ad9adc">7.7.2. tasks</a></li>
-<li><a href="#org29cadc4">7.7.3. templates</a></li>
+<li><a href="#orgb5bdaed">7.7.1. <span class="todo TODO">TODO</span> avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen</a></li>
+<li><a href="#orgcd06936">7.7.2. tasks</a></li>
+<li><a href="#orgb00ff39">7.7.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#org21c9e4d">7.8. <span class="todo STARTED">STARTED</span> yavdr-remote</a>
+<li><a href="#org28d1f7c">7.8. <span class="todo STARTED">STARTED</span> yavdr-remote</a>
 <ul>
-<li><a href="#orgdd2f149">7.8.1. default variables</a></li>
-<li><a href="#org4747cf4">7.8.2. tasks</a></li>
-<li><a href="#org905ca66">7.8.3. templates</a></li>
-<li><a href="#orgec6a817">7.8.4. files</a></li>
+<li><a href="#org36edf19">7.8.1. default variables</a></li>
+<li><a href="#org0fc10d7">7.8.2. tasks</a></li>
+<li><a href="#orged589f6">7.8.3. templates</a></li>
+<li><a href="#orgbe33ee0">7.8.4. files</a></li>
 </ul>
 </li>
-<li><a href="#org617aa95">7.9. pulseaudio</a>
+<li><a href="#orgb572421">7.9. pulseaudio</a>
 <ul>
-<li><a href="#orgd1ec804">7.9.1. tasks</a></li>
-<li><a href="#org4d4e329">7.9.2. templates</a></li>
+<li><a href="#orgc811bfd">7.9.1. tasks</a></li>
+<li><a href="#orgaf13db6">7.9.2. templates</a></li>
 </ul>
 </li>
-<li><a href="#orgf6be04b">7.10. yavdr-xorg</a>
+<li><a href="#orgc60b824">7.10. yavdr-xorg</a>
 <ul>
-<li><a href="#org2e166d0">7.10.1. About the GUI session</a></li>
-<li><a href="#orgdc3b0c3">7.10.2. default variables</a></li>
-<li><a href="#org2c81b48">7.10.3. tasks</a></li>
-<li><a href="#orge4c2c00">7.10.4. templates</a></li>
-<li><a href="#orgbe6ed03">7.10.5. files</a></li>
+<li><a href="#org27d9cfe">7.10.1. About the GUI session</a></li>
+<li><a href="#org7cc22eb">7.10.2. default variables</a></li>
+<li><a href="#org748409d">7.10.3. tasks</a></li>
+<li><a href="#org039eea6">7.10.4. templates</a></li>
+<li><a href="#org5c37d31">7.10.5. files</a></li>
 </ul>
 </li>
-<li><a href="#orgc28550a">7.11. yavdr-desktop</a>
+<li><a href="#org3e18347">7.11. yavdr-desktop</a>
 <ul>
-<li><a href="#org770e34e">7.11.1. Tasks</a></li>
-<li><a href="#org71882d1">7.11.2. Templates</a></li>
+<li><a href="#orge3cdb02">7.11.1. Tasks</a></li>
+<li><a href="#org4f32360">7.11.2. Templates</a></li>
 </ul>
 </li>
-<li><a href="#org514fae9">7.12. samba-install</a>
+<li><a href="#org63bf2b2">7.12. samba-install</a>
 <ul>
-<li><a href="#org7e5760c">7.12.1. tasks</a></li>
+<li><a href="#org0b2ed9f">7.12.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org1a9391e">7.13. samba-config</a>
+<li><a href="#org3fb577d">7.13. samba-config</a>
 <ul>
-<li><a href="#orgf41dcbf">7.13.1. tasks</a></li>
-<li><a href="#org5963a7d">7.13.2. templates</a></li>
+<li><a href="#org183b392">7.13.1. tasks</a></li>
+<li><a href="#orgc3ec977">7.13.2. templates</a></li>
 </ul>
 </li>
-<li><a href="#org6a15b01">7.14. <span class="todo STARTED">STARTED</span> autoinstall-drivers</a>
+<li><a href="#orgb274560">7.14. <span class="todo STARTED">STARTED</span> autoinstall-drivers</a>
 <ul>
-<li><a href="#orge2c5337">7.14.1. <span class="todo TODO">TODO</span> sundtek for Sundtek devices (local or network connection)</a></li>
-<li><a href="#orge515c24">7.14.2. <span class="todo TODO">TODO</span> drivers for TT S2-6400 FF</a></li>
+<li><a href="#org25b76c2">7.14.1. <span class="todo TODO">TODO</span> sundtek for Sundtek devices (local or network connection)</a></li>
+<li><a href="#orge9f495a">7.14.2. <span class="todo TODO">TODO</span> drivers for TT S2-6400 FF</a></li>
 </ul>
 </li>
-<li><a href="#org9e7f2ea">7.15. autoinstall-ubuntu-drivers</a>
+<li><a href="#orgd7ab0e7">7.15. autoinstall-ubuntu-drivers</a>
 <ul>
-<li><a href="#org2d63bd1">7.15.1. tasks</a></li>
+<li><a href="#orgc0f0c70">7.15.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org5f40346">7.16. autoinstall-virtualbox-guest</a></li>
-<li><a href="#org5cf3b26">7.17. autoinstall-atric-usb</a>
+<li><a href="#org1e57ab9">7.16. autoinstall-virtualbox-guest</a></li>
+<li><a href="#org7bcdf49">7.17. autoinstall-atric-usb</a>
 <ul>
-<li><a href="#org403d33e">7.17.1. dependencies</a></li>
-<li><a href="#orgb0219e0">7.17.2. tasks</a></li>
-<li><a href="#org9d29639">7.17.3. templates</a></li>
+<li><a href="#org750879f">7.17.1. dependencies</a></li>
+<li><a href="#org6a399f0">7.17.2. tasks</a></li>
+<li><a href="#org7d90190">7.17.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#org2a55f32">7.18. autoinstall-yausbir</a>
+<li><a href="#org2c804d0">7.18. autoinstall-yausbir</a>
 <ul>
-<li><a href="#org3e9a653">7.18.1. dependencies</a></li>
-<li><a href="#org67b083b">7.18.2. tasks</a></li>
-<li><a href="#orgf6da7df">7.18.3. templates</a></li>
+<li><a href="#org9a7656e">7.18.1. dependencies</a></li>
+<li><a href="#org1931dcb">7.18.2. tasks</a></li>
+<li><a href="#orgea46e1a">7.18.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#orgfc5cafc">7.19. autoinstall-satip</a>
+<li><a href="#org50b3077">7.19. autoinstall-satip</a>
 <ul>
-<li><a href="#org346709e">7.19.1. tasks</a></li>
+<li><a href="#org57defaa">7.19.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org301557b">7.20. autoinstall-targavfd</a>
+<li><a href="#orgfa38244">7.20. autoinstall-targavfd</a>
 <ul>
-<li><a href="#org2720938">7.20.1. tasks</a></li>
+<li><a href="#org1520086">7.20.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org6e96439">7.21. autoinstall-imonlcd</a>
+<li><a href="#org3eceb24">7.21. autoinstall-imonlcd</a>
 <ul>
-<li><a href="#orge266399">7.21.1. tasks</a></li>
+<li><a href="#org0847264">7.21.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org5f2f369">7.22. autoinstall-libcecdaemon</a>
+<li><a href="#org6d8e9c8">7.22. autoinstall-libcecdaemon</a>
 <ul>
-<li><a href="#org78ed371">7.22.1. tasks</a></li>
+<li><a href="#org0960be5">7.22.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org5dca9ce">7.23. autoinstall-pvr350</a>
+<li><a href="#org66eb0b7">7.23. autoinstall-pvr350</a>
 <ul>
-<li><a href="#org7e4d6c3">7.23.1. tasks</a></li>
+<li><a href="#org713fa63">7.23.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#orgc46a3ad">7.24. autoinstall-hauppauge-pvr</a></li>
-<li><a href="#orgfc05048">7.25. autoinstall-firmware</a>
+<li><a href="#org925a914">7.24. autoinstall-hauppauge-pvr</a></li>
+<li><a href="#org279a31e">7.25. autoinstall-firmware</a>
 <ul>
-<li><a href="#org6653f50">7.25.1. dependencies</a></li>
-<li><a href="#orga11149e">7.25.2. tasks</a></li>
+<li><a href="#org877c1d6">7.25.1. dependencies</a></li>
+<li><a href="#org79e1f3b">7.25.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#orgb9cee81">7.26. autoinstall-dvbsky-firmware</a>
+<li><a href="#orga219ff0">7.26. autoinstall-dvbsky-firmware</a>
 <ul>
-<li><a href="#orga7773b4">7.26.1. dependencies</a></li>
-<li><a href="#org0650479">7.26.2. defaults</a></li>
-<li><a href="#org250f72e">7.26.3. tasks</a></li>
+<li><a href="#org281366b">7.26.1. dependencies</a></li>
+<li><a href="#org4cf00ee">7.26.2. defaults</a></li>
+<li><a href="#org39b9c9d">7.26.3. tasks</a></li>
 </ul>
 </li>
-<li><a href="#orgdc961fc">7.27. <span class="todo TODO">TODO</span> autoinstall-dvbhddevice</a>
+<li><a href="#org8d98ca8">7.27. <span class="todo TODO">TODO</span> autoinstall-dvbhddevice</a>
 <ul>
-<li><a href="#org176c35e">7.27.1. dependencies</a></li>
-<li><a href="#org415c65d">7.27.2. tasks</a></li>
+<li><a href="#orgbd79a98">7.27.1. dependencies</a></li>
+<li><a href="#org81a31ee">7.27.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#orgac31125">7.28. autoinstall-dvbsddevice</a>
+<li><a href="#orgdbe0224">7.28. autoinstall-dvbsddevice</a>
 <ul>
-<li><a href="#org7dfd6d6">7.28.1. dependencies</a></li>
-<li><a href="#orgd7280d5">7.28.2. tasks</a></li>
+<li><a href="#org344654b">7.28.1. dependencies</a></li>
+<li><a href="#orgb45cf44">7.28.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org4bb55b0">7.29. autoinstall-hardware-irmp</a>
+<li><a href="#org2937ed5">7.29. autoinstall-hardware-irmp</a>
 <ul>
-<li><a href="#org713e9e5">7.29.1. dependencies</a></li>
-<li><a href="#org80c64e7">7.29.2. tasks</a></li>
+<li><a href="#orgd12437e">7.29.1. dependencies</a></li>
+<li><a href="#org8ece8bd">7.29.2. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org676987d">7.30. kodi</a>
+<li><a href="#org97ca39a">7.30. kodi</a>
 <ul>
-<li><a href="#org6fcfc3e">7.30.1. tasks</a></li>
-<li><a href="#orgb22d7df">7.30.2. templates</a></li>
-<li><a href="#org15b7c0f">7.30.3. files</a></li>
+<li><a href="#org33e6d83">7.30.1. tasks</a></li>
+<li><a href="#orga08448a">7.30.2. templates</a></li>
+<li><a href="#org43890eb">7.30.3. files</a></li>
 </ul>
 </li>
-<li><a href="#org5f7e9fa">7.31. dvd</a>
+<li><a href="#orga7ec6f5">7.31. dvd</a>
 <ul>
-<li><a href="#org697aa87">7.31.1. tasks</a></li>
+<li><a href="#orgd374c80">7.31.1. tasks</a></li>
 </ul>
 </li>
-<li><a href="#org2b7da0d">7.32. install-sundtek</a>
+<li><a href="#orgac3a527">7.32. install-sundtek</a>
 <ul>
-<li><a href="#org22586e9">7.32.1. variables</a></li>
-<li><a href="#org4d00d5e">7.32.2. tasks</a></li>
-<li><a href="#org407a769">7.32.3. templates</a></li>
+<li><a href="#orgadc1b6c">7.32.1. variables</a></li>
+<li><a href="#org461ab17">7.32.2. tasks</a></li>
+<li><a href="#org0abc82c">7.32.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#org376a8e7">7.33. template-test</a></li>
-<li><a href="#orge8a4b59">7.34. wakeup</a>
+<li><a href="#org411b782">7.33. template-test</a></li>
+<li><a href="#orgb924c96">7.34. wakeup</a>
 <ul>
-<li><a href="#org05162ba">7.34.1. defaults</a></li>
-<li><a href="#org358b4bd">7.34.2. tasks</a></li>
-<li><a href="#orgff7513b">7.34.3. templates</a></li>
+<li><a href="#org1948fce">7.34.1. defaults</a></li>
+<li><a href="#org6b53536">7.34.2. tasks</a></li>
+<li><a href="#orgcd67ffc">7.34.3. templates</a></li>
 </ul>
 </li>
-<li><a href="#org1ef64bf">7.35. grub-config</a>
+<li><a href="#orgb03b851">7.35. grub-config</a>
 <ul>
-<li><a href="#org86d95cc">7.35.1. default variables</a></li>
-<li><a href="#org011479c">7.35.2. tasks</a></li>
-<li><a href="#org56c6002">7.35.3. templates</a></li>
-<li><a href="#org18dcfca">7.35.4. handlers</a></li>
+<li><a href="#org9de8960">7.35.1. default variables</a></li>
+<li><a href="#org3b7e820">7.35.2. tasks</a></li>
+<li><a href="#org6e98627">7.35.3. templates</a></li>
+<li><a href="#orgc95fd73">7.35.4. handlers</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#org9847140">8. Modules</a>
+<li><a href="#org09119cb">8. Modules</a>
 <ul>
-<li><a href="#org82370fc">8.1. hardware_facts.py</a></li>
-<li><a href="#org9b6d5d6">8.2. pci_facts.py</a></li>
-<li><a href="#org3d2ba69">8.3. satip_facts.py</a></li>
-<li><a href="#org602b199">8.4. xrandr_facts.py</a></li>
+<li><a href="#org9394460">8.1. hardware_facts.py</a></li>
+<li><a href="#orga54957d">8.2. pci_facts.py</a></li>
+<li><a href="#org7170c7a">8.3. satip_facts.py</a></li>
+<li><a href="#orgcbf255a">8.4. xrandr_facts.py</a></li>
 </ul>
 </li>
-<li><a href="#orgf8c760d">9. Handlers</a></li>
+<li><a href="#org9ae2e92">9. Handlers</a></li>
 </ul>
 </div>
 </div>
-<div id="outline-container-org28b95b7" class="outline-2">
-<h2 id="org28b95b7"><span class="section-number-2">1</span> User Stories</h2>
+<div id="outline-container-org75524bc" class="outline-2">
+<h2 id="org75524bc"><span class="section-number-2">1</span> User Stories</h2>
 <div class="outline-text-2" id="text-1">
 </div>
-<div id="outline-container-orgcee35da" class="outline-3">
-<h3 id="orgcee35da"><span class="section-number-3">1.1</span> yavdr-full</h3>
+<div id="outline-container-org76ff3d1" class="outline-3">
+<h3 id="org76ff3d1"><span class="section-number-3">1.1</span> yavdr-full</h3>
 <div class="outline-text-3" id="text-1-1">
 <p>
 A User wants to install yaVDR without customization and relies on full automation.
@@ -528,22 +528,22 @@ Several roles are used to tie everything together:
 </dl>
 </div>
 
-<div id="outline-container-orgca4c640" class="outline-4">
-<h4 id="orgca4c640"><span class="section-number-4">1.1.1</span> Using vdr, pulseaudio and xorg together</h4>
+<div id="outline-container-org291def0" class="outline-4">
+<h4 id="org291def0"><span class="section-number-4">1.1.1</span> Using vdr, pulseaudio and xorg together</h4>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org14363f3" class="outline-2">
-<h2 id="org14363f3"><span class="section-number-2">2</span> Introduction</h2>
+<div id="outline-container-orgc15ea13" class="outline-2">
+<h2 id="orgc15ea13"><span class="section-number-2">2</span> Introduction</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 One of the major problems we faced with customized Ubuntu ISO files as installation media for prior yaVDR versions has been the limited hardware support and the time consuming process to create and update them.  An interesting alternative to this approach is to enable the user to choose the installation medium by himself, so point releases, kernel versions and additional drivers can be chosen deliberately.  After the basic setup is complete (and a working internet connection is available), a fully customizable install script completes the yaVDR installation.
 </p>
 </div>
 </div>
-<div id="outline-container-org2d1cd15" class="outline-2">
-<h2 id="org2d1cd15"><span class="section-number-2">3</span> Installing and configuring yaVDR with Ansible</h2>
+<div id="outline-container-orgb1e84e8" class="outline-2">
+<h2 id="orgb1e84e8"><span class="section-number-2">3</span> Installing and configuring yaVDR with Ansible</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using <a href="http://ansible.com">Ansible</a>.
@@ -578,18 +578,21 @@ We use a callback to generate tags for all roles autmatically:
 </div>
 </div>
 
-<div id="outline-container-org96a10e7" class="outline-3">
-<h3 id="org96a10e7"><span class="section-number-3">3.1</span> Install script for local usage</h3>
+<div id="outline-container-org6b835f2" class="outline-3">
+<h3 id="org6b835f2"><span class="section-number-3">3.1</span> Install script for local usage</h3>
 <div class="outline-text-3" id="text-3-1">
 <div class="org-src-container">
-<pre class="src src-shell"><span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">(</span> $<span class="org-variable-name">EUID</span> != 0 <span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>; <span class="org-keyword">then</span>
+<pre class="src src-shell"><span class="org-builtin">set</span> -e
+<span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">(</span> $<span class="org-variable-name">EUID</span> != 0 <span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>; <span class="org-keyword">then</span>
     <span class="org-builtin">echo</span> <span class="org-string">"This script must be run using sudo -H or as root"</span>
     <span class="org-keyword">exit</span>
 <span class="org-keyword">fi</span>
 
-apt-get -y install software-properties-common
 <span class="org-comment-delimiter"># </span><span class="org-comment">update packages</span>
-apt-get update
+apt update
+apt -y install software-properties-common
+add-apt-repository -y ppa:ansible/ansible-2.6
+
 <span class="org-comment-delimiter"># </span><span class="org-comment">install required packages</span>
 apt-get -y install --no-install-recommends ansible python-jmespath
 
@@ -600,12 +603,12 @@ ansible-playbook yavdr07.yml -b -i <span class="org-string">'localhost_inventory
 </div>
 </div>
 </div>
-<div id="outline-container-org8b5bd8c" class="outline-2">
-<h2 id="org8b5bd8c"><span class="section-number-2">4</span> Playbooks</h2>
+<div id="outline-container-org2887b8d" class="outline-2">
+<h2 id="org2887b8d"><span class="section-number-2">4</span> Playbooks</h2>
 <div class="outline-text-2" id="text-4">
 </div>
-<div id="outline-container-org64994aa" class="outline-3">
-<h3 id="org64994aa"><span class="section-number-3">4.1</span> yavdr07.yml</h3>
+<div id="outline-container-org5250648" class="outline-3">
+<h3 id="org5250648"><span class="section-number-3">4.1</span> yavdr07.yml</h3>
 <div class="outline-text-3" id="text-4-1">
 <p>
 The <code>yavdr07.yml</code> playbook sets up a fully-featured yaVDR installation:
@@ -657,8 +660,8 @@ The <code>yavdr07.yml</code> playbook sets up a fully-featured yaVDR installatio
 </div>
 </div>
 </div>
-<div id="outline-container-orga1dee2e" class="outline-3">
-<h3 id="orga1dee2e"><span class="section-number-3">4.2</span> yavdr07-headless.yml</h3>
+<div id="outline-container-org0de1d69" class="outline-3">
+<h3 id="org0de1d69"><span class="section-number-3">4.2</span> yavdr07-headless.yml</h3>
 <div class="outline-text-3" id="text-4-2">
 <p>
 For a headless server installation <code>yavdr07-headless.yml</code> is a good choice
@@ -696,8 +699,8 @@ For a headless server installation <code>yavdr07-headless.yml</code> is a good c
 </div>
 </div>
 </div>
-<div id="outline-container-orgea28099" class="outline-2">
-<h2 id="orgea28099"><span class="section-number-2">5</span> Hosts</h2>
+<div id="outline-container-org80044e8" class="outline-2">
+<h2 id="org80044e8"><span class="section-number-2">5</span> Hosts</h2>
 <div class="outline-text-2" id="text-5">
 <p>
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
@@ -711,12 +714,12 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org33c743c" class="outline-2">
-<h2 id="org33c743c"><span class="section-number-2">6</span> Group Variables</h2>
+<div id="outline-container-orgabf8ba2" class="outline-2">
+<h2 id="orgabf8ba2"><span class="section-number-2">6</span> Group Variables</h2>
 <div class="outline-text-2" id="text-6">
 </div>
-<div id="outline-container-org9e875ca" class="outline-3">
-<h3 id="org9e875ca"><span class="section-number-3">6.1</span> PPAs</h3>
+<div id="outline-container-orga4078a3" class="outline-3">
+<h3 id="orga4078a3"><span class="section-number-3">6.1</span> PPAs</h3>
 <div class="outline-text-3" id="text-6-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -734,8 +737,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org527f176" class="outline-3">
-<h3 id="org527f176"><span class="section-number-3">6.2</span> VDR user, directories, special configuration and plugins</h3>
+<div id="outline-container-orgd9a0fe4" class="outline-3">
+<h3 id="orgd9a0fe4"><span class="section-number-3">6.2</span> VDR user, directories, special configuration and plugins</h3>
 <div class="outline-text-3" id="text-6-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">properties of the user vdr and vdr-related options</span>
@@ -761,8 +764,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org83c97e2" class="outline-3">
-<h3 id="org83c97e2"><span class="section-number-3">6.3</span> Media directories</h3>
+<div id="outline-container-org6d69920" class="outline-3">
+<h3 id="org6d69920"><span class="section-number-3">6.3</span> Media directories</h3>
 <div class="outline-text-3" id="text-6-3">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled</span>
@@ -777,8 +780,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-orgcccb8c1" class="outline-3">
-<h3 id="orgcccb8c1"><span class="section-number-3">6.4</span> NFS</h3>
+<div id="outline-container-orge31c090" class="outline-3">
+<h3 id="orge31c090"><span class="section-number-3">6.4</span> NFS</h3>
 <div class="outline-text-3" id="text-6-4">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">nfs</span>:
@@ -787,8 +790,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org9b6ba55" class="outline-3">
-<h3 id="org9b6ba55"><span class="section-number-3">6.5</span> Samba</h3>
+<div id="outline-container-org595ba4b" class="outline-3">
+<h3 id="org595ba4b"><span class="section-number-3">6.5</span> Samba</h3>
 <div class="outline-text-3" id="text-6-5">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">samba</span>:
@@ -798,8 +801,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org6f245a6" class="outline-3">
-<h3 id="org6f245a6"><span class="section-number-3">6.6</span> Additional packages</h3>
+<div id="outline-container-orgf3393a2" class="outline-3">
+<h3 id="orgf3393a2"><span class="section-number-3">6.6</span> Additional packages</h3>
 <div class="outline-text-3" id="text-6-6">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">additional packages you want to install</span>
@@ -815,8 +818,8 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org43c885a" class="outline-3">
-<h3 id="org43c885a"><span class="section-number-3">6.7</span> System pre-configuration</h3>
+<div id="outline-container-org4196335" class="outline-3">
+<h3 id="org4196335"><span class="section-number-3">6.7</span> System pre-configuration</h3>
 <div class="outline-text-3" id="text-6-7">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">frontend</span>: vdr
@@ -831,20 +834,20 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 </div>
-<div id="outline-container-org44a4f9c" class="outline-2">
-<h2 id="org44a4f9c"><span class="section-number-2">7</span> Roles</h2>
+<div id="outline-container-org6901454" class="outline-2">
+<h2 id="org6901454"><span class="section-number-2">7</span> Roles</h2>
 <div class="outline-text-2" id="text-7">
 </div>
-<div id="outline-container-org7ecccf6" class="outline-3">
-<h3 id="org7ecccf6"><span class="section-number-3">7.1</span> install-dependencies</h3>
+<div id="outline-container-orgb5f401c" class="outline-3">
+<h3 id="orgb5f401c"><span class="section-number-3">7.1</span> install-dependencies</h3>
 <div class="outline-text-3" id="text-7-1">
 </div>
-<div id="outline-container-org58feb06" class="outline-4">
-<h4 id="org58feb06"><span class="section-number-4">7.1.1</span> tasks</h4>
+<div id="outline-container-orga17cef0" class="outline-4">
+<h4 id="orga17cef0"><span class="section-number-4">7.1.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-1-1">
 </div>
 <ol class="org-ol">
-<li><a id="orgbe86ffb"></a>main.yml<br />
+<li><a id="orge45b110"></a>main.yml<br />
 <div class="outline-text-5" id="text-7-1-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -865,19 +868,19 @@ This playbook can either be used to run the installation on the localhost or any
 </div>
 </div>
 
-<div id="outline-container-org9d6dc1c" class="outline-3">
-<h3 id="org9d6dc1c"><span class="section-number-3">7.2</span> nvidia experimental drivers</h3>
+<div id="outline-container-orgf615099" class="outline-3">
+<h3 id="orgf615099"><span class="section-number-3">7.2</span> nvidia experimental drivers</h3>
 <div class="outline-text-3" id="text-7-2">
 <p>
 install nvidia-396 from ppa:graphics-drivers/ppa
 </p>
 </div>
-<div id="outline-container-org656cd5f" class="outline-4">
-<h4 id="org656cd5f"><span class="section-number-4">7.2.1</span> tasks</h4>
+<div id="outline-container-orgea0dd4b" class="outline-4">
+<h4 id="orgea0dd4b"><span class="section-number-4">7.2.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-2-1">
 </div>
 <ol class="org-ol">
-<li><a id="org6751cc1"></a>main.yml<br />
+<li><a id="org60dac42"></a>main.yml<br />
 <div class="outline-text-5" id="text-7-2-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -907,15 +910,15 @@ install nvidia-396 from ppa:graphics-drivers/ppa
 </ol>
 </div>
 </div>
-<div id="outline-container-org570e012" class="outline-3">
-<h3 id="org570e012"><span class="section-number-3">7.3</span> yavdr-common</h3>
+<div id="outline-container-org270bea8" class="outline-3">
+<h3 id="org270bea8"><span class="section-number-3">7.3</span> yavdr-common</h3>
 <div class="outline-text-3" id="text-7-3">
 <p>
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
 </p>
 </div>
-<div id="outline-container-orgc8ff9e3" class="outline-4">
-<h4 id="orgc8ff9e3"><span class="section-number-4">7.3.1</span> default variables</h4>
+<div id="outline-container-orge38e8fc" class="outline-4">
+<h4 id="orge38e8fc"><span class="section-number-4">7.3.1</span> default variables</h4>
 <div class="outline-text-4" id="text-7-3-1">
 <p>
 This section is for reference only, please use the files in <code>global_vars</code> for customizations.
@@ -928,7 +931,7 @@ This section is for reference only, please use the files in <code>global_vars</c
 </div>
 
 <ol class="org-ol">
-<li><a id="org5a7e097"></a>Repositories<br />
+<li><a id="orgf7218a1"></a>Repositories<br />
 <div class="outline-text-5" id="text-7-3-1-1">
 <p>
 You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it&rsquo;s plugins.
@@ -945,7 +948,7 @@ You can set a list of package repositories which provide the necessary packages.
 </div>
 </div>
 </li>
-<li><a id="orgef7130d"></a>Drivers<br />
+<li><a id="org7033dae"></a>Drivers<br />
 <div class="outline-text-5" id="text-7-3-1-2">
 <p>
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it&rsquo;s value to <b>true</b>. If you don&rsquo;t want a driver to be installed, set it&rsquo;s value to <b>false</b>.
@@ -958,7 +961,7 @@ Automatically installed drivers can be very useful, but if you know you need a c
 </div>
 </div>
 </li>
-<li><a id="org752d84f"></a>Additional Packages<br />
+<li><a id="orgcf363c3"></a>Additional Packages<br />
 <div class="outline-text-5" id="text-7-3-1-3">
 <p>
 Add additional packages you would like to have on your installation to this list
@@ -972,7 +975,7 @@ Add additional packages you would like to have on your installation to this list
 </div>
 </div>
 </li>
-<li><a id="orgd6a2c93"></a>VDR<br />
+<li><a id="orge06b5e7"></a>VDR<br />
 <div class="outline-text-5" id="text-7-3-1-4">
 <p>
 This section allows you to set the recording directory, the user and group that runs the vdr and it&rsquo;s home directory.
@@ -1005,15 +1008,15 @@ This section allows you to set the recording directory, the user and group that 
 </li>
 </ol>
 </div>
-<div id="outline-container-orgd86a27f" class="outline-4">
-<h4 id="orgd86a27f"><span class="section-number-4">7.3.2</span> tasks</h4>
+<div id="outline-container-org6804613" class="outline-4">
+<h4 id="org6804613"><span class="section-number-4">7.3.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-3-2">
 <p>
 yavdr-common executes the following tasks:
 </p>
 </div>
 <ol class="org-ol">
-<li><a id="org611ea56"></a>main.yml<br />
+<li><a id="org93eb9b4"></a>main.yml<br />
 <div class="outline-text-5" id="text-7-3-2-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -1030,7 +1033,7 @@ yavdr-common executes the following tasks:
 </div>
 </div>
 <ol class="org-ol">
-<li><a id="org2f76a10"></a>Disable default installation of recommended packages<br />
+<li><a id="org77e098a"></a>Disable default installation of recommended packages<br />
 <div class="outline-text-6" id="text-7-3-2-1-1">
 <p>
 This task prevents apt to automatically install all recommended dependencies for packages:
@@ -1047,7 +1050,7 @@ This task prevents apt to automatically install all recommended dependencies for
 </div>
 </div>
 </li>
-<li><a id="org6757b46"></a>Set up package repositories<br />
+<li><a id="orgf313bc3"></a>Set up package repositories<br />
 <div class="outline-text-6" id="text-7-3-2-1-2">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: add PPAs
@@ -1067,7 +1070,7 @@ This task prevents apt to automatically install all recommended dependencies for
 </div>
 </div>
 </li>
-<li><a id="org317010b"></a>Use bash instead of dash<br />
+<li><a id="org6d58215"></a>Use bash instead of dash<br />
 <div class="outline-text-6" id="text-7-3-2-1-3">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: use bash instead of dash
@@ -1079,10 +1082,10 @@ This task prevents apt to automatically install all recommended dependencies for
 </div>
 </li>
 
-<li><a id="org7f37f62"></a>create user vdr<br /></li>
-<li><a id="org881f982"></a>Disable release-upgrade notifications<br />
+<li><a id="orge68dd07"></a>create user vdr<br /></li>
+<li><a id="orgdbee5b9"></a>Disable release-upgrade notifications<br />
 <ol class="org-ol">
-<li><a id="org7bf76e2"></a><span class="todo SOMEDAY">SOMEDAY</span> move from lineinfile to template<br />
+<li><a id="orga5109bf"></a><span class="todo SOMEDAY">SOMEDAY</span> move from lineinfile to template<br />
 <div class="outline-text-7" id="text-7-3-2-1-5-1">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: disable release-upgrade notifications
@@ -1104,7 +1107,7 @@ This task prevents apt to automatically install all recommended dependencies for
 </li>
 </ol>
 </li>
-<li><a id="org599b073"></a>Install essential packages<br />
+<li><a id="org83ba4cf"></a>Install essential packages<br />
 <div class="outline-text-6" id="text-7-3-2-1-6">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: apt | install basic packages
@@ -1136,7 +1139,7 @@ This task prevents apt to automatically install all recommended dependencies for
 </div>
 </div>
 </li>
-<li><a id="org5b2ab10"></a>Install additional packages (user defined)<br />
+<li><a id="org35d78b2"></a>Install additional packages (user defined)<br />
 <div class="outline-text-6" id="text-7-3-2-1-7">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: apt | install extra packages
@@ -1150,14 +1153,14 @@ This task prevents apt to automatically install all recommended dependencies for
 </div>
 </div>
 </li>
-<li><a id="org391cb99"></a>create directories<br /></li>
-<li><a id="org3589118"></a>create sudoers drop-in for vdr<br /></li>
+<li><a id="orgf427c89"></a>create directories<br /></li>
+<li><a id="org4fe80b7"></a>create sudoers drop-in for vdr<br /></li>
 </ol>
 </li>
 </ol>
 </div>
-<div id="outline-container-org1b3dd8a" class="outline-4">
-<h4 id="org1b3dd8a"><span class="section-number-4">7.3.3</span> templates</h4>
+<div id="outline-container-org2a25945" class="outline-4">
+<h4 id="org2a25945"><span class="section-number-4">7.3.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-3-3">
 <div class="org-src-container">
 <pre class="src src-c"><span class="org-rainbow-delimiters-depth-1">{</span><span class="org-rainbow-delimiters-depth-2">{</span> ansible_managed | comment<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">'c'</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">}</span>
@@ -1168,7 +1171,7 @@ APT::Install-Suggests <span class="org-string">"0"</span>;
 </div>
 </div>
 <ol class="org-ol">
-<li><a id="org1cae30c"></a>yavdr sudoers drop-in<br />
+<li><a id="org587397e"></a>yavdr sudoers drop-in<br />
 <div class="outline-text-5" id="text-7-3-3-1">
 <p>
 Allow the vdr user to restart <code>vdr.service</code> and reboot the system
@@ -1183,12 +1186,12 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </ol>
 </div>
 </div>
-<div id="outline-container-org40d9d43" class="outline-3">
-<h3 id="org40d9d43"><span class="section-number-3">7.4</span> collect facts about the system with custom modules</h3>
+<div id="outline-container-org8aa43da" class="outline-3">
+<h3 id="org8aa43da"><span class="section-number-3">7.4</span> collect facts about the system with custom modules</h3>
 <div class="outline-text-3" id="text-7-4">
 </div>
-<div id="outline-container-org443ee2a" class="outline-4">
-<h4 id="org443ee2a"><span class="section-number-4">7.4.1</span> variables</h4>
+<div id="outline-container-org2d79707" class="outline-4">
+<h4 id="org2d79707"><span class="section-number-4">7.4.1</span> variables</h4>
 <div class="outline-text-4" id="text-7-4-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">first_run</span>: <span class="org-constant">False</span>
@@ -1196,12 +1199,12 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </div>
 </div>
 </div>
-<div id="outline-container-org97d2f95" class="outline-4">
-<h4 id="org97d2f95"><span class="section-number-4">7.4.2</span> tasks</h4>
+<div id="outline-container-org2af320b" class="outline-4">
+<h4 id="org2af320b"><span class="section-number-4">7.4.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-4-2">
 </div>
 <ol class="org-ol">
-<li><a id="org118e78b"></a>main.yml<br />
+<li><a id="orgf8b7315"></a>main.yml<br />
 <div class="outline-text-6" id="text-7-4-2-0-1">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: get information about usb and pci hardware and loaded kernel modules
@@ -1250,16 +1253,16 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </ol>
 </div>
 </div>
-<div id="outline-container-org61da32a" class="outline-3">
-<h3 id="org61da32a"><span class="section-number-3">7.5</span> vdr</h3>
+<div id="outline-container-org46497b1" class="outline-3">
+<h3 id="org46497b1"><span class="section-number-3">7.5</span> vdr</h3>
 <div class="outline-text-3" id="text-7-5">
 </div>
-<div id="outline-container-org1e0085c" class="outline-4">
-<h4 id="org1e0085c"><span class="section-number-4">7.5.1</span> tasks</h4>
+<div id="outline-container-org05d7134" class="outline-4">
+<h4 id="org05d7134"><span class="section-number-4">7.5.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-5-1">
 </div>
 <ol class="org-ol">
-<li><a id="orge2f9eb4"></a>install the basic vdr packages<br />
+<li><a id="orgb5f3045"></a>install the basic vdr packages<br />
 <div class="outline-text-5" id="text-7-5-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -1278,7 +1281,7 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </div>
 </div>
 </li>
-<li><a id="orgaaf5eff"></a>Add svdrp/svdrp-disc to /etc/services<br />
+<li><a id="org337c91e"></a>Add svdrp/svdrp-disc to /etc/services<br />
 <div class="outline-text-5" id="text-7-5-1-2">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: add svdrp and svdrp-disc to /etc/services
@@ -1293,7 +1296,7 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </div>
 </div>
 </li>
-<li><a id="org0c0a000"></a>Set up the recording directory for the vdr user<br />
+<li><a id="orga16f769"></a>Set up the recording directory for the vdr user<br />
 <div class="outline-text-5" id="text-7-5-1-3">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: create vdr recdir
@@ -1328,7 +1331,7 @@ Allow the vdr user to restart <code>vdr.service</code> and reboot the system
 </div>
 </div>
 </li>
-<li><a id="orgfd8f726"></a>Install additional vdr plugins<br />
+<li><a id="org1b8b6b1"></a>Install additional vdr plugins<br />
 <div class="outline-text-5" id="text-7-5-1-4">
 <p>
 The additional plugins to install can be set in the variable <code>{{vdr_plugins}}</code> in the group variables
@@ -1346,7 +1349,7 @@ The additional plugins to install can be set in the variable <code>{{vdr_plugins
 </div>
 </div>
 </li>
-<li><a id="orgb669289"></a>copy vdr configuration files (if they don&rsquo;t exist yet)<br />
+<li><a id="org94d15c0"></a>copy vdr configuration files (if they don&rsquo;t exist yet)<br />
 <div class="outline-text-5" id="text-7-5-1-5">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: ensure vdr is stopped
@@ -1377,7 +1380,7 @@ The additional plugins to install can be set in the variable <code>{{vdr_plugins
 </div>
 </li>
 
-<li><a id="orgbf86313"></a>start vdr after network-online.target<br />
+<li><a id="orgee080c5"></a>start vdr after network-online.target<br />
 <div class="outline-text-5" id="text-7-5-1-6">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: create directory for vdr.service systemd drop-in files
@@ -1398,8 +1401,8 @@ The additional plugins to install can be set in the variable <code>{{vdr_plugins
 </ol>
 </div>
 
-<div id="outline-container-org0683042" class="outline-4">
-<h4 id="org0683042"><span class="section-number-4">7.5.2</span> templates</h4>
+<div id="outline-container-org3363446" class="outline-4">
+<h4 id="org3363446"><span class="section-number-4">7.5.2</span> templates</h4>
 <div class="outline-text-4" id="text-7-5-2">
 <p>
 Start after network-online.target
@@ -1411,12 +1414,12 @@ Start after network-online.target
 </div>
 </div>
 </div>
-<div id="outline-container-orge9202a4" class="outline-4">
-<h4 id="orge9202a4"><span class="section-number-4">7.5.3</span> files</h4>
+<div id="outline-container-org63e9288" class="outline-4">
+<h4 id="org63e9288"><span class="section-number-4">7.5.3</span> files</h4>
 <div class="outline-text-4" id="text-7-5-3">
 </div>
 <ol class="org-ol">
-<li><a id="orgc2a64b2"></a>remote.conf<br />
+<li><a id="orgb18d9d4"></a>remote.conf<br />
 <div class="outline-text-5" id="text-7-5-3-1">
 <div class="org-src-container">
 <pre class="src src-conf">LIRC.Up KEY_UP
@@ -1551,7 +1554,7 @@ XKeySym.Next       XF86AudioNext
 </div>
 </div>
 </li>
-<li><a id="orgd6a1ccf"></a>keymacros.conf<br />
+<li><a id="orgf691b1d"></a>keymacros.conf<br />
 <div class="outline-text-5" id="text-7-5-3-2">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-comment-delimiter"># </span><span class="org-comment">Remote control key macros for VDR</span>
@@ -1577,12 +1580,12 @@ User0     @osdteletext
 </ol>
 </div>
 </div>
-<div id="outline-container-org533b51e" class="outline-3">
-<h3 id="org533b51e"><span class="section-number-3">7.6</span> <span class="todo STARTED">STARTED</span> yavdr-network</h3>
+<div id="outline-container-orga04937b" class="outline-3">
+<h3 id="orga04937b"><span class="section-number-3">7.6</span> <span class="todo STARTED">STARTED</span> yavdr-network</h3>
 <div class="outline-text-3" id="text-7-6">
 </div>
-<div id="outline-container-org5abb3fb" class="outline-4">
-<h4 id="org5abb3fb"><span class="section-number-4">7.6.1</span> default variables</h4>
+<div id="outline-container-orgc284bfd" class="outline-4">
+<h4 id="orgc284bfd"><span class="section-number-4">7.6.1</span> default variables</h4>
 <div class="outline-text-4" id="text-7-6-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">install_avahi</span>: <span class="org-constant">true</span>
@@ -1590,8 +1593,8 @@ User0     @osdteletext
 </div>
 </div>
 </div>
-<div id="outline-container-org50e0d15" class="outline-4">
-<h4 id="org50e0d15"><span class="section-number-4">7.6.2</span> tasks</h4>
+<div id="outline-container-org2d75b50" class="outline-4">
+<h4 id="org2d75b50"><span class="section-number-4">7.6.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-6-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -1661,15 +1664,15 @@ User0     @osdteletext
 </div>
 </div>
 
-<div id="outline-container-orgafdf5e0" class="outline-3">
-<h3 id="orgafdf5e0"><span class="section-number-3">7.7</span> nfs-server</h3>
+<div id="outline-container-orgb6a2018" class="outline-3">
+<h3 id="orgb6a2018"><span class="section-number-3">7.7</span> nfs-server</h3>
 <div class="outline-text-3" id="text-7-7">
 </div>
-<div id="outline-container-org03b9365" class="outline-4">
-<h4 id="org03b9365"><span class="section-number-4">7.7.1</span> <span class="todo TODO">TODO</span> avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen</h4>
+<div id="outline-container-orgb5bdaed" class="outline-4">
+<h4 id="orgb5bdaed"><span class="section-number-4">7.7.1</span> <span class="todo TODO">TODO</span> avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen</h4>
 </div>
-<div id="outline-container-org0ad9adc" class="outline-4">
-<h4 id="org0ad9adc"><span class="section-number-4">7.7.2</span> tasks</h4>
+<div id="outline-container-orgcd06936" class="outline-4">
+<h4 id="orgcd06936"><span class="section-number-4">7.7.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-7-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -1698,12 +1701,12 @@ User0     @osdteletext
 </div>
 </div>
 </div>
-<div id="outline-container-org29cadc4" class="outline-4">
-<h4 id="org29cadc4"><span class="section-number-4">7.7.3</span> templates</h4>
+<div id="outline-container-orgb00ff39" class="outline-4">
+<h4 id="orgb00ff39"><span class="section-number-4">7.7.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-7-3">
 </div>
 <ol class="org-ol">
-<li><a id="org0a5f734"></a>/etc/exports<br />
+<li><a id="org018b1f5"></a>/etc/exports<br />
 <div class="outline-text-5" id="text-7-7-3-1">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-variable-name">/srv *(rw,fsid</span>=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
@@ -1714,7 +1717,7 @@ User0     @osdteletext
 </div>
 </div>
 </li>
-<li><a id="org63c85e1"></a>avahi services<br />
+<li><a id="org3e7631d"></a>avahi services<br />
 <div class="outline-text-5" id="text-7-7-3-2">
 <div class="org-src-container">
 <pre class="src src-xml"><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span></span><span class="org-string"><span class="org-nxml-processing-instruction-target">xml</span></span><span class="org-string"> </span><span class="org-string"><span class="org-nxml-processing-instruction-content">version="1.0" standalone='no'</span></span><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">?&gt;</span></span>
@@ -1736,12 +1739,12 @@ User0     @osdteletext
 </div>
 </div>
 
-<div id="outline-container-org21c9e4d" class="outline-3">
-<h3 id="org21c9e4d"><span class="section-number-3">7.8</span> <span class="todo STARTED">STARTED</span> yavdr-remote</h3>
+<div id="outline-container-org28d1f7c" class="outline-3">
+<h3 id="org28d1f7c"><span class="section-number-3">7.8</span> <span class="todo STARTED">STARTED</span> yavdr-remote</h3>
 <div class="outline-text-3" id="text-7-8">
 </div>
-<div id="outline-container-orgdd2f149" class="outline-4">
-<h4 id="orgdd2f149"><span class="section-number-4">7.8.1</span> default variables</h4>
+<div id="outline-container-org36edf19" class="outline-4">
+<h4 id="org36edf19"><span class="section-number-4">7.8.1</span> default variables</h4>
 <div class="outline-text-4" id="text-7-8-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">lircd0_socket</span>: /var/run/lirc/lircd0
@@ -1749,8 +1752,8 @@ User0     @osdteletext
 </div>
 </div>
 </div>
-<div id="outline-container-org4747cf4" class="outline-4">
-<h4 id="org4747cf4"><span class="section-number-4">7.8.2</span> tasks</h4>
+<div id="outline-container-org0fc10d7" class="outline-4">
+<h4 id="org0fc10d7"><span class="section-number-4">7.8.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-8-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -1823,12 +1826,12 @@ User0     @osdteletext
 </div>
 </div>
 </div>
-<div id="outline-container-org905ca66" class="outline-4">
-<h4 id="org905ca66"><span class="section-number-4">7.8.3</span> templates</h4>
+<div id="outline-container-orged589f6" class="outline-4">
+<h4 id="orged589f6"><span class="section-number-4">7.8.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-8-3">
 </div>
 <ol class="org-ol">
-<li><a id="orgfa38122"></a>Systemd Drop-in to start vdr with lirc support<br />
+<li><a id="org4d0c05c"></a>Systemd Drop-in to start vdr with lirc support<br />
 <div class="outline-text-5" id="text-7-8-3-1">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-variable-name">{% if frontend !</span>= <span class="org-string">'kodi'</span> %}
@@ -1839,7 +1842,7 @@ User0     @osdteletext
 </div>
 </div>
 </li>
-<li><a id="org4ac3ec3"></a>Systemd Drop-in to start lircd2uinput with lircd<br />
+<li><a id="org808cad4"></a>Systemd Drop-in to start lircd2uinput with lircd<br />
 <div class="outline-text-5" id="text-7-8-3-2">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Service</span>]
@@ -1849,7 +1852,7 @@ User0     @osdteletext
 </div>
 </div>
 </li>
-<li><a id="orgffd6833"></a>create /etc/rc_maps.cfg<br />
+<li><a id="org16b4b8a"></a>create /etc/rc_maps.cfg<br />
 <div class="outline-text-5" id="text-7-8-3-3">
 <div class="org-src-container">
 <pre class="src src-conf">{{ ansible_managed | comment }}
@@ -2041,17 +2044,17 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 </li>
 </ol>
 </div>
-<div id="outline-container-orgec6a817" class="outline-4">
-<h4 id="orgec6a817"><span class="section-number-4">7.8.4</span> files</h4>
+<div id="outline-container-orgbe33ee0" class="outline-4">
+<h4 id="orgbe33ee0"><span class="section-number-4">7.8.4</span> files</h4>
 </div>
 </div>
 
-<div id="outline-container-org617aa95" class="outline-3">
-<h3 id="org617aa95"><span class="section-number-3">7.9</span> pulseaudio</h3>
+<div id="outline-container-orgb572421" class="outline-3">
+<h3 id="orgb572421"><span class="section-number-3">7.9</span> pulseaudio</h3>
 <div class="outline-text-3" id="text-7-9">
 </div>
-<div id="outline-container-orgd1ec804" class="outline-4">
-<h4 id="orgd1ec804"><span class="section-number-4">7.9.1</span> tasks</h4>
+<div id="outline-container-orgc811bfd" class="outline-4">
+<h4 id="orgc811bfd"><span class="section-number-4">7.9.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-9-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -2074,8 +2077,8 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 </div>
 </div>
 </div>
-<div id="outline-container-org4d4e329" class="outline-4">
-<h4 id="org4d4e329"><span class="section-number-4">7.9.2</span> templates</h4>
+<div id="outline-container-orgaf13db6" class="outline-4">
+<h4 id="orgaf13db6"><span class="section-number-4">7.9.2</span> templates</h4>
 <div class="outline-text-4" id="text-7-9-2">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-comment-delimiter"># </span><span class="org-comment">Use PulseAudio by default</span>
@@ -2098,12 +2101,12 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 </div>
 </div>
 
-<div id="outline-container-orgf6be04b" class="outline-3">
-<h3 id="orgf6be04b"><span class="section-number-3">7.10</span> yavdr-xorg</h3>
+<div id="outline-container-orgc60b824" class="outline-3">
+<h3 id="orgc60b824"><span class="section-number-3">7.10</span> yavdr-xorg</h3>
 <div class="outline-text-3" id="text-7-10">
 </div>
-<div id="outline-container-org2e166d0" class="outline-4">
-<h4 id="org2e166d0"><span class="section-number-4">7.10.1</span> About the GUI session</h4>
+<div id="outline-container-org27d9cfe" class="outline-4">
+<h4 id="org27d9cfe"><span class="section-number-4">7.10.1</span> About the GUI session</h4>
 <div class="outline-text-4" id="text-7-10-1">
 <p>
 The X-Server is started by using the two systemd units <code>xlogin@.service</code> and <code>x@.service</code> provided by the package <b>xlogin</b>.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user <b>vdr</b> with the uid <b>666</b>) in the activation of <code>xlogin@vdr.service</code> when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a <code>yavdr-xorg.service</code> is provided by the package <code>yavdr-xorg</code>, which depends on the two units mentioned before.
@@ -2132,8 +2135,8 @@ In order to achive a clean shutdown of the session, <code>x@t7.service</code> is
 </p>
 </div>
 </div>
-<div id="outline-container-orgdc3b0c3" class="outline-4">
-<h4 id="orgdc3b0c3"><span class="section-number-4">7.10.2</span> default variables</h4>
+<div id="outline-container-org7cc22eb" class="outline-4">
+<h4 id="org7cc22eb"><span class="section-number-4">7.10.2</span> default variables</h4>
 <div class="outline-text-4" id="text-7-10-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">first_run</span>: <span class="org-constant">False</span>
@@ -2156,12 +2159,12 @@ In order to achive a clean shutdown of the session, <code>x@t7.service</code> is
 </div>
 </div>
 </div>
-<div id="outline-container-org2c81b48" class="outline-4">
-<h4 id="org2c81b48"><span class="section-number-4">7.10.3</span> tasks</h4>
+<div id="outline-container-org748409d" class="outline-4">
+<h4 id="org748409d"><span class="section-number-4">7.10.3</span> tasks</h4>
 <div class="outline-text-4" id="text-7-10-3">
 </div>
 <ol class="org-ol">
-<li><a id="orga0413c5"></a>main.yml<br />
+<li><a id="orgc15ebba"></a>main.yml<br />
 <div class="outline-text-5" id="text-7-10-3-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -2174,7 +2177,7 @@ In order to achive a clean shutdown of the session, <code>x@t7.service</code> is
 </div>
 </div>
 </li>
-<li><a id="org4947f9f"></a>setup-xorg.yml<br />
+<li><a id="orgd1dde85"></a>setup-xorg.yml<br />
 <div class="outline-text-5" id="text-7-10-3-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -2295,7 +2298,7 @@ In order to achive a clean shutdown of the session, <code>x@t7.service</code> is
 </div>
 </div>
 </li>
-<li><a id="orgf7f8ad9"></a>detect-xorg.yml<br />
+<li><a id="org0ee3054"></a>detect-xorg.yml<br />
 <div class="outline-text-5" id="text-7-10-3-3">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -2455,7 +2458,7 @@ In order to achive a clean shutdown of the session, <code>x@t7.service</code> is
 </div>
 </div>
 </li>
-<li><a id="org9d24de9"></a>intel.yml<br />
+<li><a id="org9239a89"></a>intel.yml<br />
 <div class="outline-text-5" id="text-7-10-3-4">
 <p>
 KMS drivers (like for intel (i915) and amd (radeon)) require additional configuration beneath a customized <code>xorg.conf</code> - for a &bdquo;static&ldquo; output configuration (which works if the TV or AV receiver is not turned on) we need to force loading the display(s) EDID early during the boot process.
@@ -2502,12 +2505,12 @@ Please note that rescanning the connected displays works only after removing the
 </li>
 </ol>
 </div>
-<div id="outline-container-orge4c2c00" class="outline-4">
-<h4 id="orge4c2c00"><span class="section-number-4">7.10.4</span> templates</h4>
+<div id="outline-container-org039eea6" class="outline-4">
+<h4 id="org039eea6"><span class="section-number-4">7.10.4</span> templates</h4>
 <div class="outline-text-4" id="text-7-10-4">
 </div>
 <ol class="org-ol">
-<li><a id="org613f362"></a>grub<br />
+<li><a id="org9564f8a"></a>grub<br />
 <div class="outline-text-5" id="text-7-10-4-1">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-variable-name">{% set output_flag</span> = <span class="org-string">'D'</span> if (<span class="org-string">"HDMI"</span> in xorg.primary.connector or <span class="org-string">"DVI"</span> in xorg.primary.connector or <span class="org-string">"DP"</span> in xorg.primary.connector) else <span class="org-string">'e'</span> %} 
@@ -2517,9 +2520,9 @@ Please note that rescanning the connected displays works only after removing the
 </div>
 </div>
 </li>
-<li><a id="orgf8a7b63"></a>xorg<br />
+<li><a id="org0e9db55"></a>xorg<br />
 <ol class="org-ol">
-<li><a id="orgbf56e20"></a>x-verbose@.service<br />
+<li><a id="orgc3422c4"></a>x-verbose@.service<br />
 <div class="outline-text-6" id="text-7-10-4-2-1">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-comment-delimiter"># </span><span class="org-comment">file: roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2</span>
@@ -2535,7 +2538,7 @@ Please note that rescanning the connected displays works only after removing the
 </div>
 </div>
 </li>
-<li><a id="orga960ca5"></a>Drop-in snippet for x@.service<br />
+<li><a id="org3dbe78c"></a>Drop-in snippet for x@.service<br />
 <div class="outline-text-6" id="text-7-10-4-2-2">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -2561,7 +2564,7 @@ Please note that rescanning the connected displays works only after removing the
 </div>
 </li>
 
-<li><a id="orgeae4baf"></a>Drop-in snippet for vdr.service<br />
+<li><a id="orge404f19"></a>Drop-in snippet for vdr.service<br />
 <div class="outline-text-6" id="text-7-10-4-2-3">
 <div class="org-src-container">
 <pre class="src src-conf">{{ ansible_managed | comment }}
@@ -2573,7 +2576,7 @@ Please note that rescanning the connected displays works only after removing the
 </div>
 </div>
 </li>
-<li><a id="orgc3cf035"></a>xorg.conf snippets<br />
+<li><a id="org6694acd"></a>xorg.conf snippets<br />
 <div class="outline-text-6" id="text-7-10-4-2-4">
 <div class="org-src-container">
 <pre class="src src-conf">{{ ansible_managed | comment }}
@@ -2587,7 +2590,7 @@ EndSection
 </div>
 </div>
 </li>
-<li><a id="org203e88a"></a>xorg.conf<br />
+<li><a id="org95bf62b"></a>xorg.conf<br />
 <div class="outline-text-6" id="text-7-10-4-2-5">
 <div class="org-src-container">
 <pre class="src src-conf">Section <span class="org-string">"Device"</span>
@@ -2913,7 +2916,7 @@ EndSection
 </li>
 </ol>
 </li>
-<li><a id="orga40be8f"></a>vdr<br />
+<li><a id="org8f7279e"></a>vdr<br />
 <div class="outline-text-5" id="text-7-10-4-3">
 <p>
 Set environment variables for system locale and user session on startup
@@ -2929,12 +2932,12 @@ Set environment variables for system locale and user session on startup
 </li>
 </ol>
 </div>
-<div id="outline-container-orgbe6ed03" class="outline-4">
-<h4 id="orgbe6ed03"><span class="section-number-4">7.10.5</span> files</h4>
+<div id="outline-container-org5c37d31" class="outline-4">
+<h4 id="org5c37d31"><span class="section-number-4">7.10.5</span> files</h4>
 <div class="outline-text-4" id="text-7-10-5">
 </div>
 <ol class="org-ol">
-<li><a id="orgdf5d1eb"></a>initramfs EDID hook<br />
+<li><a id="org7e81099"></a>initramfs EDID hook<br />
 <div class="outline-text-5" id="text-7-10-5-1">
 <div class="org-src-container">
 <pre class="src src-shell"><span class="org-comment-delimiter">#</span><span class="org-comment">!/bin/</span><span class="org-keyword">bash</span>
@@ -2960,16 +2963,16 @@ manual_add_modules i915 radeon
 </div>
 </div>
 
-<div id="outline-container-orgc28550a" class="outline-3">
-<h3 id="orgc28550a"><span class="section-number-3">7.11</span> yavdr-desktop</h3>
+<div id="outline-container-org3e18347" class="outline-3">
+<h3 id="org3e18347"><span class="section-number-3">7.11</span> yavdr-desktop</h3>
 <div class="outline-text-3" id="text-7-11">
 </div>
-<div id="outline-container-org770e34e" class="outline-4">
-<h4 id="org770e34e"><span class="section-number-4">7.11.1</span> Tasks</h4>
+<div id="outline-container-orge3cdb02" class="outline-4">
+<h4 id="orge3cdb02"><span class="section-number-4">7.11.1</span> Tasks</h4>
 <div class="outline-text-4" id="text-7-11-1">
 </div>
 <ol class="org-ol">
-<li><a id="org0c0cf51"></a>main.yml<br />
+<li><a id="org62b7cf7"></a>main.yml<br />
 <div class="outline-text-5" id="text-7-11-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -3118,14 +3121,14 @@ manual_add_modules i915 radeon
 </li>
 </ol>
 </div>
-<div id="outline-container-org71882d1" class="outline-4">
-<h4 id="org71882d1"><span class="section-number-4">7.11.2</span> Templates</h4>
+<div id="outline-container-org4f32360" class="outline-4">
+<h4 id="org4f32360"><span class="section-number-4">7.11.2</span> Templates</h4>
 <div class="outline-text-4" id="text-7-11-2">
 </div>
 <ol class="org-ol">
-<li><a id="org62d4287"></a>xorg configuration<br />
+<li><a id="org0968fe1"></a>xorg configuration<br />
 <ol class="org-ol">
-<li><a id="org2c962e2"></a>.Xresources<br />
+<li><a id="orgbb068ac"></a>.Xresources<br />
 <div class="outline-text-6" id="text-7-11-2-1-1">
 <div class="org-src-container">
 <pre class="src src-shell">xterm*background: Black
@@ -3148,7 +3151,7 @@ XTerm.vt100.font: 7x13
 </div>
 </div>
 </li>
-<li><a id="orgccc4eac"></a>.xinitrc<br />
+<li><a id="orgff7c9b9"></a>.xinitrc<br />
 <div class="outline-text-6" id="text-7-11-2-1-2">
 <div class="org-src-container">
 <pre class="src src-shell"><span class="org-comment-delimiter">#</span><span class="org-comment">!/bin/</span><span class="org-keyword">bash</span>
@@ -3160,9 +3163,9 @@ XTerm.vt100.font: 7x13
 </li>
 </ol>
 </li>
-<li><a id="org47114ba"></a>openbox<br />
+<li><a id="org9f9455e"></a>openbox<br />
 <ol class="org-ol">
-<li><a id="org12f12f3"></a>autostart<br />
+<li><a id="org55fa42b"></a>autostart<br />
 <div class="outline-text-6" id="text-7-11-2-2-1">
 <div class="org-src-container">
 <pre class="src src-shell"><span class="org-comment-delimiter"># </span><span class="org-comment">forward environment variables to an environment file and the systemd user session</span>
@@ -3198,7 +3201,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="org1e2c581"></a>rc.xml<br />
+<li><a id="org64b9df4"></a>rc.xml<br />
 <div class="outline-text-6" id="text-7-11-2-2-2">
 <div class="org-src-container">
 <pre class="src src-xml"><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span></span><span class="org-string"><span class="org-nxml-processing-instruction-target">xml</span></span><span class="org-string"> </span><span class="org-string"><span class="org-nxml-processing-instruction-content">version="1.0" encoding="UTF-8"</span></span><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">?&gt;</span></span>
@@ -4018,7 +4021,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="org1c7d17a"></a>rc2.xml<br />
+<li><a id="orgcc33ffb"></a>rc2.xml<br />
 <div class="outline-text-6" id="text-7-11-2-2-3">
 <div class="org-src-container">
 <pre class="src src-xml"><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span></span><span class="org-string"><span class="org-nxml-processing-instruction-target">xml</span></span><span class="org-string"> </span><span class="org-string"><span class="org-nxml-processing-instruction-content">version="1.0" encoding="UTF-8"</span></span><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">?&gt;</span></span>
@@ -4841,9 +4844,9 @@ systemctl --user isolate yavdr-desktop.target
 </ol>
 </li>
 
-<li><a id="orgcb36d49"></a>Systemd User Session<br />
+<li><a id="org216d06a"></a>Systemd User Session<br />
 <ol class="org-ol">
-<li><a id="org44bad5a"></a>yavdr-desktop.target<br />
+<li><a id="orga0f13c3"></a>yavdr-desktop.target<br />
 <div class="outline-text-6" id="text-7-11-2-3-1">
 <div class="org-src-container">
 <pre class="src src-shell"><span class="org-rainbow-delimiters-depth-1">[</span>Unit<span class="org-rainbow-delimiters-depth-1">]</span>
@@ -4856,7 +4859,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="org2914745"></a>detect-second-display<br />
+<li><a id="org0c9f562"></a>detect-second-display<br />
 <div class="outline-text-6" id="text-7-11-2-3-2">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -4872,7 +4875,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="orgd71a0e6"></a>openbox-second.service<br />
+<li><a id="org37d1d14"></a>openbox-second.service<br />
 <div class="outline-text-6" id="text-7-11-2-3-3">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -4894,7 +4897,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="orgffeb75f"></a>osd2web.service<br />
+<li><a id="orgc93c007"></a>osd2web.service<br />
 <div class="outline-text-6" id="text-7-11-2-3-4">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -4917,7 +4920,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="org2460a9d"></a>tmux.service<br />
+<li><a id="orgc5c9031"></a>tmux.service<br />
 <div class="outline-text-6" id="text-7-11-2-3-5">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -4936,7 +4939,7 @@ systemctl --user isolate yavdr-desktop.target
 </div>
 </div>
 </li>
-<li><a id="orgf4b7d48"></a>wm-exit.service<br />
+<li><a id="org8b99293"></a>wm-exit.service<br />
 <div class="outline-text-6" id="text-7-11-2-3-6">
 <div class="org-src-container">
 <pre class="src src-conf">[<span class="org-type">Unit</span>]
@@ -4955,7 +4958,7 @@ systemctl --user isolate yavdr-desktop.target
 </li>
 </ol>
 </li>
-<li><a id="org559439a"></a>irexec<br />
+<li><a id="org6afd042"></a>irexec<br />
 <div class="outline-text-5" id="text-7-11-2-4">
 <p>
 irexec.service starts irexec for the user session
@@ -4989,12 +4992,12 @@ end
 </div>
 </div>
 
-<div id="outline-container-org514fae9" class="outline-3">
-<h3 id="org514fae9"><span class="section-number-3">7.12</span> samba-install</h3>
+<div id="outline-container-org63bf2b2" class="outline-3">
+<h3 id="org63bf2b2"><span class="section-number-3">7.12</span> samba-install</h3>
 <div class="outline-text-3" id="text-7-12">
 </div>
-<div id="outline-container-org7e5760c" class="outline-4">
-<h4 id="org7e5760c"><span class="section-number-4">7.12.1</span> tasks</h4>
+<div id="outline-container-org0b2ed9f" class="outline-4">
+<h4 id="org0b2ed9f"><span class="section-number-4">7.12.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-12-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5016,12 +5019,12 @@ end
 </div>
 </div>
 </div>
-<div id="outline-container-org1a9391e" class="outline-3">
-<h3 id="org1a9391e"><span class="section-number-3">7.13</span> samba-config</h3>
+<div id="outline-container-org3fb577d" class="outline-3">
+<h3 id="org3fb577d"><span class="section-number-3">7.13</span> samba-config</h3>
 <div class="outline-text-3" id="text-7-13">
 </div>
-<div id="outline-container-orgf41dcbf" class="outline-4">
-<h4 id="orgf41dcbf"><span class="section-number-4">7.13.1</span> tasks</h4>
+<div id="outline-container-org183b392" class="outline-4">
+<h4 id="org183b392"><span class="section-number-4">7.13.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-13-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5046,14 +5049,14 @@ end
 </div>
 </div>
 </div>
-<div id="outline-container-org5963a7d" class="outline-4">
-<h4 id="org5963a7d"><span class="section-number-4">7.13.2</span> templates</h4>
+<div id="outline-container-orgc3ec977" class="outline-4">
+<h4 id="orgc3ec977"><span class="section-number-4">7.13.2</span> templates</h4>
 <div class="outline-text-4" id="text-7-13-2">
 </div>
 <ol class="org-ol">
-<li><a id="org5ccff7c"></a>smb.conf<br />
+<li><a id="orga110253"></a>smb.conf<br />
 <ol class="org-ol">
-<li><a id="orgb154b82"></a>global settings<br />
+<li><a id="org849478c"></a>global settings<br />
 <div class="outline-text-6" id="text-7-13-2-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml">{{ ansible_managed | comment }}
@@ -5139,7 +5142,7 @@ end
 </div>
 </div>
 </li>
-<li><a id="org2ed9587"></a>media directories<br />
+<li><a id="org011bdcd"></a>media directories<br />
 <div class="outline-text-6" id="text-7-13-2-1-2">
 <div class="org-src-container">
 <pre class="src src-yaml">{% for name, path in media_dirs.iteritems() %}
@@ -5161,7 +5164,7 @@ end
 </div>
 </div>
 </li>
-<li><a id="org94dbebc"></a>include custom samba exports<br />
+<li><a id="org2514de9"></a>include custom samba exports<br />
 <div class="outline-text-6" id="text-7-13-2-1-3">
 <div class="org-src-container">
 <pre class="src src-yaml">include = /etc/samba/smb.conf.custom
@@ -5174,15 +5177,15 @@ end
 </ol>
 </div>
 </div>
-<div id="outline-container-org6a15b01" class="outline-3">
-<h3 id="org6a15b01"><span class="section-number-3">7.14</span> <span class="todo STARTED">STARTED</span> autoinstall-drivers</h3>
+<div id="outline-container-orgb274560" class="outline-3">
+<h3 id="orgb274560"><span class="section-number-3">7.14</span> <span class="todo STARTED">STARTED</span> autoinstall-drivers</h3>
 <div class="outline-text-3" id="text-7-14">
 <p>
 It would be nice to be able to detect if it is suitable to install those drivers:
 </p>
 </div>
-<div id="outline-container-orge2c5337" class="outline-4">
-<h4 id="orge2c5337"><span class="section-number-4">7.14.1</span> <span class="todo TODO">TODO</span> sundtek for Sundtek devices (local or network connection)</h4>
+<div id="outline-container-org25b76c2" class="outline-4">
+<h4 id="org25b76c2"><span class="section-number-4">7.14.1</span> <span class="todo TODO">TODO</span> sundtek for Sundtek devices (local or network connection)</h4>
 <div class="outline-text-4" id="text-7-14-1">
 <p>
 Vendor-IDs:
@@ -5193,7 +5196,7 @@ Vendor-IDs:
 </ul>
 </div>
 <ol class="org-ol">
-<li><a id="orgcda16c1"></a>planned packages<br />
+<li><a id="orgc715d5f"></a>planned packages<br />
 <div class="outline-text-5" id="text-7-14-1-1">
 <ul class="org-ul">
 <li>yavdr-hardware-sundtek</li>
@@ -5204,8 +5207,8 @@ Vendor-IDs:
 </li>
 </ol>
 </div>
-<div id="outline-container-orge515c24" class="outline-4">
-<h4 id="orge515c24"><span class="section-number-4">7.14.2</span> <span class="todo TODO">TODO</span> drivers for TT S2-6400 FF</h4>
+<div id="outline-container-orge9f495a" class="outline-4">
+<h4 id="orge9f495a"><span class="section-number-4">7.14.2</span> <span class="todo TODO">TODO</span> drivers for TT S2-6400 FF</h4>
 <div class="outline-text-4" id="text-7-14-2">
 <p>
 <a href="https://github.com/s-moch/linux-saa716x">https://github.com/s-moch/linux-saa716x</a> - kann man den relevanten Teil als dkms-Paket bauen?
@@ -5213,15 +5216,15 @@ Vendor-IDs:
 </div>
 </div>
 </div>
-<div id="outline-container-org9e7f2ea" class="outline-3">
-<h3 id="org9e7f2ea"><span class="section-number-3">7.15</span> autoinstall-ubuntu-drivers</h3>
+<div id="outline-container-orgd7ab0e7" class="outline-3">
+<h3 id="orgd7ab0e7"><span class="section-number-3">7.15</span> autoinstall-ubuntu-drivers</h3>
 <div class="outline-text-3" id="text-7-15">
 <p>
 The tool ubuntu-drivers is used to install the matching driver version for nvidia graphics cards, virtualbox guest additions and Intel and AMD microcode updates.
 </p>
 </div>
-<div id="outline-container-org2d63bd1" class="outline-4">
-<h4 id="org2d63bd1"><span class="section-number-4">7.15.1</span> tasks</h4>
+<div id="outline-container-orgc0f0c70" class="outline-4">
+<h4 id="orgc0f0c70"><span class="section-number-4">7.15.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-15-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5244,8 +5247,8 @@ The tool ubuntu-drivers is used to install the matching driver version for nvidi
 </div>
 </div>
 </div>
-<div id="outline-container-org5f40346" class="outline-3">
-<h3 id="org5f40346"><span class="section-number-3">7.16</span> autoinstall-virtualbox-guest</h3>
+<div id="outline-container-org1e57ab9" class="outline-3">
+<h3 id="org1e57ab9"><span class="section-number-3">7.16</span> autoinstall-virtualbox-guest</h3>
 <div class="outline-text-3" id="text-7-16">
 <p>
 This role installs the guest additions for virtualbox guests on Ubuntu 16.04
@@ -5296,12 +5299,12 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-org5cf3b26" class="outline-3">
-<h3 id="org5cf3b26"><span class="section-number-3">7.17</span> autoinstall-atric-usb</h3>
+<div id="outline-container-org7bcdf49" class="outline-3">
+<h3 id="org7bcdf49"><span class="section-number-3">7.17</span> autoinstall-atric-usb</h3>
 <div class="outline-text-3" id="text-7-17">
 </div>
-<div id="outline-container-org403d33e" class="outline-4">
-<h4 id="org403d33e"><span class="section-number-4">7.17.1</span> dependencies</h4>
+<div id="outline-container-org750879f" class="outline-4">
+<h4 id="org750879f"><span class="section-number-4">7.17.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-17-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5313,8 +5316,8 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-orgb0219e0" class="outline-4">
-<h4 id="orgb0219e0"><span class="section-number-4">7.17.2</span> tasks</h4>
+<div id="outline-container-org6a399f0" class="outline-4">
+<h4 id="org6a399f0"><span class="section-number-4">7.17.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-17-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5356,8 +5359,8 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-org9d29639" class="outline-4">
-<h4 id="org9d29639"><span class="section-number-4">7.17.3</span> templates</h4>
+<div id="outline-container-org7d90190" class="outline-4">
+<h4 id="org7d90190"><span class="section-number-4">7.17.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-17-3">
 <div class="org-src-container">
 <pre class="src src-conf">{{ ansible_managed | comment }}
@@ -5386,12 +5389,12 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-org2a55f32" class="outline-3">
-<h3 id="org2a55f32"><span class="section-number-3">7.18</span> autoinstall-yausbir</h3>
+<div id="outline-container-org2c804d0" class="outline-3">
+<h3 id="org2c804d0"><span class="section-number-3">7.18</span> autoinstall-yausbir</h3>
 <div class="outline-text-3" id="text-7-18">
 </div>
-<div id="outline-container-org3e9a653" class="outline-4">
-<h4 id="org3e9a653"><span class="section-number-4">7.18.1</span> dependencies</h4>
+<div id="outline-container-org9a7656e" class="outline-4">
+<h4 id="org9a7656e"><span class="section-number-4">7.18.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-18-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5402,8 +5405,8 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-org67b083b" class="outline-4">
-<h4 id="org67b083b"><span class="section-number-4">7.18.2</span> tasks</h4>
+<div id="outline-container-org1931dcb" class="outline-4">
+<h4 id="org1931dcb"><span class="section-number-4">7.18.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-18-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5445,8 +5448,8 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-orgf6da7df" class="outline-4">
-<h4 id="orgf6da7df"><span class="section-number-4">7.18.3</span> templates</h4>
+<div id="outline-container-orgea46e1a" class="outline-4">
+<h4 id="orgea46e1a"><span class="section-number-4">7.18.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-18-3">
 <div class="org-src-container">
 <pre class="src src-conf">{{ ansible_managed | comment }}
@@ -5474,15 +5477,15 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 </div>
 </div>
 </div>
-<div id="outline-container-orgfc5cafc" class="outline-3">
-<h3 id="orgfc5cafc"><span class="section-number-3">7.19</span> autoinstall-satip</h3>
+<div id="outline-container-org50b3077" class="outline-3">
+<h3 id="org50b3077"><span class="section-number-3">7.19</span> autoinstall-satip</h3>
 <div class="outline-text-3" id="text-7-19">
 <p>
 If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-satip is installed.
 </p>
 </div>
-<div id="outline-container-org346709e" class="outline-4">
-<h4 id="org346709e"><span class="section-number-4">7.19.1</span> tasks</h4>
+<div id="outline-container-org57defaa" class="outline-4">
+<h4 id="org57defaa"><span class="section-number-4">7.19.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-19-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5507,12 +5510,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 
-<div id="outline-container-org301557b" class="outline-3">
-<h3 id="org301557b"><span class="section-number-3">7.20</span> autoinstall-targavfd</h3>
+<div id="outline-container-orgfa38244" class="outline-3">
+<h3 id="orgfa38244"><span class="section-number-3">7.20</span> autoinstall-targavfd</h3>
 <div class="outline-text-3" id="text-7-20">
 </div>
-<div id="outline-container-org2720938" class="outline-4">
-<h4 id="org2720938"><span class="section-number-4">7.20.1</span> tasks</h4>
+<div id="outline-container-org1520086" class="outline-4">
+<h4 id="org1520086"><span class="section-number-4">7.20.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-20-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5528,12 +5531,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-org6e96439" class="outline-3">
-<h3 id="org6e96439"><span class="section-number-3">7.21</span> autoinstall-imonlcd</h3>
+<div id="outline-container-org3eceb24" class="outline-3">
+<h3 id="org3eceb24"><span class="section-number-3">7.21</span> autoinstall-imonlcd</h3>
 <div class="outline-text-3" id="text-7-21">
 </div>
-<div id="outline-container-orge266399" class="outline-4">
-<h4 id="orge266399"><span class="section-number-4">7.21.1</span> tasks</h4>
+<div id="outline-container-org0847264" class="outline-4">
+<h4 id="org0847264"><span class="section-number-4">7.21.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-21-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5549,12 +5552,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-org5f2f369" class="outline-3">
-<h3 id="org5f2f369"><span class="section-number-3">7.22</span> autoinstall-libcecdaemon</h3>
+<div id="outline-container-org6d8e9c8" class="outline-3">
+<h3 id="org6d8e9c8"><span class="section-number-3">7.22</span> autoinstall-libcecdaemon</h3>
 <div class="outline-text-3" id="text-7-22">
 </div>
-<div id="outline-container-org78ed371" class="outline-4">
-<h4 id="org78ed371"><span class="section-number-4">7.22.1</span> tasks</h4>
+<div id="outline-container-org0960be5" class="outline-4">
+<h4 id="org0960be5"><span class="section-number-4">7.22.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-22-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5570,12 +5573,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-org5dca9ce" class="outline-3">
-<h3 id="org5dca9ce"><span class="section-number-3">7.23</span> autoinstall-pvr350</h3>
+<div id="outline-container-org66eb0b7" class="outline-3">
+<h3 id="org66eb0b7"><span class="section-number-3">7.23</span> autoinstall-pvr350</h3>
 <div class="outline-text-3" id="text-7-23">
 </div>
-<div id="outline-container-org7e4d6c3" class="outline-4">
-<h4 id="org7e4d6c3"><span class="section-number-4">7.23.1</span> tasks</h4>
+<div id="outline-container-org713fa63" class="outline-4">
+<h4 id="org713fa63"><span class="section-number-4">7.23.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-23-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5591,8 +5594,8 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-orgc46a3ad" class="outline-3">
-<h3 id="orgc46a3ad"><span class="section-number-3">7.24</span> autoinstall-hauppauge-pvr</h3>
+<div id="outline-container-org925a914" class="outline-3">
+<h3 id="org925a914"><span class="section-number-3">7.24</span> autoinstall-hauppauge-pvr</h3>
 <div class="outline-text-3" id="text-7-24">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5607,12 +5610,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-orgfc05048" class="outline-3">
-<h3 id="orgfc05048"><span class="section-number-3">7.25</span> autoinstall-firmware</h3>
+<div id="outline-container-org279a31e" class="outline-3">
+<h3 id="org279a31e"><span class="section-number-3">7.25</span> autoinstall-firmware</h3>
 <div class="outline-text-3" id="text-7-25">
 </div>
-<div id="outline-container-org6653f50" class="outline-4">
-<h4 id="org6653f50"><span class="section-number-4">7.25.1</span> dependencies</h4>
+<div id="outline-container-org877c1d6" class="outline-4">
+<h4 id="org877c1d6"><span class="section-number-4">7.25.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-25-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5623,8 +5626,8 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-orga11149e" class="outline-4">
-<h4 id="orga11149e"><span class="section-number-4">7.25.2</span> tasks</h4>
+<div id="outline-container-org79e1f3b" class="outline-4">
+<h4 id="org79e1f3b"><span class="section-number-4">7.25.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-25-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5665,12 +5668,12 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-orgb9cee81" class="outline-3">
-<h3 id="orgb9cee81"><span class="section-number-3">7.26</span> autoinstall-dvbsky-firmware</h3>
+<div id="outline-container-orga219ff0" class="outline-3">
+<h3 id="orga219ff0"><span class="section-number-3">7.26</span> autoinstall-dvbsky-firmware</h3>
 <div class="outline-text-3" id="text-7-26">
 </div>
-<div id="outline-container-orga7773b4" class="outline-4">
-<h4 id="orga7773b4"><span class="section-number-4">7.26.1</span> dependencies</h4>
+<div id="outline-container-org281366b" class="outline-4">
+<h4 id="org281366b"><span class="section-number-4">7.26.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-26-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5681,8 +5684,8 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-org0650479" class="outline-4">
-<h4 id="org0650479"><span class="section-number-4">7.26.2</span> defaults</h4>
+<div id="outline-container-org4cf00ee" class="outline-4">
+<h4 id="org4cf00ee"><span class="section-number-4">7.26.2</span> defaults</h4>
 <div class="outline-text-4" id="text-7-26-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5692,8 +5695,8 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-org250f72e" class="outline-4">
-<h4 id="org250f72e"><span class="section-number-4">7.26.3</span> tasks</h4>
+<div id="outline-container-org39b9c9d" class="outline-4">
+<h4 id="org39b9c9d"><span class="section-number-4">7.26.3</span> tasks</h4>
 <div class="outline-text-4" id="text-7-26-3">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5743,15 +5746,15 @@ If a Sat&gt;IP Server responds to a discovery request, the package vdr-plugin-sa
 </div>
 </div>
 </div>
-<div id="outline-container-orgdc961fc" class="outline-3">
-<h3 id="orgdc961fc"><span class="section-number-3">7.27</span> <span class="todo TODO">TODO</span> autoinstall-dvbhddevice</h3>
+<div id="outline-container-org8d98ca8" class="outline-3">
+<h3 id="org8d98ca8"><span class="section-number-3">7.27</span> <span class="todo TODO">TODO</span> autoinstall-dvbhddevice</h3>
 <div class="outline-text-3" id="text-7-27">
 <p>
 Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
 </p>
 </div>
-<div id="outline-container-org176c35e" class="outline-4">
-<h4 id="org176c35e"><span class="section-number-4">7.27.1</span> dependencies</h4>
+<div id="outline-container-orgbd79a98" class="outline-4">
+<h4 id="orgbd79a98"><span class="section-number-4">7.27.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-27-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5762,8 +5765,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </div>
-<div id="outline-container-org415c65d" class="outline-4">
-<h4 id="org415c65d"><span class="section-number-4">7.27.2</span> tasks</h4>
+<div id="outline-container-org81a31ee" class="outline-4">
+<h4 id="org81a31ee"><span class="section-number-4">7.27.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-27-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5780,12 +5783,12 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 
-<div id="outline-container-orgac31125" class="outline-3">
-<h3 id="orgac31125"><span class="section-number-3">7.28</span> autoinstall-dvbsddevice</h3>
+<div id="outline-container-orgdbe0224" class="outline-3">
+<h3 id="orgdbe0224"><span class="section-number-3">7.28</span> autoinstall-dvbsddevice</h3>
 <div class="outline-text-3" id="text-7-28">
 </div>
-<div id="outline-container-org7dfd6d6" class="outline-4">
-<h4 id="org7dfd6d6"><span class="section-number-4">7.28.1</span> dependencies</h4>
+<div id="outline-container-org344654b" class="outline-4">
+<h4 id="org344654b"><span class="section-number-4">7.28.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-28-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5796,8 +5799,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </div>
-<div id="outline-container-orgd7280d5" class="outline-4">
-<h4 id="orgd7280d5"><span class="section-number-4">7.28.2</span> tasks</h4>
+<div id="outline-container-orgb45cf44" class="outline-4">
+<h4 id="orgb45cf44"><span class="section-number-4">7.28.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-28-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5815,12 +5818,12 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </div>
-<div id="outline-container-org4bb55b0" class="outline-3">
-<h3 id="org4bb55b0"><span class="section-number-3">7.29</span> autoinstall-hardware-irmp</h3>
+<div id="outline-container-org2937ed5" class="outline-3">
+<h3 id="org2937ed5"><span class="section-number-3">7.29</span> autoinstall-hardware-irmp</h3>
 <div class="outline-text-3" id="text-7-29">
 </div>
-<div id="outline-container-org713e9e5" class="outline-4">
-<h4 id="org713e9e5"><span class="section-number-4">7.29.1</span> dependencies</h4>
+<div id="outline-container-orgd12437e" class="outline-4">
+<h4 id="orgd12437e"><span class="section-number-4">7.29.1</span> dependencies</h4>
 <div class="outline-text-4" id="text-7-29-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5831,8 +5834,8 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </div>
-<div id="outline-container-org80c64e7" class="outline-4">
-<h4 id="org80c64e7"><span class="section-number-4">7.29.2</span> tasks</h4>
+<div id="outline-container-org8ece8bd" class="outline-4">
+<h4 id="org8ece8bd"><span class="section-number-4">7.29.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-29-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5848,19 +5851,19 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </div>
-<div id="outline-container-org676987d" class="outline-3">
-<h3 id="org676987d"><span class="section-number-3">7.30</span> kodi</h3>
+<div id="outline-container-org97ca39a" class="outline-3">
+<h3 id="org97ca39a"><span class="section-number-3">7.30</span> kodi</h3>
 <div class="outline-text-3" id="text-7-30">
 </div>
-<div id="outline-container-org6fcfc3e" class="outline-4">
-<h4 id="org6fcfc3e"><span class="section-number-4">7.30.1</span> tasks</h4>
+<div id="outline-container-org33e6d83" class="outline-4">
+<h4 id="org33e6d83"><span class="section-number-4">7.30.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-30-1">
 </div>
 <ol class="org-ol">
-<li><a id="orgdf2f5c4"></a>Install KODI<br />
+<li><a id="orga59342e"></a>Install KODI<br />
 <ul class="org-ul">
-<li><a id="orgfb70acb"></a>main.yml<br />
-<div class="outline-text-6" id="text-orgfb70acb">
+<li><a id="orgc52ba3d"></a>main.yml<br />
+<div class="outline-text-6" id="text-orgc52ba3d">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">import_tasks</span>: install-kodi.yml tags=install,update,kodi:install
 - <span class="org-variable-name">import_tasks</span>: configure-kodi.yml tags=install,update,kodi:configure
@@ -5868,7 +5871,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </li>
-<li><a id="orgb2462a5"></a>install-kodi.yml<br />
+<li><a id="orgb39eefe"></a>install-kodi.yml<br />
 <div class="outline-text-6" id="text-7-30-1-1-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -5900,7 +5903,7 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </div>
 </div>
 </li>
-<li><a id="orgd84d893"></a>configure-kodi.yml<br />
+<li><a id="orga392fd5"></a>configure-kodi.yml<br />
 <div class="outline-text-6" id="text-7-30-1-1-2">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: create kodi.service for the user session
@@ -5949,12 +5952,12 @@ Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware soll
 </li>
 </ol>
 </div>
-<div id="outline-container-orgb22d7df" class="outline-4">
-<h4 id="orgb22d7df"><span class="section-number-4">7.30.2</span> templates</h4>
+<div id="outline-container-orga08448a" class="outline-4">
+<h4 id="orga08448a"><span class="section-number-4">7.30.2</span> templates</h4>
 <div class="outline-text-4" id="text-7-30-2">
 </div>
 <ol class="org-ol">
-<li><a id="org2820a1d"></a>kodi.service<br />
+<li><a id="org489c66b"></a>kodi.service<br />
 <div class="outline-text-5" id="text-7-30-2-1">
 <p>
 This systemd unit for the user session starts (and stops) kodi.
@@ -5979,15 +5982,15 @@ This systemd unit for the user session starts (and stops) kodi.
 </ol>
 </div>
 
-<div id="outline-container-org15b7c0f" class="outline-4">
-<h4 id="org15b7c0f"><span class="section-number-4">7.30.3</span> files</h4>
+<div id="outline-container-org43890eb" class="outline-4">
+<h4 id="org43890eb"><span class="section-number-4">7.30.3</span> files</h4>
 <div class="outline-text-4" id="text-7-30-3">
 <p>
 Those configuration files provide a preconfiguration for kodi which overrides the system wide configuration
 </p>
 </div>
 <ol class="org-ol">
-<li><a id="org85d7446"></a>Lircmap.xml<br />
+<li><a id="orged7802d"></a>Lircmap.xml<br />
 <div class="outline-text-5" id="text-7-30-3-1">
 <p>
 This file allows to map keys sent by remotes via eventlircd (which uses the name <code>devinput</code>) to kodi key names.
@@ -6058,14 +6061,14 @@ This file allows to map keys sent by remotes via eventlircd (which uses the name
 </div>
 </div>
 </li>
-<li><a id="orga263f1b"></a>keymaps<br />
+<li><a id="org6cbc8c8"></a>keymaps<br />
 <div class="outline-text-5" id="text-7-30-3-2">
 <p>
 This file maps the keys defined in Lircmap.xml to actions within kodi.
 </p>
 </div>
 <ol class="org-ol">
-<li><a id="orgebb6038"></a>remote.xml<br />
+<li><a id="orgc9e4135"></a>remote.xml<br />
 <div class="outline-text-6" id="text-7-30-3-2-1">
 <div class="org-src-container">
 <pre class="src src-xml"><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">&lt;?</span></span><span class="org-string"><span class="org-nxml-processing-instruction-target">xml</span></span><span class="org-string"> </span><span class="org-string"><span class="org-nxml-processing-instruction-content">version="1.0" encoding="UTF-8"</span></span><span class="org-string"><span class="org-nxml-processing-instruction-delimiter">?&gt;</span></span>
@@ -6617,17 +6620,17 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 </ol>
 </div>
 </div>
-<div id="outline-container-org5f7e9fa" class="outline-3">
-<h3 id="org5f7e9fa"><span class="section-number-3">7.31</span> dvd</h3>
+<div id="outline-container-orga7ec6f5" class="outline-3">
+<h3 id="orga7ec6f5"><span class="section-number-3">7.31</span> dvd</h3>
 <div class="outline-text-3" id="text-7-31">
 </div>
-<div id="outline-container-org697aa87" class="outline-4">
-<h4 id="org697aa87"><span class="section-number-4">7.31.1</span> tasks</h4>
+<div id="outline-container-orgd374c80" class="outline-4">
+<h4 id="orgd374c80"><span class="section-number-4">7.31.1</span> tasks</h4>
 <div class="outline-text-4" id="text-7-31-1">
 </div>
 <ul class="org-ul">
-<li><a id="org8fae9f4"></a>install libdvd-pkg, allow programs to eject optical media<br />
-<div class="outline-text-5" id="text-org8fae9f4">
+<li><a id="org7732f11"></a>install libdvd-pkg, allow programs to eject optical media<br />
+<div class="outline-text-5" id="text-org7732f11">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
 <span class="org-comment-delimiter"># </span><span class="org-comment">file: roles/dvd/tasks/main.yml</span>
@@ -6668,15 +6671,15 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 </ul>
 </div>
 </div>
-<div id="outline-container-org2b7da0d" class="outline-3">
-<h3 id="org2b7da0d"><span class="section-number-3">7.32</span> install-sundtek</h3>
+<div id="outline-container-orgac3a527" class="outline-3">
+<h3 id="orgac3a527"><span class="section-number-3">7.32</span> install-sundtek</h3>
 <div class="outline-text-3" id="text-7-32">
 </div>
-<div id="outline-container-org22586e9" class="outline-4">
-<h4 id="org22586e9"><span class="section-number-4">7.32.1</span> variables</h4>
+<div id="outline-container-orgadc1b6c" class="outline-4">
+<h4 id="orgadc1b6c"><span class="section-number-4">7.32.1</span> variables</h4>
 </div>
-<div id="outline-container-org4d00d5e" class="outline-4">
-<h4 id="org4d00d5e"><span class="section-number-4">7.32.2</span> tasks</h4>
+<div id="outline-container-org461ab17" class="outline-4">
+<h4 id="org461ab17"><span class="section-number-4">7.32.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-32-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -6725,8 +6728,8 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 </div>
 </div>
 </div>
-<div id="outline-container-org407a769" class="outline-4">
-<h4 id="org407a769"><span class="section-number-4">7.32.3</span> templates</h4>
+<div id="outline-container-org0abc82c" class="outline-4">
+<h4 id="org0abc82c"><span class="section-number-4">7.32.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-32-3">
 <div class="org-src-container">
 <pre class="src src-conf"><span class="org-comment-delimiter"># </span><span class="org-comment">----- GLOBAL SECTION -----</span>
@@ -6832,8 +6835,8 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 </div>
 </div>
 </div>
-<div id="outline-container-org376a8e7" class="outline-3">
-<h3 id="org376a8e7"><span class="section-number-3">7.33</span> template-test</h3>
+<div id="outline-container-org411b782" class="outline-3">
+<h3 id="org411b782"><span class="section-number-3">7.33</span> template-test</h3>
 <div class="outline-text-3" id="text-7-33">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -7074,12 +7077,12 @@ EndSection
 </div>
 </div>
 </div>
-<div id="outline-container-orge8a4b59" class="outline-3">
-<h3 id="orge8a4b59"><span class="section-number-3">7.34</span> wakeup</h3>
+<div id="outline-container-orgb924c96" class="outline-3">
+<h3 id="orgb924c96"><span class="section-number-3">7.34</span> wakeup</h3>
 <div class="outline-text-3" id="text-7-34">
 </div>
-<div id="outline-container-org05162ba" class="outline-4">
-<h4 id="org05162ba"><span class="section-number-4">7.34.1</span> defaults</h4>
+<div id="outline-container-org1948fce" class="outline-4">
+<h4 id="org1948fce"><span class="section-number-4">7.34.1</span> defaults</h4>
 <div class="outline-text-4" id="text-7-34-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -7089,8 +7092,8 @@ EndSection
 </div>
 </div>
 </div>
-<div id="outline-container-org358b4bd" class="outline-4">
-<h4 id="org358b4bd"><span class="section-number-4">7.34.2</span> tasks</h4>
+<div id="outline-container-org6b53536" class="outline-4">
+<h4 id="org6b53536"><span class="section-number-4">7.34.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-34-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -7111,8 +7114,8 @@ EndSection
 </div>
 </div>
 </div>
-<div id="outline-container-orgff7513b" class="outline-4">
-<h4 id="orgff7513b"><span class="section-number-4">7.34.3</span> templates</h4>
+<div id="outline-container-orgcd67ffc" class="outline-4">
+<h4 id="orgcd67ffc"><span class="section-number-4">7.34.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-34-3">
 <div class="org-src-container">
 <pre class="src src-jinja2">{{ ansible_managed | comment }}
@@ -7138,12 +7141,12 @@ ACPI_START_AHEAD=5
 </div>
 </div>
 
-<div id="outline-container-org1ef64bf" class="outline-3">
-<h3 id="org1ef64bf"><span class="section-number-3">7.35</span> grub-config</h3>
+<div id="outline-container-orgb03b851" class="outline-3">
+<h3 id="orgb03b851"><span class="section-number-3">7.35</span> grub-config</h3>
 <div class="outline-text-3" id="text-7-35">
 </div>
-<div id="outline-container-org86d95cc" class="outline-4">
-<h4 id="org86d95cc"><span class="section-number-4">7.35.1</span> default variables</h4>
+<div id="outline-container-org9de8960" class="outline-4">
+<h4 id="org9de8960"><span class="section-number-4">7.35.1</span> default variables</h4>
 <div class="outline-text-4" id="text-7-35-1">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-variable-name">system</span>:
@@ -7155,8 +7158,8 @@ ACPI_START_AHEAD=5
 </div>
 </div>
 </div>
-<div id="outline-container-org011479c" class="outline-4">
-<h4 id="org011479c"><span class="section-number-4">7.35.2</span> tasks</h4>
+<div id="outline-container-org3b7e820" class="outline-4">
+<h4 id="org3b7e820"><span class="section-number-4">7.35.2</span> tasks</h4>
 <div class="outline-text-4" id="text-7-35-2">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -7181,8 +7184,8 @@ ACPI_START_AHEAD=5
 </div>
 </div>
 </div>
-<div id="outline-container-org56c6002" class="outline-4">
-<h4 id="org56c6002"><span class="section-number-4">7.35.3</span> templates</h4>
+<div id="outline-container-org6e98627" class="outline-4">
+<h4 id="org6e98627"><span class="section-number-4">7.35.3</span> templates</h4>
 <div class="outline-text-4" id="text-7-35-3">
 <div class="org-src-container">
 <pre class="src src-shell"><span class="org-comment-delimiter">#</span><span class="org-comment">!/bin/</span><span class="org-keyword">sh</span>
@@ -7205,8 +7208,8 @@ menuentry <span class="org-string">"PowerOff"</span> <span class="org-rainbow-de
 </div>
 </div>
 </div>
-<div id="outline-container-org18dcfca" class="outline-4">
-<h4 id="org18dcfca"><span class="section-number-4">7.35.4</span> handlers</h4>
+<div id="outline-container-orgc95fd73" class="outline-4">
+<h4 id="orgc95fd73"><span class="section-number-4">7.35.4</span> handlers</h4>
 <div class="outline-text-4" id="text-7-35-4">
 <div class="org-src-container">
 <pre class="src src-yaml"><span class="org-comment">---</span>
@@ -7229,15 +7232,15 @@ menuentry <span class="org-string">"PowerOff"</span> <span class="org-rainbow-de
 </div>
 </div>
 </div>
-<div id="outline-container-org9847140" class="outline-2">
-<h2 id="org9847140"><span class="section-number-2">8</span> Modules</h2>
+<div id="outline-container-org09119cb" class="outline-2">
+<h2 id="org09119cb"><span class="section-number-2">8</span> Modules</h2>
 <div class="outline-text-2" id="text-8">
 <p>
 This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
 </p>
 </div>
-<div id="outline-container-org82370fc" class="outline-3">
-<h3 id="org82370fc"><span class="section-number-3">8.1</span> hardware_facts.py</h3>
+<div id="outline-container-org9394460" class="outline-3">
+<h3 id="org9394460"><span class="section-number-3">8.1</span> hardware_facts.py</h3>
 <div class="outline-text-3" id="text-8-1">
 <div class="org-src-container">
 <pre class="src src-python"><span class="org-comment-delimiter"># </span><span class="org-comment">This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.</span>
@@ -7415,8 +7418,8 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 </div>
 </div>
 </div>
-<div id="outline-container-org9b6d5d6" class="outline-3">
-<h3 id="org9b6d5d6"><span class="section-number-3">8.2</span> pci_facts.py</h3>
+<div id="outline-container-orga54957d" class="outline-3">
+<h3 id="orga54957d"><span class="section-number-3">8.2</span> pci_facts.py</h3>
 <div class="outline-text-3" id="text-8-2">
 <div class="org-src-container">
 <pre class="src src-python">
@@ -7492,8 +7495,8 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 </div>
 </div>
 </div>
-<div id="outline-container-org3d2ba69" class="outline-3">
-<h3 id="org3d2ba69"><span class="section-number-3">8.3</span> satip_facts.py</h3>
+<div id="outline-container-org7170c7a" class="outline-3">
+<h3 id="org7170c7a"><span class="section-number-3">8.3</span> satip_facts.py</h3>
 <div class="outline-text-3" id="text-8-3">
 <div class="org-src-container">
 <pre class="src src-python"><span class="org-variable-name">DOCUMENTATION</span> = <span class="org-string">'''</span>
@@ -7617,8 +7620,8 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 </div>
 </div>
 </div>
-<div id="outline-container-org602b199" class="outline-3">
-<h3 id="org602b199"><span class="section-number-3">8.4</span> xrandr_facts.py</h3>
+<div id="outline-container-orgcbf255a" class="outline-3">
+<h3 id="orgcbf255a"><span class="section-number-3">8.4</span> xrandr_facts.py</h3>
 <div class="outline-text-3" id="text-8-4">
 <ul class="org-ul">
 <li class="off"><code>[&#xa0;]</code> support multiple screens (-d :0.0 .. :0.n)</li>
@@ -7845,6 +7848,7 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 
 
 <span class="org-keyword">def</span> <span class="org-function-name">output_data</span><span class="org-rainbow-delimiters-depth-1">(</span>data, write_edids=<span class="org-constant">True</span><span class="org-rainbow-delimiters-depth-1">)</span>:
+    <span class="org-variable-name">result</span> = <span class="org-rainbow-delimiters-depth-1">{}</span>
     <span class="org-keyword">if</span> data:
         <span class="org-variable-name">modes</span> = <span class="org-rainbow-delimiters-depth-1">[]</span>
         <span class="org-keyword">for</span> _, screen_data <span class="org-keyword">in</span> data.items<span class="org-rainbow-delimiters-depth-1">()</span>:
@@ -7856,7 +7860,6 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
                     <span class="org-keyword">for</span> refreshrate <span class="org-keyword">in</span> refreshrates:
                         modes.append<span class="org-rainbow-delimiters-depth-1">(</span>Mode<span class="org-rainbow-delimiters-depth-2">(</span>connector, resolution, refreshrate<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
         <span class="org-keyword">if</span> modes:
-            <span class="org-variable-name">result</span> = <span class="org-rainbow-delimiters-depth-1">{}</span>
             <span class="org-keyword">try</span>:
                 <span class="org-variable-name">gpu_name</span>, <span class="org-variable-name">bus_id</span> = collect_nvidia_data<span class="org-rainbow-delimiters-depth-1">()</span>
             <span class="org-keyword">except</span> <span class="org-type">ValueError</span>:
@@ -7905,8 +7908,8 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 </div>
 </div>
 </div>
-<div id="outline-container-orgf8c760d" class="outline-2">
-<h2 id="orgf8c760d"><span class="section-number-2">9</span> Handlers</h2>
+<div id="outline-container-org9ae2e92" class="outline-2">
+<h2 id="org9ae2e92"><span class="section-number-2">9</span> Handlers</h2>
 <div class="outline-text-2" id="text-9">
 <div class="org-src-container">
 <pre class="src src-yaml">- <span class="org-variable-name">name</span>: Reconfigure unattended upgrades with dpkg
@@ -7999,7 +8002,7 @@ This section contains custom modules for the yaVDR Playbooks. They are used to c
 </div>
 <div id="postamble" class="status">
 <p class="author">Autor: Alexander Grothe &lt;seahawk1986@gmx.de&gt;</p>
-<p class="date">Created: 2018-09-04 Di 13:22</p>
+<p class="date">Created: 2018-09-05 Mi 12:23</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
