@@ -141,16 +141,19 @@ We use a callback to generate tags for all roles autmatically:
 
 ** Install script for local usage
 #+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
+set -e
 if (( $EUID != 0 )); then
     echo "This script must be run using sudo -H or as root"
     exit
 fi
 
-apt-get -y install software-properties-common
 # update packages
-apt-get update
+apt update
+apt -y install software-properties-common
+add-apt-repository -y ppa:ansible/ansible-2.6
+
 # install required packages
-apt-get -y install --no-install-recommends ansible
+apt-get -y install --no-install-recommends ansible python-jmespath
 
 # TODO: run ansible on local host
 ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=True"
@@ -171,9 +174,9 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - collect-facts              # query system facts
      - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
                                   # (e.g. nvidia, virtualbox)
-     - autoinstall-virtualbox-guest
      # - nvidia-experimental       # install very recent nvidia dirver from ppa:graphics-drivers/ppa
      - vdr                        # install vdr and related packages
+     - autoinstall-virtualbox-guest
      - yavdr-network              # enable network client capabilities
      - samba-install              # install samba server
      - samba-config               # configure samba server
@@ -185,13 +188,14 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
      - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
      - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
-     - autoinstall-pvr350         # install vdr-plugin-pgvr350 if a matching card is detected
+     - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
      - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
      - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
      - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
      - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
      - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
-     - autoinstall-dvbsky-firmware # download an install required firmware files for dvbsky cards
+     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+     - autoinstall-firmware       # download and install firmware files for dvb devices
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
@@ -220,7 +224,12 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - samba-config
     - nfs-server
     - grub-config
-    - autoinstall-satip
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+    - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+    - autoinstall-firmware       # download and install firmware files for dvb devices
     - wakeup
   tags:
     - always
@@ -461,22 +470,10 @@ yavdr-common executes the following tasks:
  #+END_SRC
 ***** Use bash instead of dash
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
-- name: apt | ensure debconf and debconf-utils are installed
-  apt:
-    name: "{{ packages }}"
-  vars:
-    packages:
-    - debconf
-    - debconf-utils
-
-- name: use bash instead of dash by default
-  debconf:
-    name: dash
-    question: dash/sh
-    value: 'false'
-    vtype: select
-  notify: ['Reconfigure unattended upgrades with dpkg']
-
+- name: use bash instead of dash
+  shell: |
+    echo "set dash/sh false" | debconf-communicate
+    dpkg-reconfigure -f noninteractive dash
 #+END_SRC
 
 ***** create user vdr
@@ -626,6 +623,15 @@ first_run: False
     - intel_detected
     - amd_detected
     - virtualbox_detected
+
+- name: get detailed PCI device information
+  pci_facts:
+  tags:
+    - always
+
+- debug:
+    var: pci_devices
+    verbosity: 1
 
 - name: known vdr output plugins
   set_fact:
@@ -4659,7 +4665,7 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
         - vdrctl enable xineliboutput
       ignore_errors: yes
   when:
-    - ansible_virtualization_type == "virtualbox"
+    - ansible_virtualization_type == "virtualbox" or ansible_virtualization_type == "VMware"
     - ansible_virtualization_role == "guest"
 #+END_SRC
 ** autoinstall-atric-usb
@@ -4897,19 +4903,35 @@ dependencies:
 
 # This role provides easyily downloadable firmware files
 
-- name: Firmware for Hauppauge WinTV HD Solo/Duo, PCTV 292e
+- name: Firmware dvb-demod-si2168-b40-01.fw for Hauppauge WinTV HD Solo/Duo, PCTV 292e
   get_url:
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-b40-01.fw
     checksum: sha256:8507536630d75a316d0719d6b95c04b90c36baa5b457ad457c9bacadafcef134
     dest: /lib/firmware/dvb-demod-si2168-b40-01.fw
   when: '"2040:0264" in usb or "2013:025f" in usb'
 
-- name: Firmware for Hauppauge WinTV-HVR-930C
+- name: Firmware dvb-fe-xc5000-1.6.114.fw for Hauppauge WinTV-HVR-930C
   get_url:
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-fe-xc5000-1.6.114.fw
     checksum: sha256:7104bda8df301fe1bd4c09de1708aeb6d0d8e1f9d55505449fecfad82639235f
     dest: /lib/firmware/dvb-fe-xc5000-1.6.114.fw
   when: '"2040:1605" in usb'
+
+- name: Firmware ngenge_18.fw for ngene cards
+  get_url:
+    url: http://l4m-daten.de/downloads/firmware/dvb-s2/linux/all/ngene_18.fw
+    checksum: sha256:213d98ec2cd575eba15d82ee79fed7098e670de43792f8aa773a95cfb7c32060
+    dest: /lib/firmware/ngene_18.fw
+  when: '"ngene" in modules'
+  notify: reboot required
+
+- name: Firmware drxk_a3.mc for drxk
+  get_url:
+     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/drxk_a3.mc
+     checksum: sha256:f8956ad6f92a4ce90a6ab94ed23e2f9a27e9317e936fd3e0119778dd28e7e294
+     dest: /lib/firmware/drxk_a3.mc
+  when: '"ngene" in modules or "drxk" in modules'
+  notify: reboot required
 #+END_SRC
 ** autoinstall-dvbsky-firmware
 *** dependencies
@@ -5517,7 +5539,7 @@ fi
 * Modules
 This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
 ** hardware_facts.py
-#+BEGIN_SRC python :tangle library/hardware_facts.py :shebang #!/usr/bin/env/python
+#+BEGIN_SRC python :tangle library/hardware_facts.py :shebang "#!/usr/bin/env python"
 # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
 DOCUMENTATION = '''
   ---
@@ -5688,6 +5710,78 @@ def main():
 
 
 if __name__ == '__main__':  
+    main()
+#+END_SRC
+** pci_facts.py
+#+BEGIN_SRC python :tangle library/pci_facts.py :shebang "#!/usr/bin/env python"
+
+# This module parses the output of lspci for detailed information about available (sub) devices.
+DOCUMENTATION = '''
+  ---
+  module: pci_facts
+  short_description: parses lspci output for detailed (sub) devices data
+  description:
+      - This module parses the output of lspci for detailed information about available (sub) devices.
+      - returns a list with a dict for each device
+
+notes:
+    - requires lspci (package pciutils)
+
+'''
+
+EXAMPLES = '''
+- name: get detailled pci device infos
+  pci_facts:
+
+- debug:
+    var: pci_devices
+'''
+
+
+import argparse
+import shlex
+import subprocess
+from collections import namedtuple
+
+from ansible.module_utils.basic import *
+
+def convert2hex(arg):
+    arg = arg.strip('"')
+    if arg:
+        return int(arg, 16)
+    else:
+        return None
+
+def parse_lspci_data():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--revision', help='revision', type=convert2hex)
+    parser.add_argument('-p', '--progif', help='proginf', type=convert2hex)
+    parser.add_argument('slot')
+    parser.add_argument('device_class', type=convert2hex)
+    parser.add_argument('vendor_id', type=convert2hex)
+    parser.add_argument('device_id', type=convert2hex)
+    parser.add_argument('sub_vendor_id', type=convert2hex)
+    parser.add_argument('sub_device_id', type=convert2hex)
+    parser.add_argument('other', nargs='*', default=[])
+
+    devices = []
+    for line in subprocess.check_output(['lspci', '-nm'], universal_newlines=True).splitlines():
+        args = parser.parse_args(args=shlex.split(line))
+        devices.append(vars(args))
+    return devices
+
+
+def main():
+    arg_specs = {}
+    module = AnsibleModule(argument_spec=arg_specs, supports_check_mode=True,)
+    try:
+        pci_devices = parse_lspci_data()
+    except:
+        module.fail_json(msg="Something fatal happened")
+    data = {'pci_devices': pci_devices}
+    module.exit_json(changed=False, ansible_facts=data, msg=data)
+
+if __name__ == '__main__':
     main()
 #+END_SRC
 ** satip_facts.py
@@ -6034,6 +6128,7 @@ def collect_nvidia_data():
 
 
 def output_data(data, write_edids=True):
+    result = {}
     if data:
         modes = []
         for _, screen_data in data.items():
@@ -6045,7 +6140,6 @@ def output_data(data, write_edids=True):
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
         if modes:
-            result = {}
             try:
                 gpu_name, bus_id = collect_nvidia_data()
             except ValueError:
@@ -6171,4 +6265,8 @@ if __name__ == '__main__':
     name: x@vt7.service
     state: stopped
   register: x_stop
+
+- name: reboot required
+  debug:
+    msg: PLEASE REBOOT YOUR SYSTEM.
 #+END_SRC
