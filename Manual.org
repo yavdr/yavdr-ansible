@@ -2950,6 +2950,14 @@ exit 0
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
+- name: create switch-displays script
+  template:
+    src: templates/bin/switch-displays.j2
+    dest: '{{ vdr.home }}/bin/switch-displays'
+    mode: 0755
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
 - name: create openbox-second.service for the session
   template:
     src: templates/systemd/user/openbox-second.service.j2
@@ -4763,10 +4771,27 @@ Description=Detect second DISPLAY using xrandr
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=%h/bin/detect-second-display
 
 [Install]
 WantedBy=yavdr-desktop.target
+#+END_SRC
+***** switch-displays
+:PROPERTIES:
+:ID:       67d8bc4f-64c6-4433-98f7-d76430fb9f20
+:END:
+This script exchanges the primary and secondary screen. It needs access to the systemd user session.
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no
+#!/bin/bash
+source <(systemctl --user show-environment)
+[[ "$DISPLAY" =~ \.1$ ]] && DISPLAY="${DISPLAY%.1}.0" || DISPLAY="${DISPLAY%.0}.1"
+
+frontend-dbus-send stop
+systemctl --user stop osd2web
+frontend-dbus-send setDisplay "$DISPLAY"
+systemctl --user start osd2web
+frontend-dbus-send start
 #+END_SRC
 ***** openbox-second.service
 :PROPERTIES:

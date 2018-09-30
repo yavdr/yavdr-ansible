@@ -1,0 +1,9 @@
+#!/bin/bash
+source <(systemctl --user show-environment)
+[[ "$DISPLAY" =~ \.1$ ]] && DISPLAY="${DISPLAY%.1}.0" || DISPLAY="${DISPLAY%.0}.1"
+
+frontend-dbus-send stop
+systemctl --user stop osd2web
+frontend-dbus-send setDisplay "$DISPLAY"
+systemctl --user start osd2web
+frontend-dbus-send start
