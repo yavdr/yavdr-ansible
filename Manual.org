@@ -2859,6 +2859,7 @@ exit 0
     - '{{ vdr.home }}/.config/systemd/user'
     - '{{ vdr.home }}/.config/openbox'
     - '{{ vdr.home }}/.config/pulse'
+    - '{{ vdr.home }}/bin'
 
 - name: expand template for .xinitrc for vdr user
   template:
@@ -2938,6 +2939,14 @@ exit 0
     src: templates/systemd/user/detect-second-display.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
     mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create detect-second-diplay script
+  template:
+    src: templates/bin/detect-second-display.j2
+    dest: '{{ vdr.home }}/bin/detect-second-display'
+    mode: 0755
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
@@ -4724,13 +4733,24 @@ AllowIsolate=yes
 :PROPERTIES:
 :ID:       e46166b1-0550-41c6-a7ec-d7a2622f87db
 :END:
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no
+#!/bin/bash
+source <(systemctl --user show-environment)
+SECOND_DISPLAY="${DISPLAY%\.[0-9]*}.1"
+if xrandr -d "$SECOND_DISPLAY" -q | grep -q "connected"; then
+    [ "$DISPLAY" != "$SECOND_DISPLAY" ] && d="DISPLAY=$SECOND_DISPLAY" || d="DISPLAY=$DISPLAY"
+    echo "$d" > ~/.second_display;
+else
+    rm -f ~/.second_display
+fi
+#+END_SRC
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/detect-second-display.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=Detect second DISPLAY using xrandr
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'export DISPLAY=$DISPLAY.1; xrandr -q | grep "connected" && echo "DISPLAY=$DISPLAY" > ~/.second_display || rm -f ~/.second_display'
+ExecStart=%h/bin/detect-second-display
 
 [Install]
 WantedBy=yavdr-desktop.target

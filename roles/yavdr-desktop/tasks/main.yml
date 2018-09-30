@@ -12,6 +12,7 @@
     - '{{ vdr.home }}/.config/systemd/user'
     - '{{ vdr.home }}/.config/openbox'
     - '{{ vdr.home }}/.config/pulse'
+    - '{{ vdr.home }}/bin'
 
 - name: expand template for .xinitrc for vdr user
   template:
@@ -91,6 +92,14 @@
     src: templates/systemd/user/detect-second-display.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
     mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: create detect-second-diplay script
+  template:
+    src: templates/bin/detect-second-display.j2
+    dest: '{{ vdr.home }}/bin/detect-second-display'
+    mode: 0755
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
