@@ -6,12 +6,11 @@
     - name: install packages
       apt:
         state: present
-        name: '{{ item }}'
-      with_items:
-        - dkms
-        - virtualbox-guest-x11-hwe
-        - virtualbox-guest-dkms-hwe
-        - virtualbox-guest-x11-hwe
+        name:
+          - dkms
+          - virtualbox-guest-x11-hwe
+          - virtualbox-guest-dkms-hwe
+          - virtualbox-guest-x11-hwe
 
     # TODO: set xineliboutput as frontend
   when:
@@ -22,11 +21,10 @@
 - name: set xineliboutput as frontend
   block:
     - apt:
-        name: '{{ item }}'
+        name:
+          - vdr-plugin-xineliboutput
+          - xineliboutput-sxfe
         state: present
-      with_items:
-        - vdr-plugin-xineliboutput
-        - xineliboutput-sxfe
     - command: '{{ item }}'
       with_items:
         - vdrctl disable softhddevice

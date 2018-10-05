@@ -198,7 +198,7 @@ fi
 # update packages
 apt update
 apt -y install software-properties-common
-add-apt-repository -y ppa:ansible/ansible-2.6
+add-apt-repository -y ppa:ansible/ansible-2.7
 
 # install required packages
 apt-get -y install --no-install-recommends ansible python-jmespath
@@ -430,12 +430,10 @@ grub:
 
 - name: apt | install packages
   apt:
-    name: '{{ item }}'
+    name: '{{ packages }}'
     state: present
     install_recommends: no
     cache_valid_time: 60
-  with_items:
-    '{{ packages }}'
 #+END_SRC
 
 ** nvidia experimental drivers
@@ -464,12 +462,11 @@ install nvidia-396 from ppa:graphics-drivers/ppa
 
 - name: install nvidia-396 and other required packages
   apt:
-    name: '{{ item }}'
+    name:
+      -nvidia-396
+      -nvidia-settings
     state: present
     install_recommends: no
-  with_items:
-    - nvidia-396
-    - nvidia-settings
   tags:
     - packages
 #+END_SRC
@@ -669,28 +666,27 @@ yavdr-common executes the following tasks:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: apt | install basic packages
   apt:
-    name: '{{ item }}'
+    name:
+      - anacron
+      - acl
+      - at
+      - bash-completion
+      #- biosdevname  # caution: may change device names after a minimal installation!
+      - debconf-utils
+      - linux-firmware
+      - psmisc
+      - python-kmodpy
+      - python-requests
+      - python-usb
+      - python3-usb
+      - software-properties-common
+      - ssh
+      - wget
+      - wpasupplicant
+      - usbutils
+      - xfsprogs
     state: present
     install_recommends: no
-  with_items:
-    - anacron
-    - acl
-    - at
-    - bash-completion
-    #- biosdevname  # caution: may change device names after a minimal installation!
-    - debconf-utils
-    - linux-firmware
-    - psmisc
-    - python-kmodpy
-    - python-requests
-    - python-usb
-    - python3-usb
-    - software-properties-common
-    - ssh
-    - wget
-    - wpasupplicant
-    - usbutils
-    - xfsprogs
 
  #+END_SRC
 ***** Install additional packages (user defined)
@@ -700,11 +696,10 @@ yavdr-common executes the following tasks:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml
 - name: apt | install extra packages
   apt:
-    name: '{{ item }}'
+    name: '{{ extra_packages }}'
     state: present
     install_recommends: no
-  with_items:
-      '{{ extra_packages }}'
+      
 #+END_SRC
 ***** create directories
 :PROPERTIES:
@@ -835,13 +830,12 @@ first_run: False
 
 - name: apt | install basic vdr packages
   apt:
-    name: '{{ item }}'
+    name:
+      - vdr
+      - vdrctl
+      - vdr-plugin-dbus2vdr
     state: present
     install_recommends: no
-  with_items:
-    - vdr
-    - vdrctl
-    - vdr-plugin-dbus2vdr
 #+END_SRC
 **** Add svdrp/svdrp-disc to /etc/services
 :PROPERTIES:
@@ -899,11 +893,9 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: apt | install additional vdr plugins
   apt:
-    name: '{{ item }}'
+    name: '{{ vdr_plugins | default([]) }}'
     state: present
     install_recommends: no
-  with_items:
-    '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
 #+END_SRC
 **** copy vdr configuration files (if they don't exist yet)
@@ -1144,17 +1136,16 @@ install_avahi: true
 
 - name: apt | install packages for network services
   apt:
-      name: '{{ item }}'
+      name:
+          - avahi-daemon
+          - avahi-utils
+          #- biosdevname # caution: this may change device names after a minimal installation!
+          - ethtool
+          - nfs-common
+          - vdr-addon-avahi-linker
+          - wakeonlan
       state: present
       install_recommends: no
-  with_items:
-      - avahi-daemon
-      - avahi-utils
-      #- biosdevname # caution: this may change device names after a minimal installation!
-      - ethtool
-      - nfs-common
-      - vdr-addon-avahi-linker
-      - wakeonlan
 
 # Does this really work? We need a way to check if an interface supports WOL - Python Skript?
 # - name: check WOL capabilities of network interfaces
@@ -1219,12 +1210,11 @@ install_avahi: true
 
 - name: install nfs server packages
   apt:
-    name: '{{ item }}'
+    name:
+      - nfs-kernel-server
+      - nfs-common
     state: present
     install_recommends: no
-  with_items:
-    - nfs-kernel-server
-    - nfs-common
 
 - name: create /etc/exports
   template:
@@ -1292,11 +1282,10 @@ lircd0_socket: /var/run/lirc/lircd0
 
 - name: apt | install packages for remote support
   apt:
-    name: '{{ item }}'
+    name:
+      - yavdr-remote
+      - lirc
     state: present
-  with_items:
-    - yavdr-remote
-    - lirc
   tags:
     - packages
 
@@ -1330,11 +1319,10 @@ lircd0_socket: /var/run/lirc/lircd0
 
 - name: apt | install eventlircd and lircd2uinput
   apt:
-    name: '{{ item }}'
+    name:
+      - eventlircd
+      - lircd2uinput
     state: present
-  with_items:
-    - eventlircd
-    - lircd2uinput
   tags:
     - packages
 
@@ -1584,13 +1572,12 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 
 - name: apt | install pulseaudio, pavucontrol and vdr-plugin-pulsecontrol
   apt:
-    name: '{{ item }}'
+    name:
+      - pulseaudio
+      - pavucontrol
+      - vdr-plugin-pulsecontrol
     state: present
     install_recommends: no
-  with_items:
-    - pulseaudio
-    - pavucontrol
-    - vdr-plugin-pulsecontrol
 
 - name: create /etc/asound.conf with pulseaudio as default device
   template:
@@ -2144,31 +2131,29 @@ preferred_refreshrates:
 
 - name: apt | install packages for xorg
   apt:
-    name: '{{ item }}'
+    name:
+      - xlogin
+      - yavdr-xorg
+      - xorg
+      - xserver-xorg-input-all
+      - xserver-xorg-video-all
+      - openbox
+      - python3-dbus2vdr
+      - python3-yavdrfrontend
+      - read-edid
+      - tmux
+      - vdr-plugin-desktop
+      - vdr-plugin-osd2web
+      - feh
+      #- yavdr-xorg
     state: present
-  with_items:
-    - xlogin
-    - yavdr-xorg
-    - xorg
-    - xserver-xorg-input-all
-    - xserver-xorg-video-all
-    - openbox
-    - python3-dbus2vdr
-    - python3-yavdrfrontend
-    - read-edid
-    - tmux
-    - vdr-plugin-desktop
-    - vdr-plugin-osd2web
-    - feh
-    #- yavdr-xorg
 
 - name: apt | install packages for Intel IGP
   apt:
-    name: '{{ item }}'
+    name:
+      - xserver-xorg-video-intel
+      - i965-va-driver-shaders
     state: present
-  with_items:
-    - xserver-xorg-video-intel
-    - i965-va-driver-shaders
   when: intel_detected
 
 - name: download yavdr logo
@@ -2195,12 +2180,11 @@ preferred_refreshrates:
 
 - name: apt | install desktop programs
   apt:
-    name: '{{ item }}'
+    name:
+      - xterm
+      - firefox
+      - kiosk-browser
     state: present
-  with_items:
-    - xterm
-    - firefox
-    - kiosk-browser
 #+END_SRC
 **** detect-xorg.yml
 :PROPERTIES:
@@ -4911,14 +4895,14 @@ end
 
 - name: install samba server
   apt:
-    name: '{{ item }}'
+    name:
+      - samba
+      - samba-common
+      - samba-common-bin
+      - tdb-tools
     state: present
     install_recommends: no
   with_items:
-    - samba
-    - samba-common
-    - samba-common-bin
-    - tdb-tools
 
 #+END_SRC
 ** samba-config
@@ -5135,12 +5119,11 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
     - name: install packages
       apt:
         state: present
-        name: '{{ item }}'
-      with_items:
-        - dkms
-        - virtualbox-guest-x11-hwe
-        - virtualbox-guest-dkms-hwe
-        - virtualbox-guest-x11-hwe
+        name:
+          - dkms
+          - virtualbox-guest-x11-hwe
+          - virtualbox-guest-dkms-hwe
+          - virtualbox-guest-x11-hwe
 
     # TODO: set xineliboutput as frontend
   when:
@@ -5151,11 +5134,10 @@ This role installs the guest additions for virtualbox guests on Ubuntu 16.04
 - name: set xineliboutput as frontend
   block:
     - apt:
-        name: '{{ item }}'
+        name:
+          - vdr-plugin-xineliboutput
+          - xineliboutput-sxfe
         state: present
-      with_items:
-        - vdr-plugin-xineliboutput
-        - xineliboutput-sxfe
     - command: '{{ item }}'
       with_items:
         - vdrctl disable softhddevice

@@ -3,13 +3,12 @@
 
 - name: apt | install basic vdr packages
   apt:
-    name: '{{ item }}'
+    name:
+      - vdr
+      - vdrctl
+      - vdr-plugin-dbus2vdr
     state: present
     install_recommends: no
-  with_items:
-    - vdr
-    - vdrctl
-    - vdr-plugin-dbus2vdr
 - name: add svdrp and svdrp-disc to /etc/services
   lineinfile:
     dest: /etc/services
@@ -48,11 +47,9 @@
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
 - name: apt | install additional vdr plugins
   apt:
-    name: '{{ item }}'
+    name: '{{ vdr_plugins | default([]) }}'
     state: present
     install_recommends: no
-  with_items:
-    '{{ vdr_plugins | default({}) }}'
   notify: [ 'Restart VDR' ]
 - name: ensure vdr is stopped
   systemd:

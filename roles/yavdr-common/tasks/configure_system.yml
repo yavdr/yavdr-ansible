@@ -31,32 +31,29 @@
       skip: true
 - name: apt | install basic packages
   apt:
-    name: '{{ item }}'
+    name:
+      - anacron
+      - acl
+      - at
+      - bash-completion
+      #- biosdevname  # caution: may change device names after a minimal installation!
+      - debconf-utils
+      - linux-firmware
+      - psmisc
+      - python-kmodpy
+      - python-requests
+      - python-usb
+      - python3-usb
+      - software-properties-common
+      - ssh
+      - wget
+      - wpasupplicant
+      - usbutils
+      - xfsprogs
     state: present
     install_recommends: no
-  with_items:
-    - anacron
-    - acl
-    - at
-    - bash-completion
-    #- biosdevname  # caution: may change device names after a minimal installation!
-    - debconf-utils
-    - linux-firmware
-    - psmisc
-    - python-kmodpy
-    - python-requests
-    - python-usb
-    - python3-usb
-    - software-properties-common
-    - ssh
-    - wget
-    - wpasupplicant
-    - usbutils
-    - xfsprogs
 - name: apt | install extra packages
   apt:
-    name: '{{ item }}'
+    name: '{{ extra_packages }}'
     state: present
     install_recommends: no
-  with_items:
-      '{{ extra_packages }}'

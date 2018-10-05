@@ -55,31 +55,29 @@
 
 - name: apt | install packages for xorg
   apt:
-    name: '{{ item }}'
+    name:
+      - xlogin
+      - yavdr-xorg
+      - xorg
+      - xserver-xorg-input-all
+      - xserver-xorg-video-all
+      - openbox
+      - python3-dbus2vdr
+      - python3-yavdrfrontend
+      - read-edid
+      - tmux
+      - vdr-plugin-desktop
+      - vdr-plugin-osd2web
+      - feh
+      #- yavdr-xorg
     state: present
-  with_items:
-    - xlogin
-    - yavdr-xorg
-    - xorg
-    - xserver-xorg-input-all
-    - xserver-xorg-video-all
-    - openbox
-    - python3-dbus2vdr
-    - python3-yavdrfrontend
-    - read-edid
-    - tmux
-    - vdr-plugin-desktop
-    - vdr-plugin-osd2web
-    - feh
-    #- yavdr-xorg
 
 - name: apt | install packages for Intel IGP
   apt:
-    name: '{{ item }}'
+    name:
+      - xserver-xorg-video-intel
+      - i965-va-driver-shaders
     state: present
-  with_items:
-    - xserver-xorg-video-intel
-    - i965-va-driver-shaders
   when: intel_detected
 
 - name: download yavdr logo
@@ -106,9 +104,8 @@
 
 - name: apt | install desktop programs
   apt:
-    name: '{{ item }}'
+    name:
+      - xterm
+      - firefox
+      - kiosk-browser
     state: present
-  with_items:
-    - xterm
-    - firefox
-    - kiosk-browser
