@@ -1,0 +1,13 @@
+#!/bin/sh
+{{ ansible_managed | comment }}
+
+case $1 in
+  pre)
+    /bin/systemctl stop vdr
+    /usr/local/bin/module-helper -u dvb_core
+    ;;
+  post)
+    /usr/local/bin/module-helper -r
+    /bin/systemctl start vdr
+    ;;
+esac

@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+# {{ ansible_managed }}
+# based on http://www.e-tobi.net/blog/files/module-helper
+# http://www.e-tobi.net/blog/2010/11/06/squeeze-vdr-teil-9-suspend-to-ram
+# ported to python3 by Alexander Grothe
+#
+# This script resolves linux kernel module dependencies automatically, so only
+# the base module has to be specified (e.g. dvb_core)
+
+import argparse
+import subprocess
+import pickle
+
+dependency_map = {}
+
+
+def find_dependencies(module, dependencies=[]):
+    dependencies.append(module)
+    if module in dependency_map:
+        for dependency in dependency_map[module]:
+            find_dependencies(dependency, dependencies)
+    return dependencies
+
+
+def build_module_dependency_map():
+    with subprocess.Popen(['lsmod'],
+                          stdout=subprocess.PIPE,
+                          universal_newlines=True
+                          ) as p:
+        for line in p.stdout:
+            values = line.split()
+            if len(values) > 3:
+                #print("module {} depends on {}".format(values[0], values[3]))
+                dependency_map[values[0]] = values[3].split(',')
+
+
+def run_command_on_module_list(command, module_list):
+    for module in module_list:
+        cmd = [command, module]
+        subprocess.call(cmd)
+
+
+def create_argparser():
+    parser = argparse.ArgumentParser(description="load or unload modules")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-u', '--unload', metavar='MODULE', nargs='+',
+                       help='unload modules')
+    group.add_argument('-r', '--reload', action='store_true',
+                       help='reload modules')
+    parser.add_argument('-t', '--temp-file', nargs='?',
+                        default='/tmp/modules.list',
+                        help='''store names of unloaded modules in a file,
+                              default location is /tmp/modules.list''')
+    return parser
+
+if __name__ == '__main__':
+    parser = create_argparser()
+    args = parser.parse_args()
+    if args.unload:
+        build_module_dependency_map()
+        all_modules = []
+        for module in args.unload:
+            all_modules.extend(find_dependencies(module))
+        all_modules.reverse()
+        try:
+            with open(args.temp_file, 'wb') as f:
+                pickle.dump(all_modules, f)
+            run_command_on_module_list('rmmod', all_modules)
+        except Exception as e:
+            print(e)
+            pass
+    elif args.reload:
+        with open(args.temp_file, 'rb') as f:
+            all_modules = pickle.load(f)
+        run_command_on_module_list('modprobe', all_modules)
+    else:
+        parser.print_help()

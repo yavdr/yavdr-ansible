@@ -565,6 +565,7 @@ yavdr-common executes the following tasks:
         - import_tasks: configure_system.yml
         - import_tasks: create_directories.yml
         - import_tasks: create_sudoers.yml
+        - import_tasks: standby_support.yml
   tags: [install]
  #+END_SRC
 ***** Disable default installation of recommended packages
@@ -733,6 +734,22 @@ yavdr-common executes the following tasks:
     mode: '0444'
     validate: visudo -cf %s
 #+END_SRC
+***** basic scripts for standby support
+Stop vdr before entering suspend and unload dvb modules, reverse this operation on resume
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/standby_support.yml :exports none :mkdirp yes
+- name: create /usr/local/bin/module-helper
+  template:
+    src: templates/module-helper.js
+    dest: /usr/local/bin/module-helper
+    mode: '0755'
+
+- name: create standby hooks /lib/systemd/system-sleep/yavdr
+  template:
+    src: templates/system-sleep_yavdr.j2
+    dest: /lib/systemd/system-sleep/yavdr
+    mode: '0755'
+
+#+END_SRC
 *** templates
 :PROPERTIES:
 :ID:       48c1e3f9-5edf-409a-b826-629eac9ee4b4
@@ -751,6 +768,103 @@ Allow the vdr user to restart ~vdr.service~ and reboot the system
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/yavdr.sudoers.j2 :mkdirp yes :padline no
 {{ vdr.user }} ALL=NOPASSWD: /bin/systemctl --no-block restart vdr.service
 {{ vdr.user }} ALL=NOPASSWD: /bin/systemctl --no-block reboot
+#+END_SRC
+**** suspend hooks
+#+BEGIN_SRC shell :tangle roles/yavdr-common/templates/system-sleep_yavdr.j2 :mkdirp yes :padline no
+#!/bin/sh
+{{ ansible_managed | comment }}
+
+case $1 in
+  pre)
+    /bin/systemctl stop vdr
+    /usr/local/bin/module-helper -u dvb_core
+    ;;
+  post)
+    /usr/local/bin/module-helper -r
+    /bin/systemctl start vdr
+    ;;
+esac
+
+#+END_SRC
+**** module-helper
+#+BEGIN_SRC python :tangle roles/yavdr-common/templates/module-helper.j2 :mkdirp yes :padline no
+#!/usr/bin/env python3
+# {{ ansible_managed }}
+# based on http://www.e-tobi.net/blog/files/module-helper
+# http://www.e-tobi.net/blog/2010/11/06/squeeze-vdr-teil-9-suspend-to-ram
+# ported to python3 by Alexander Grothe
+#
+# This script resolves linux kernel module dependencies automatically, so only
+# the base module has to be specified (e.g. dvb_core)
+
+import argparse
+import subprocess
+import pickle
+
+dependency_map = {}
+
+
+def find_dependencies(module, dependencies=[]):
+    dependencies.append(module)
+    if module in dependency_map:
+        for dependency in dependency_map[module]:
+            find_dependencies(dependency, dependencies)
+    return dependencies
+
+
+def build_module_dependency_map():
+    with subprocess.Popen(['lsmod'],
+                          stdout=subprocess.PIPE,
+                          universal_newlines=True
+                          ) as p:
+        for line in p.stdout:
+            values = line.split()
+            if len(values) > 3:
+                #print("module {} depends on {}".format(values[0], values[3]))
+                dependency_map[values[0]] = values[3].split(',')
+
+
+def run_command_on_module_list(command, module_list):
+    for module in module_list:
+        cmd = [command, module]
+        subprocess.call(cmd)
+
+
+def create_argparser():
+    parser = argparse.ArgumentParser(description="load or unload modules")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-u', '--unload', metavar='MODULE', nargs='+',
+                       help='unload modules')
+    group.add_argument('-r', '--reload', action='store_true',
+                       help='reload modules')
+    parser.add_argument('-t', '--temp-file', nargs='?',
+                        default='/tmp/modules.list',
+                        help='''store names of unloaded modules in a file,
+                              default location is /tmp/modules.list''')
+    return parser
+
+if __name__ == '__main__':
+    parser = create_argparser()
+    args = parser.parse_args()
+    if args.unload:
+        build_module_dependency_map()
+        all_modules = []
+        for module in args.unload:
+            all_modules.extend(find_dependencies(module))
+        all_modules.reverse()
+        try:
+            with open(args.temp_file, 'wb') as f:
+                pickle.dump(all_modules, f)
+            run_command_on_module_list('rmmod', all_modules)
+        except Exception as e:
+            print(e)
+            pass
+    elif args.reload:
+        with open(args.temp_file, 'rb') as f:
+            all_modules = pickle.load(f)
+        run_command_on_module_list('modprobe', all_modules)
+    else:
+        parser.print_help()
 #+END_SRC
 ** collect facts about the system with custom modules 
 :PROPERTIES:
