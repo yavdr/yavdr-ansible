@@ -1,0 +1,20 @@
+---
+
+- name: apt | install setserial
+  apt:
+    name: setserial
+
+- name: load serial_ir on startup
+  template:
+    src: roles/serial-ir/modules-load.d/serial_ir.conf.j2
+    dest: /etc/modules-load.d/serial_ir.conf
+
+- name: serial_ir module options
+  template:
+    src: roles/serial-ir/modprobe.d/serial_ir.conf.j2
+    src: /etc/modprobe.d/serial_ir.conf
+
+- name: setserial options
+  template:
+    src: roles/serial-ir/serial.conf.j2
+    dest: /etc/serial.conf
