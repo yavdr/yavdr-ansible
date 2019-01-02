@@ -791,7 +791,7 @@ Allow the vdr user to restart ~vdr.service~ and reboot the system
 #+END_SRC
 **** suspend hooks
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/system-sleep_yavdr.j2 :mkdirp yes :padline no
-#!/bin/sh
+#!/bin/bash
 {{ ansible_managed | comment }}
 
 case $1 in
@@ -800,6 +800,12 @@ case $1 in
     /usr/local/bin/module-helper -u dvb_core
     ;;
   post)
+    # reload rc-core keytables
+    for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
+    do 
+        ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
+    done
+
     /usr/local/bin/module-helper -r
     /bin/systemctl start vdr
     ;;
@@ -5927,6 +5933,25 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 :PROPERTIES:
 :ID:       30011bae-7869-4928-b8ea-b66034badf9e
 :END:
+**** Overrides for systemd unit sundtek.service
+- [ ] wait for network
+- [X] wait for local devices (see sundtek.service)
+**** /etc/systemd/system/sundtek.service
+#+BEGIN_SRC systemd :tangle roles/sundtek/systemd/sundtek.service.j2
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=Sundtek mediasrv
+After=network-online.target
+Before=vdr.service
+[Service]
+Type=forking
+ExecStart=/opt/bin/mediasrv -d --pluginpath=/opt/bin --wait-for-devices
+ExecStop=/opt/bin/mediaclient --shutdown
+[Install]
+WantedBy=multi-user.target
+#+END_SRC
+
 **** /etc/sundtek.conf
 :PROPERTIES:
 :ID:       73609a51-8209-47c2-82a0-48838f47b884
@@ -6031,9 +6056,6 @@ disable_analogtv=1                                      #disable initialization 
 {% endif %}
 {% endfor %}
 #+END_SRC
-**** Overrides for systemd unit sundtek.service
-- [ ] wait for network
-- [ ] wait for local devices
 ** template-test
 :PROPERTIES:
 :EXPORT: nil

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 {{ ansible_managed | comment }}
 
 case $1 in
@@ -7,6 +7,12 @@ case $1 in
     /usr/local/bin/module-helper -u dvb_core
     ;;
   post)
+    # reload rc-core keytables
+    for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
+    do 
+        ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
+    done
+
     /usr/local/bin/module-helper -r
     /bin/systemctl start vdr
     ;;
