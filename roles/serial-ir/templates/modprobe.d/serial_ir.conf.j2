@@ -1,8 +1,12 @@
-#COM1 equivalent, /dev/ttyS0
+{{ ansible_managed | comment }}
+
 {% if serial_ir_device == "ttyS0" %}
+#COM1 equivalent, /dev/ttyS0
 options serial_ir irq=4 io=0x3f8
 {% elif serial_ir_device == "ttyS1" %}
 #COM2 equivalent, /dev/ttyS1
 options serial_ir irq=3 io=0x2f8
 {% endif %}
+{% if serial_ir_device in ("ttyS0", "ttyS1") %}
 install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe --ignore-install serial_ir
+{% endif %}

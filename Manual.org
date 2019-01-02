@@ -5729,13 +5729,16 @@ This role preconfigures the system for serial "homebrew" receivers. Newer kernel
 As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps.cfg]]) a keytable for a RC-6 MCE remote is loaded by default. You can choose a different keymap which may also use another ir-protocol.
 *** defaults
 #+BEGIN_SRC yaml :tangle roles/serial-ir/defaults/main.yml
----
+--- 
+# file: roles/serial-ir/defaults/main.yml
+
 serial_ir_device: ttyS0
 #+END_SRC
 
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/serial-ir/tasks/main.yml
 ---
+# file: roles/serial-ir/tasks/main.yml
 
 - name: apt | install setserial
   apt:
@@ -5758,22 +5761,30 @@ serial_ir_device: ttyS0
 #+END_SRC
 *** templates
 **** load serial_ir on startup
-#+BEGIN_SRC conf :tangle roles/serial-ir/templates/modules-load.d/serial_ir.conf.j2
+#+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modules-load.d/serial_ir.conf.j2
+{{ ansible_managed | comment }}
+
 serial_ir
 #+END_SRC
 **** serial_ir module options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modprobe.d/serial_ir.conf.j2
-#COM1 equivalent, /dev/ttyS0
+{{ ansible_managed | comment }}
+
 {% if serial_ir_device == "ttyS0" %}
+#COM1 equivalent, /dev/ttyS0
 options serial_ir irq=4 io=0x3f8
 {% elif serial_ir_device == "ttyS1" %}
 #COM2 equivalent, /dev/ttyS1
 options serial_ir irq=3 io=0x2f8
 {% endif %}
+{% if serial_ir_device in ("ttyS0", "ttyS1") %}
 install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe --ignore-install serial_ir
+{% endif %}
 #+END_SRC
 **** setserial options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/serial.conf.j2
+{{ ansible_managed | comment }}
+
 {% if serial_ir_device == "ttyS0" %}
 #COM1 equivalent, /dev/ttyS0
 /dev/ttyS0 uart none
