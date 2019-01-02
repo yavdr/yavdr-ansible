@@ -426,7 +426,8 @@ grub:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # Serial device to configure for a homebrew receiver.
 # Choose either ttyS0 (COM1) or ttyS1 (COM2)
-serial_ir_device = ttyS0
+# Also ensure that the role serial-ir is enabled in yavdr07.yml 
+serial_ir_device: ttyS0
 #+END_SRC
 * Roles
 :PROPERTIES:
@@ -5748,7 +5749,7 @@ serial_ir_device: ttyS0
 - name: serial_ir module options
   template:
     src: roles/serial-ir/modprobe.d/serial_ir.conf.j2
-    src: /etc/modprobe.d/serial_ir.conf
+    dest: /etc/modprobe.d/serial_ir.conf
 
 - name: setserial options
   template:
