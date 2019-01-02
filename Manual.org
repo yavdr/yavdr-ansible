@@ -262,6 +262,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
      - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
      - autoinstall-firmware       # download and install firmware files for dvb devices
+     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
@@ -420,6 +421,12 @@ wakeup_method: acpiwakeup
 grub:
   timeout: 0
   boot_options: quiet splash
+#+END_SRC
+** Serial IR
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+# Serial device to configure for a homebrew receiver.
+# Choose either ttyS0 (COM1) or ttyS1 (COM2)
+serial_ir_device = ttyS0
 #+END_SRC
 * Roles
 :PROPERTIES:
@@ -5716,13 +5723,13 @@ dependencies:
   when: '"1209:4444" in usb or "16c0:27d9" in usb'
 #+END_SRC
 ** Serial IR Receivers
-This role preconfigures the system for serial "homebrew" receivers. Newer kernel versions provide ~serial_ir~ which acts as a rc-core driver, so we don't need lircd (it works with eventircd OOTB).
+This role preconfigures the system for serial "homebrew" receivers. Newer kernel versions provide ~serial_ir~ which acts as a rc-core driver, so we don't need lircd - eventlircd can use the device directly.
 
-As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps.cfg]]) a keytable for a RC-6 MCE remote is loaded by default. You can choose a different keymap which may use another ir-protocol.
+As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps.cfg]]) a keytable for a RC-6 MCE remote is loaded by default. You can choose a different keymap which may also use another ir-protocol.
 *** defaults
 #+BEGIN_SRC yaml :tangle roles/serial-ir/defaults/main.yml
 ---
-serial_device: ttyS0
+serial_ir_device: ttyS0
 #+END_SRC
 
 *** tasks
@@ -5756,20 +5763,20 @@ serial_ir
 **** serial_ir module options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modprobe.d/serial_ir.conf.j2
 #COM1 equivalent, /dev/ttyS0
-{% if serial_device == "ttyS0" %}
+{% if serial_ir_device == "ttyS0" %}
 options serial_ir irq=4 io=0x3f8
-{% elif serial_device == "ttyS1" %}
+{% elif serial_ir_device == "ttyS1" %}
 #COM2 equivalent, /dev/ttyS1
 options serial_ir irq=3 io=0x2f8
 {% endif %}
-install serial_ir setserial /dev/{{serial_device}} uart none; /sbin/modprobe --ignore-install serial_ir
+install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe --ignore-install serial_ir
 #+END_SRC
 **** setserial options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/serial.conf.j2
-{% if serial_device == "ttyS0" %}
+{% if serial_ir_device == "ttyS0" %}
 #COM1 equivalent, /dev/ttyS0
 /dev/ttyS0 uart none
-{% elif serial_device == "ttyS1" %}
+{% elif serial_ir_device == "ttyS1" %}
 #COM2 equivalent, /dev/ttyS1
 /dev/ttyS1 uart none
 {% endif %}
