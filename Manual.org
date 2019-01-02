@@ -801,10 +801,12 @@ case $1 in
     ;;
   post)
     # reload rc-core keytables
-    for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
-    do 
-        ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
-    done
+    [ -x /usr/bin/ir-keytable ] && {
+        for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
+        do 
+            ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
+        done
+    }
 
     /usr/local/bin/module-helper -r
     /bin/systemctl start vdr
