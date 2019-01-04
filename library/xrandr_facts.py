@@ -25,7 +25,7 @@ options:
           - the DISPLAY variable to use when calling xrandr
     preferred_outputs:
         required: False
-        default: ["HDMI", "DP", "DVI", "VGA", "TV"]
+        default: ["HDMI", "DP", "DVI", "VGA", "TV", "Virtual"]
         description:
           - ranking of the preferred display connectors
     preferred_refreshrates:
@@ -59,7 +59,7 @@ EXAMPLES = '''
 ARG_SPECS = {
     'display': dict(default=":0", type='str', required=False),
     'preferred_outputs': dict(
-        default=["HDMI", "DP", "DVI", "VGA", "TV"], type='list', required=False),
+        default=["HDMI", "DP", "DVI", "VGA", "TV", "Virtual"], type='list', required=False),
     'preferred_refreshrates': dict(
         default=[50, 60, 75, 30, 25], type='list', required=False),
     'preferred_resolutions': dict(
@@ -71,7 +71,7 @@ ARG_SPECS = {
 
 SCREEN_REGEX = re.compile("^(?P<screen>Screen\s\d+:)(?:.*)")
 CONNECTOR_REGEX = re.compile(
-    "^(?P<connector>.*-\d+)\s(?P<connection_state>connected|disconnected)\s(?P<primary>primary)?")
+    "^(?P<connector>.*-?\d+)\s(?P<connection_state>connected|disconnected)\s(?P<primary>primary)?")
 MODE_REGEX = re.compile("^\s+(?P<resolution>\d{3,}x\d{3,}).*")
 
 Mode = namedtuple('Mode', ['connection', 'resolution', 'refreshrate'])
