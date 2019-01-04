@@ -2595,11 +2595,54 @@ Section "InputClass"
     Option     "Ignore"    "True"
 EndSection
 #+END_SRC
+
+***** intel graphics xorg.conf snippet
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/20-intel.conf.j2
+{{ ansible_managed | comment }}
+
+{% set output = xorg.primary.connector|replace("-", "") %}
+
+Section "Device"
+  Identifier  "Device0"
+  Driver      "intel"
+  Option      "TearFree" "true"
+  
+  Option      "UseEDID" "true"
+  Option      "CustomEDID" "{{ output }}:/lib/firmware/edid/edid.{{ xorg.primary.connector }}.bin"
+EndSection
+Section "Screen"
+  Identifier  "Screen0"
+  Device      "Device0"
+  Monitor     "{{ output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+  EndSubSection
+EndSection
+Section "Monitor"
+  Identifier  "{{ output }}"
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+EndSection
+
+{% for connector, data in xrandr["Screen 0"].iteritems() %}
+{% if not data.is_connected %}
+Section "Monitor"
+  Identifier "{{ connector|replace("-","") }}"
+  Option "Ignore" "true"
+EndSection
+{% endif %}
+{% endfor %}
+#+END_SRC
 ***** xorg.conf
 :PROPERTIES:
 :ID:       d7064700-5a05-478a-a20d-10a5fe472661
 :END:
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
+{{ ansible_managed | comment }}
+
 Section "Device"
         Identifier "nvidia"
         Driver  "nvidia"
