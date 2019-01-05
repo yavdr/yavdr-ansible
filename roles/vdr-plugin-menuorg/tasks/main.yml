@@ -1,0 +1,15 @@
+---
+# file: roles/vdr-plugin-menuorg/tasks/main.yml
+
+- name: apt | install vdr-plugin-menuorg and yavdr-i18n
+  apt:
+    name:
+      - vdr-plugin-menuorg 
+      - yavdr-i18n
+    state: present
+    install_recommends: no
+
+- name: create /var/lib/vdr/plugins/menuorg.xml
+  template:
+    src: templates/menuorg.xml.j2
+    dest: /var/lib/vdr/plugins/menuorg.xml

@@ -1335,6 +1335,79 @@ install_avahi: true
     - prevent-umount-on-pause
 #+END_SRC
 
+** vdr-plugin-menuorg
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/vdr-plugin-menuorg/tasks/main.yml
+---
+# file: roles/vdr-plugin-menuorg/tasks/main.yml
+
+- name: apt | install vdr-plugin-menuorg and yavdr-i18n
+  apt:
+    name:
+      - vdr-plugin-menuorg 
+      - yavdr-i18n
+    state: present
+    install_recommends: no
+
+- name: create /var/lib/vdr/plugins/menuorg.xml
+  template:
+    src: templates/menuorg.xml.j2
+    dest: /var/lib/vdr/plugins/menuorg.xml
+#+END_SRC
+*** templates
+#+BEGIN_SRC jinja2
+<?xml version="1.0" encoding="UTF-8"?>                                                                                                                      
+{{ ansible_managed | comment('xml') }}
+<!--
+This is the config file for the Menuorg plug-in.
+See /usr/share/doc/vdr-plugin-menurg for examples and a full
+description of the config file format.
+-->
+<menus>
+    <system name="Schedule" />
+    <system name="Channels" />
+    <system name="Timers" />
+    <system name="Recordings" />
+    <plugin name="tvguide" />
+    <plugin name="desktop" />
+    <command name="Kodi" execute="frontend-dbus-send switchto kodi" />
+    <menu name="{{ 'VDR Plugins' | translate }}">
+        <plugin name="epgsearchonly" />
+        <plugin name="quickepgsearch" />
+        <plugin name="conflictcheckonly" />
+        <plugin name="markad" />
+        <plugin name="recsearch" />
+        <plugin name="undelete" />
+        <plugin name="radio" />
+        <plugin name="osd2web" />
+    </menu>
+    <menu name="{{ 'System' | translate }}">
+         <menu name="Befehle">
+               <command name="{{ "Safely remove usb mass storage" | translate }}" confirm="yes" execute="/usr/bin/vdr-mounter --unmount-all &amp;> /dev/null" />
+               <command name="{{ "Update vdr recordings list" | translate }}" execute="/usr/bin/vdr-dbus-send /Recordings recording.Update &amp;> /dev/null " />
+               <command name="{{ "Restart VDR" |translate }}" confirm="yes" execute="sudo /sbin/initctl restart vdr" />
+               <command name="{{ "Reboot system"| translate }}" confirm="yes" execute="/usr/bin/at now -M -f /usr/bin/vdr-reboot" />
+               <command name="{{ "Shutdown system" | translate }}" execute="/usr/bin/lircd2uinput-send KEY_POWER2 &amp;> /dev/null &amp; " />
+         </menu>
+         <system name="Setup" />
+         <plugin name="femon" />
+         <plugin name="devstatus" />
+         <plugin name="epg2vdr" />
+         <plugin name="scraper2vdr" />
+         <plugin name="sndctl" />
+         <plugin name="suspendoutput" />
+         <plugin name="recstatus" />
+         <plugin name="dynamite" />
+         <plugin name="noepgmenu" />
+         <plugin name="systeminfo" />
+         <plugin name="filebrowser" />
+         <plugin name="pin" />
+         <plugin name="pulsecontrol" />
+         <plugin name="softhddevice" />
+         </menu>
+    <system name="Commands" />
+</menus>
+#+END_SRC
 ** nfs-server
 :PROPERTIES:
 :ID:       dc47cc3a-6f18-4c8f-8d07-845f18015ee7
