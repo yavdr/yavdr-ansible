@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>                                                                                                                      
+{{ ansible_managed | comment('xml') }}
+<!--
+This is the config file for the Menuorg plug-in.
+See /usr/share/doc/vdr-plugin-menurg for examples and a full
+description of the config file format.
+-->
+<menus>
+    <system name="Schedule" />
+    <system name="Channels" />
+    <system name="Timers" />
+    <system name="Recordings" />
+    <plugin name="tvguide" />
+    <plugin name="desktop" />
+    <command name="Kodi" execute="frontend-dbus-send switchto kodi" />
+    <menu name="{{ 'VDR Plugins' | translate }}">
+        <plugin name="epgsearchonly" />
+        <plugin name="quickepgsearch" />
+        <plugin name="conflictcheckonly" />
+        <plugin name="markad" />
+        <plugin name="recsearch" />
+        <plugin name="undelete" />
+        <plugin name="radio" />
+        <plugin name="osd2web" />
+    </menu>
+    <menu name="{{ 'System' | translate }}">
+         <menu name="Befehle">
+               <command name="{{ "Safely remove usb mass storage" | translate }}" confirm="yes" execute="/usr/bin/vdr-mounter --unmount-all &amp;> /dev/null" />
+               <command name="{{ "Update vdr recordings list" | translate }}" execute="/usr/bin/vdr-dbus-send /Recordings recording.Update &amp;> /dev/null " />
+               <command name="{{ "Restart VDR" |translate }}" confirm="yes" execute="sudo /sbin/initctl restart vdr" />
+               <command name="{{ "Reboot system"| translate }}" confirm="yes" execute="/usr/bin/at now -M -f /usr/bin/vdr-reboot" />
+               <command name="{{ "Shutdown system" | translate }}" execute="/usr/bin/lircd2uinput-send KEY_POWER2 &amp;> /dev/null &amp; " />
+         </menu>
+         <system name="Setup" />
+         <plugin name="femon" />
+         <plugin name="devstatus" />
+         <plugin name="epg2vdr" />
+         <plugin name="scraper2vdr" />
+         <plugin name="sndctl" />
+         <plugin name="suspendoutput" />
+         <plugin name="recstatus" />
+         <plugin name="dynamite" />
+         <plugin name="noepgmenu" />
+         <plugin name="systeminfo" />
+         <plugin name="filebrowser" />
+         <plugin name="pin" />
+         <plugin name="pulsecontrol" />
+         <plugin name="softhddevice" />
+         </menu>
+    <system name="Commands" />
+</menus>
