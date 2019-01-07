@@ -1,0 +1,48 @@
+{{ ansible_managed | comment }}
+
+{% set output = xorg.primary.connector|replace("-", "") %}
+
+Section "Device"
+  Identifier  "Device0"
+  Driver      "intel"
+  Option      "TearFree" "true"
+  
+  Option      "UseEDID" "true"
+  Option      "CustomEDID" "{{ output }}:{{ xorg.primary.edid }}"
+EndSection
+Section "Screen"
+  Identifier  "Screen0"
+  Device      "Device0"
+  Monitor     "{{ output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.primary.mode %}
+    Modes {{ xorg.primary.mode }}
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+Section "Monitor"
+  Identifier  "{{ output }}"
+  {% if xorg.primary.modelines %}
+  {% for modeline in xorg.primary.modelines %}
+  {{ modeline }}
+  {% endfor %}
+  {% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+  {% endif %}
+EndSection
+
+{% for connector, data in xrandr["Screen 0:"].iteritems() %}
+{% if not data.is_connected or connector != xorg.primary.connector %}
+Section "Monitor"
+  Identifier "{{ connector|replace("-","") }}"
+  Option "Ignore" "true"
+EndSection
+{% endif %}
+
+{% endfor %}
