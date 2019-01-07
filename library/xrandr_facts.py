@@ -195,6 +195,7 @@ def parse_xrandr_verbose(iterator):
 def parse_edid_data(edid):
     vendor = "Unknown"
     model = "Unknown"
+    modelines = []
     try:
         data = subprocess.check_output("parse-edid < {}".format(edid),
                                        shell=True, universal_newlines=True)
@@ -202,11 +203,25 @@ def parse_edid_data(edid):
         pass
     else:
         for line in data.splitlines():
+            line = line.strip()
             if "VendorName" in line:
-                vendor = line.strip().split('"')[1]
+                vendor = line.split('"')[1]
             if "ModelName" in line:
-                model = line.strip().split('"')[1]
-    return vendor, model
+                model = line.split('"')[1]
+            if "Modeline" in line:
+                print(line)
+                _, _, line = line.split('"', 2)
+                FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS = line.split(None, 9)
+                print(FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS)
+                refresh = round(float(FF) * 1E6 / (float(H4) * float(V4)))
+                interlaced = "interlaced" in FLAGS
+                if interlaced:
+                    refresh /= 2
+                refresh = int(refresh)
+                modeline_name = '"{}x{}_{}{}"'.format(H1, V1, refresh, "i" if interlaced else '')
+                modelines.append(" ".join(("Modeline", modeline_name,
+                                          FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS)))
+    return vendor, model, modelines
 
 
 def collect_nvidia_data():
@@ -283,8 +298,8 @@ def find_drm_connectors(primary):
         if connected and xrandr_edid_bytes:
             drm_edid = os.path.join(os.path.dirname(status_p), 'edid')
             try:
-               with open(drm_edid, 'rb') as f:
-                   is_primary = f.read() == xrandr_edid_bytes
+                with open(drm_edid, 'rb') as f:
+                    is_primary = f.read() == xrandr_edid_bytes
             except IOError:
                 continue
             else:
@@ -319,7 +334,7 @@ def output_data(data, write_edids=True):
                 gpu_name = None
                 bus_id = None
 
-            def create_entry(my_dict, name, connector, resolution, refreshrate, vendor, model):
+            def create_entry(my_dict, name, connector, resolution, refreshrate, vendor, model, modelines):
                 my_dict[name] = {
                     'connector': connector,
                     'resolution': resolution,
@@ -328,15 +343,16 @@ def output_data(data, write_edids=True):
                     'mode': "{}_{}".format(resolution, refreshrate),
                     'vendor': vendor,
                     'model': model,
+                    'modelines': modelines,
                 }
                 if gpu_name and bus_id:
                     result[name]['gpu_name'] = gpu_name
                     result[name]['bus_id'] = bus_id
 
             connector_0, resolution_0, refreshrate_0 = max(modes, key=sort_mode)[:3]
-            vendor_0, model_0 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_0))
+            vendor_0, model_0, modelines_0 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_0))
             create_entry(result, 'primary', connector_0, resolution_0,
-                         refreshrate_0, vendor_0, model_0)
+                         refreshrate_0, vendor_0, model_0, modelines_0)
 
             if write_edids:
                 drm = find_drm_connectors(Connector(connector_0,
@@ -346,9 +362,9 @@ def output_data(data, write_edids=True):
             other_modes = [mode for mode in modes if mode[0] != connector_0]
             if other_modes:
                 connector_1, resolution_1, refreshrate_1 = max(other_modes, key=sort_mode)[:3]
-                vendor_1, model_1 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_1))
+                vendor_1, model_1, modelines_1 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_1))
                 create_entry(result, 'secondary', connector_1, resolution_1,
-                             refreshrate_1, vendor_1, model_1)
+                             refreshrate_1, vendor_1, model_1, modelines_1)
 
     module.exit_json(changed=True if write_edids else False,
                      ansible_facts={'xrandr': data, 'xorg': result, 'drm': drm})
