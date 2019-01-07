@@ -98,6 +98,10 @@
     var: xorg.secondary
   when: xorg.secondary is defined
 
+- debug:
+    var: drm
+  when: drm is defined
+
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -125,9 +129,15 @@
       copy:
         content: '{{ {"xrandr": xrandr} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xrandr.fact
+
+    - name: write drm variable as local fact
+      copy:
+        content: '{{ {"drm": drm} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/drm.fact
   when:
     - xrandr is defined
     - xorg is defined
+    - drm is defined
 
 - name: update xorg and xrandr variable with values from local facts if needed
   set_fact:

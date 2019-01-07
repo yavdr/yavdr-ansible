@@ -1369,8 +1369,8 @@ description of the config file format.
     <system name="Timers" />
     <system name="Recordings" />
     <plugin name="tvguide" />
-    <plugin name="desktop" />
     <command name="Kodi" execute="frontend-dbus-send switchto kodi" />
+    <plugin name="desktop" />
     <menu name="{{ 'VDR Plugins' | translate }}">
         <plugin name="epgsearchonly" />
         <plugin name="quickepgsearch" />
@@ -1382,7 +1382,7 @@ description of the config file format.
         <plugin name="osd2web" />
     </menu>
     <menu name="{{ 'System' | translate }}">
-         <menu name="Befehle">
+         <menu name="{{ 'Commands' | translate }}">
                <command name="{{ "Safely remove usb mass storage" | translate }}" confirm="yes" execute="/usr/bin/vdr-mounter --unmount-all &amp;> /dev/null" />
                <command name="{{ "Update vdr recordings list" | translate }}" execute="/usr/bin/vdr-dbus-send /Recordings recording.Update &amp;> /dev/null " />
                <command name="{{ "Restart VDR" |translate }}" confirm="yes" execute="sudo /sbin/initctl restart vdr" />
@@ -2499,6 +2499,10 @@ preferred_refreshrates:
     var: xorg.secondary
   when: xorg.secondary is defined
 
+- debug:
+    var: drm
+  when: drm is defined
+
 - name: "stop x-verbose@vt7.service"
   systemd:
     name: "x-verbose@vt7.service"
@@ -2526,9 +2530,15 @@ preferred_refreshrates:
       copy:
         content: '{{ {"xrandr": xrandr} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xrandr.fact
+
+    - name: write drm variable as local fact
+      copy:
+        content: '{{ {"drm": drm} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/drm.fact
   when:
     - xrandr is defined
     - xorg is defined
+    - drm is defined
 
 - name: update xorg and xrandr variable with values from local facts if needed
   set_fact:
@@ -2598,8 +2608,9 @@ template:
 :ID:       eb4e27ae-937f-4893-91c2-cf3d731536db
 :END:
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/grub.d/intel.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
 {% set output_flag = 'D' if ("HDMI" in xorg.primary.connector or "DVI" in xorg.primary.connector or "DP" in xorg.primary.connector) else 'e' %} 
-GRUB_CMDLINE_LINUX+=" video={{ xorg.primary.drm_connector }}:{{ xorg.primary.mode|replace('_', '@') }}{{ output_flag }} drm.edid_firmware={{ xorg.primary.drm_connector }}:edid/edid.bin"
+GRUB_CMDLINE_LINUX+=" video={{ drm.primary.drm_connector }}:{{ xorg.primary.mode|replace('_', '@') }}{{ output_flag }} drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
 # TODO: configure additional monitors (primary monitor on, all others off)
 #+END_SRC
 **** xorg
@@ -6530,11 +6541,11 @@ grub:
 :PROPERTIES:
 :ID:       b6b30fe9-27b4-4713-8a0d-56d4ef1919d4
 :END:
-#+BEGIN_SRC shell :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no
+#+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no
 #!/bin/sh
-exec tail -n +3 $0
+{{ ansible_managed | comment }}
 
-# This file is configured by the ansible configuration for yaVDR
+exec tail -n +3 $0
 
 {% if system.shutdown is defined and system.shutdown == 'reboot' %}
 menuentry "PowerOff" {
