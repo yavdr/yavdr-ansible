@@ -139,13 +139,15 @@
     - xorg is defined
     - drm is defined
 
-- name: update xorg and xrandr variable with values from local facts if needed
+- name: update xorg, xrandr and drm variables with values from local facts if needed
   set_fact:
     xorg: '{{ ansible_local.xorg.xorg }}'
     xrandr: '{{ ansible_local.xrandr.xrandr }}'
+    drm: '{{ ansible_local.drm.drm }}'
   when:
     - xrandr is undefined
     - xorg is undefined
+    - drm is undefined
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
