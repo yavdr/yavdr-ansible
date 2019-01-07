@@ -2720,7 +2720,7 @@ Section "Screen"
   SubSection "Display"
     Depth       24
 {% if xorg.primary.mode %}
-    Modes {{ xorg.primary.mode }}
+    Modes     "{{ xorg.primary.mode }}"
 {% else %}
     Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
 {% endif %}
@@ -2728,15 +2728,15 @@ Section "Screen"
 EndSection
 Section "Monitor"
   Identifier  "{{ output }}"
-  {% if xorg.primary.modelines %}
-  {% for modeline in xorg.primary.modelines %}
+{% if xorg.primary.modelines %}
+{% for modeline in xorg.primary.modelines %}
   {{ modeline }}
-  {% endfor %}
-  {% else %}
+{% endfor %}
+{% else %}
   Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
   Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
   Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
-  {% endif %}
+{% endif %}
 EndSection
 
 {% for connector, data in xrandr["Screen 0:"].iteritems() %}
