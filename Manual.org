@@ -415,7 +415,10 @@ extra_packages:
   - tree
   - vim
   - w-scan
+  - t2scan
   - plymouth-theme-yavdr-logo
+  - vdr-addon-lifeguard-ng
+  - vdrpbd
 #+END_SRC
 ** System pre-configuration
 :PROPERTIES:
@@ -463,7 +466,6 @@ serial_ir_device: ttyS0
     install_recommends: no
     cache_valid_time: 60
 #+END_SRC
-
 ** nvidia experimental drivers
 :PROPERTIES:
 :ID:       32fdd667-36a0-4dc8-a94f-cbb2bf24ef75
@@ -1342,7 +1344,6 @@ install_avahi: true
     - vdr-update-monitor
     - prevent-umount-on-pause
 #+END_SRC
-
 ** vdr-plugin-menuorg
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/vdr-plugin-menuorg/tasks/main.yml
@@ -1482,8 +1483,7 @@ description of the config file format.
 </service>
 </service-group>
 #+END_SRC
-
-** STARTED yavdr-remote
+** yavdr-remote
 :PROPERTIES:
 :ID:       b36bb1c3-31df-4516-98a8-3887dfa911ec
 :END:
@@ -1776,11 +1776,6 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 # *	*			 vp7045               # found in vp7045.c
 
 #+END_SRC
-*** files
-:PROPERTIES:
-:ID:       bc431f9c-7497-4731-9112-d4a8366695e1
-:END:
-
 ** pulseaudio
 :PROPERTIES:
 :ID:       af6190ba-085f-44f4-96ad-31e33d318ce7
@@ -1826,7 +1821,6 @@ ctl.!default {
   fallback "sysdefault"
 }
 #+END_SRC
-
 ** yavdr-xorg
 :PROPERTIES:
 :ID:       6cccb613-6b37-4775-a53f-4c15992c6552
@@ -3113,7 +3107,6 @@ find "/etc/X11/" -name "edid.*.bin" -type f -exec cp -t "${DESTDIR}/lib/firmware
 manual_add_modules i915 radeon
 exit 0
 #+END_SRC
-
 ** yavdr-desktop
 :PROPERTIES:
 :ID:       8cb30c4c-39df-4d93-8ae1-652cf4c5b027
@@ -5197,7 +5190,6 @@ begin
     config = frontend-dbus-send switchbetween kodi vdr
 end
 #+END_SRC
-
 ** samba-install
 :PROPERTIES:
 :ID:       b51f567b-30cd-4cdf-8541-c07d9e423398
@@ -5657,7 +5649,6 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   when: satip_devices
   notify: [ 'Restart VDR' ]
 #+END_SRC
-
 ** autoinstall-targavfd
 :PROPERTIES:
 :ID:       0902fe6d-ed20-49cb-b88b-04a427ee6d71
@@ -5825,7 +5816,7 @@ dependencies:
 :PROPERTIES:
 :ID:       fbce5f86-5946-4f3e-aa9c-86fb0828c0d7
 :END:
-Problem: woher kommt der Treiber (AFAIK noch nicht im Kernel)? Die Firmware sollte in yavdr-firmware stecken
+How to get a driver for the TT-6400 FF card? Needed firmware files are in the ~yavdr-firmware~ package.
 *** dependencies
 :PROPERTIES:
 :ID:       efd41dfd-bec6-46bc-b19f-2fcb6d626c82
@@ -5846,12 +5837,13 @@ dependencies:
 
 - name: apt | install vdr-plugin-dvbhddevice if connected
   apt:
-    name: vdr-plugin-dvbhddevice
+    name:
+      - vdr-plugin-dvbhddevice
+      - yavdr-firmware
   when: '"13c2:300a" in pci or "13c2:300b" in pci'
   notify: [ 'Restart VDR' ]
 #+END_SRC
-
-** autoinstall-dvbsddevice
+** TODO autoinstall-dvbsddevice
 :PROPERTIES:
 :ID:       fb56a0eb-8586-4e05-8f0d-1154d73f7380
 :END:
@@ -5877,7 +5869,9 @@ dependencies:
 
 - name: apt | install vdr-plugin-dvbsddevice if module is loaded
   apt:
-    name: vdr-plugin-dvbsddevice
+    name:
+      - vdr-plugin-dvbsddevice
+      - yavdr-firmware
   when: '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]
 #+END_SRC
@@ -5920,7 +5914,6 @@ As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps
 
 serial_ir_device: ttyS0
 #+END_SRC
-
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/serial-ir/tasks/main.yml
 ---
@@ -6017,7 +6010,6 @@ install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe 
 :END:
 This systemd unit for the user session starts (and stops) kodi.
 #+INCLUDE: "roles/kodi/templates/kodi.service.j2" src conf
-
 *** files
 :PROPERTIES:
 :ID:       58c5c693-bd24-420a-bfed-79771e8e0d47
