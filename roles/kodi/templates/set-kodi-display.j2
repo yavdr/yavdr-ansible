@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""
+{{ ansible_managed }}
+
+This Script changes the monitor in KODI's guisettings.xml to the wanted output
+according to the DISPLAY environment variable. It works with KODI 18 (not KODI 17!).
+"""
+
+import os
+import sys
+import subprocess
+import xml.etree.ElementTree as ET
+
+
+GUISETTINGS = '/var/lib/vdr/.kodi/userdata/guisettings.xml'
+CACHE_DIR = '/var/lib/vdr/.kodi/.display_cache'
+VIDEOSCREEN_TEMPLATE = """<settings version="2">
+    <setting id="videoscreen.monitor" default="true">{}</setting>
+</settings>"""
+
+
+def get_output_names():
+    """
+    get display name from xrandr output for given DISPLAY environment variable
+    """
+    xrandr_output = [
+        l for l in subprocess.check_output(
+            ["xrandr"],
+            env={"DISPLAY": os.environ["DISPLAY"]}
+        ).decode("utf-8").splitlines()
+    ]
+    return [l.split()[0] for l in xrandr_output if " connected " in l]
+
+
+def parse_template(template_path, template, output=""):
+    """read videoscreen settings from backup or create a stub file"""
+    try:
+        xml_tree = ET.parse(template_path)
+    except FileNotFoundError:
+        print("{} not found, creating stub file".format(template_path))
+        xml_template = ET.fromstring(template.format(output))
+        xml_tree = ET.ElementTree(xml_template)
+    finally:
+        xml_tree.write(template_path)
+    return xml_tree
+
+
+def backup_videoscreen():
+    """parse guisettings.xml for display name an backup videoscreen data"""
+    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, "Default")
+    root = tree.getroot()
+    videoscreen = root.find("./setting[@id='videoscreen.monitor']")
+    output = videoscreen.text
+    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+    base_tree = ET.fromstring('<settings version="2"></settings>')
+    xml_tree = ET.ElementTree(base_tree)
+    backup_root = xml_tree.getroot()
+    backup_root.insert(0, videoscreen)
+    xml_tree.write(xml_path)
+    print("written backup for {} to {}".format(output, xml_path))
+
+
+def change_videoscreen(output, new_videoscreen):
+    """change videoscreen node to content of backup file"""
+    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, output)
+    root = tree.getroot()
+
+    videoscreen = root.find('./setting[@id="videoscreen.monitor"]')
+    if videoscreen is not None:
+        videoscreen.text = new_videoscreen.text
+    else:
+        videoscreen = root.find("./settings")
+        root.insert(0, new_videoscreen)
+    tree.write(GUISETTINGS)
+    return tree
+
+if __name__ == '__main__':
+    output = get_output_names()[0]
+    if not output:
+        sys.exit("Error: no screen name found")
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+    except PermissionError:
+        sys.exit("Error: insufficient permissions to create cachedir {}".format(
+            CACHE_DIR))
+    try:
+        backup_videoscreen()
+    except FileNotFoundError:
+        print("{} does not exist".format(GUISETTINGS))
+    except Exception as e:
+        print("Could not backup videoscreen.monitor:", str(e))
+    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+    videodir_xml = parse_template(xml_path, VIDEOSCREEN_TEMPLATE, output)
+    videodir_root = videodir_xml.getroot()
+    new_videoscreen = videodir_root.find("./setting[@id='videoscreen.monitor']")
+    guisettings_xml = change_videoscreen(output, new_videoscreen)

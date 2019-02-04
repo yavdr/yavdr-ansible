@@ -343,8 +343,8 @@ ppa_owner: 'ppa:yavdr'
 repositories:
   - '{{ ppa_owner }}/{{branch}}-main'
   - '{{ ppa_owner }}/{{branch}}-vdr'
+  - '{{ ppa_owner }}/{{branch}}-kodi'
   #- '{{ ppa_owner }}/{{branch}}-yavdr'
-  #- '{{ ppa_owner }}/{{branch}}-kodi'
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 :PROPERTIES:
@@ -1829,7 +1829,7 @@ ctl.!default {
 :PROPERTIES:
 :ID:       3f614f9c-c24b-4450-82ff-5c3fe103e695
 :END:
-The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*.  The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
+The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*. The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
 In order to use the keyboard layout configured during installation for the X-Server the script ~write-x11-keyboard-config~ reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to create ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
@@ -2578,6 +2578,10 @@ preferred_refreshrates:
   when:
     - intel_detected
 
+- name: server flags config snippet to disable screen blanking
+  template:
+    src: templates/10-serverflags.conf.j2
+    dest: /etc/X11/xorg.conf.d/10-serverflags.conf
 #+END_SRC
 **** intel.yml
 :PROPERTIES:
@@ -3070,6 +3074,17 @@ Section "Screen"
 # <?cs /if ?>
 EndSection
 {% endif %}
+#+END_SRC
+***** snippet to disable screen blanking
+#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/10-serverflags.conf.j2
+{{ ansible_managed | comment }}
+Section "ServerFlags"
+    Option         "NoPM" "true"
+    Option         "blank time" "0"
+    Option         "standby time" "0"
+    Option         "suspend time" "0"
+    Option         "off time" "0"
+EndSection
 #+END_SRC
 **** vdr
 :PROPERTIES:
@@ -5325,7 +5340,8 @@ end
 
 # This option controls how unsuccessful authentication attempts are mapped 
 # to anonymous connections
-   map to guest = bad user
+   map to guest = bad password
+   guest account = nobody
 
 {% if samba.windows_compatible %}
 # disable unix extensions and enable following symlinks
@@ -6010,6 +6026,106 @@ install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe 
 :END:
 This systemd unit for the user session starts (and stops) kodi.
 #+INCLUDE: "roles/kodi/templates/kodi.service.j2" src conf
+**** set-kodi-diplay
+This is a version-dependent script to force KODI to use the display set by the environment variable ~DISPLAY~. The following Version is intended for KODI 18.
+#+BEGIN_SRC jinja2 :tangle roles/kodi/templates/set-kodi-display.j2 :padline no
+#!/usr/bin/env python3
+"""
+{{ ansible_managed }}
+
+This Script changes the monitor in KODI's guisettings.xml to the wanted output
+according to the DISPLAY environment variable. It works with KODI 18 (not KODI 17!).
+"""
+
+import os
+import sys
+import subprocess
+import xml.etree.ElementTree as ET
+
+
+GUISETTINGS = '/var/lib/vdr/.kodi/userdata/guisettings.xml'
+CACHE_DIR = '/var/lib/vdr/.kodi/.display_cache'
+VIDEOSCREEN_TEMPLATE = """<settings version="2">
+    <setting id="videoscreen.monitor" default="true">{}</setting>
+</settings>"""
+
+
+def get_output_names():
+    """
+    get display name from xrandr output for given DISPLAY environment variable
+    """
+    xrandr_output = [
+        l for l in subprocess.check_output(
+            ["xrandr"],
+            env={"DISPLAY": os.environ["DISPLAY"]}
+        ).decode("utf-8").splitlines()
+    ]
+    return [l.split()[0] for l in xrandr_output if " connected " in l]
+
+
+def parse_template(template_path, template, output=""):
+    """read videoscreen settings from backup or create a stub file"""
+    try:
+        xml_tree = ET.parse(template_path)
+    except FileNotFoundError:
+        print("{} not found, creating stub file".format(template_path))
+        xml_template = ET.fromstring(template.format(output))
+        xml_tree = ET.ElementTree(xml_template)
+    finally:
+        xml_tree.write(template_path)
+    return xml_tree
+
+
+def backup_videoscreen():
+    """parse guisettings.xml for display name an backup videoscreen data"""
+    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, "Default")
+    root = tree.getroot()
+    videoscreen = root.find("./setting[@id='videoscreen.monitor']")
+    output = videoscreen.text
+    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+    base_tree = ET.fromstring('<settings version="2"></settings>')
+    xml_tree = ET.ElementTree(base_tree)
+    backup_root = xml_tree.getroot()
+    backup_root.insert(0, videoscreen)
+    xml_tree.write(xml_path)
+    print("written backup for {} to {}".format(output, xml_path))
+
+
+def change_videoscreen(output, new_videoscreen):
+    """change videoscreen node to content of backup file"""
+    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, output)
+    root = tree.getroot()
+
+    videoscreen = root.find('./setting[@id="videoscreen.monitor"]')
+    if videoscreen is not None:
+        videoscreen.text = new_videoscreen.text
+    else:
+        videoscreen = root.find("./settings")
+        root.insert(0, new_videoscreen)
+    tree.write(GUISETTINGS)
+    return tree
+
+if __name__ == '__main__':
+    output = get_output_names()[0]
+    if not output:
+        sys.exit("Error: no screen name found")
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+    except PermissionError:
+        sys.exit("Error: insufficient permissions to create cachedir {}".format(
+            CACHE_DIR))
+    try:
+        backup_videoscreen()
+    except FileNotFoundError:
+        print("{} does not exist".format(GUISETTINGS))
+    except Exception as e:
+        print("Could not backup videoscreen.monitor:", str(e))
+    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+    videodir_xml = parse_template(xml_path, VIDEOSCREEN_TEMPLATE, output)
+    videodir_root = videodir_xml.getroot()
+    new_videoscreen = videodir_root.find("./setting[@id='videoscreen.monitor']")
+    guisettings_xml = change_videoscreen(output, new_videoscreen)
+#+END_SRC
 *** files
 :PROPERTIES:
 :ID:       58c5c693-bd24-420a-bfed-79771e8e0d47
