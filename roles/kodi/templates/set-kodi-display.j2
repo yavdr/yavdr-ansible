@@ -4,40 +4,64 @@
 
 This Script changes the monitor in KODI's guisettings.xml to the wanted output
 according to the DISPLAY environment variable. It works with KODI 18 (not KODI 17!).
+
+In order to change the display we need to modify the settings/videoscreen nodes.
+
+Basic algorithm:
+    - get the current videoscreen.monitor
+    - check if it needs to be changed
+    - create a backup of the videoscreen nodes in /var/lib/vdr/.kodi/.display_cache/{CONNETOR}-videoscreen.xml
+    - check if there is an existing backup for the new CONNECTOR
+    - parse the backup of the videoscreen nodes
+    - replace the videoscreen nodes with the backup data
 """
 
+import copy
 import os
 import sys
 import subprocess
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 
 
 GUISETTINGS = '/var/lib/vdr/.kodi/userdata/guisettings.xml'
 CACHE_DIR = '/var/lib/vdr/.kodi/.display_cache'
 VIDEOSCREEN_TEMPLATE = """<settings version="2">
-    <setting id="videoscreen.monitor" default="true">{}</setting>
+    <setting id="videoscreen.monitor">{}</setting>
 </settings>"""
 
 
-def get_output_names():
+def create_cache_dir():
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+    except PermissionError:
+        sys.exit(f"Error: insufficient permissions to create cachedir {CACHE_DIR}")
+    except Exception as e:
+        sys.exit(f"Unexpected Error when trying to create {CACHE_DIR}:", e)
+
+
+
+def get_output_name():
     """
     get display name from xrandr output for given DISPLAY environment variable
     """
-    xrandr_output = [
-        l for l in subprocess.check_output(
-            ["xrandr"],
-            env={"DISPLAY": os.environ["DISPLAY"]}
-        ).decode("utf-8").splitlines()
-    ]
-    return [l.split()[0] for l in xrandr_output if " connected " in l]
+    try:
+        xrandr_output = [
+            l for l in subprocess.check_output(
+                ["xrandr"],
+                env={"DISPLAY": os.environ["DISPLAY"]}
+            ).decode("utf-8").splitlines()
+        ]
+        return next(l.split()[0] for l in xrandr_output if " connected " in l)
+    except Exception as e:
+        sys.exit("could not determine output name", e)
 
 
 def parse_template(template_path, template, output=""):
     """read videoscreen settings from backup or create a stub file"""
     try:
         xml_tree = ET.parse(template_path)
-    except FileNotFoundError:
-        print("{} not found, creating stub file".format(template_path))
+    except OSError:
+        print(f"{template_path} not found, creating stub file", file=sys.stderr)
         xml_template = ET.fromstring(template.format(output))
         xml_tree = ET.ElementTree(xml_template)
     finally:
@@ -45,52 +69,49 @@ def parse_template(template_path, template, output=""):
     return xml_tree
 
 
-def backup_videoscreen():
-    """parse guisettings.xml for display name an backup videoscreen data"""
-    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, "Default")
-    root = tree.getroot()
-    videoscreen = root.find("./setting[@id='videoscreen.monitor']")
-    output = videoscreen.text
-    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+def main(output):
+    guisettings = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, "Default")
+
+    # parse guisettings Etree for display name an backup videoscreen data
+    root = guisettings.getroot()
+    old_output = root.find("./setting[@id='videoscreen.monitor']").text
+    if old_output == output:
+        print("no changes necessary, exiting", file=sys.stderr)
+        sys.exit()
+
+    # create a minimal guisettings etree
+    xml_path = os.path.join(CACHE_DIR, f'{old_output}-videoscreen.xml')
     base_tree = ET.fromstring('<settings version="2"></settings>')
     xml_tree = ET.ElementTree(base_tree)
     backup_root = xml_tree.getroot()
-    backup_root.insert(0, videoscreen)
+
+    # copy videoscreen elements to backup etree
+    videoscreen_elements = root.xpath(
+            "./setting[starts-with(@id, 'videoscreen.')]")
+    for element in videoscreen_elements:
+        backup_root.append(copy.deepcopy(element))
+        element.getparent().remove(element)
     xml_tree.write(xml_path)
-    print("written backup for {} to {}".format(output, xml_path))
+    print(f"written backup for {old_output} to {xml_path}", file=sys.stderr)
 
-
-def change_videoscreen(output, new_videoscreen):
-    """change videoscreen node to content of backup file"""
-    tree = parse_template(GUISETTINGS, VIDEOSCREEN_TEMPLATE, output)
-    root = tree.getroot()
-
-    videoscreen = root.find('./setting[@id="videoscreen.monitor"]')
-    if videoscreen is not None:
-        videoscreen.text = new_videoscreen.text
-    else:
-        videoscreen = root.find("./settings")
-        root.insert(0, new_videoscreen)
-    tree.write(GUISETTINGS)
-    return tree
-
-if __name__ == '__main__':
-    output = get_output_names()[0]
-    if not output:
-        sys.exit("Error: no screen name found")
-    try:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-    except PermissionError:
-        sys.exit("Error: insufficient permissions to create cachedir {}".format(
-            CACHE_DIR))
-    try:
-        backup_videoscreen()
-    except FileNotFoundError:
-        print("{} does not exist".format(GUISETTINGS))
-    except Exception as e:
-        print("Could not backup videoscreen.monitor:", str(e))
-    xml_path = os.path.join(CACHE_DIR, '{}-videodevice.xml'.format(output))
+    # change videoscreen node to content of backup file
+    xml_path = os.path.join(CACHE_DIR, f'{output}-videoscreen.xml')
     videodir_xml = parse_template(xml_path, VIDEOSCREEN_TEMPLATE, output)
     videodir_root = videodir_xml.getroot()
-    new_videoscreen = videodir_root.find("./setting[@id='videoscreen.monitor']")
-    guisettings_xml = change_videoscreen(output, new_videoscreen)
+    videoscreen = videodir_root.find("./setting[@id='videoscreen.monitor']")
+    # copy videoscreen.* elements from Backup
+    videoscreen_elements = videodir_root.xpath(
+            "./setting[starts-with(@id, 'videoscreen.')]")
+    for element in videoscreen_elements:
+        new_element = copy.deepcopy(element)
+        root.append(new_element)
+    guisettings.write(GUISETTINGS)
+
+
+if __name__ == '__main__':
+    create_cache_dir()
+    output = get_output_name()
+    try:
+        main(output)
+    except Exception as e:
+        print("Could not change videoscreen.* settings:", str(e), file=sys.stderr)
