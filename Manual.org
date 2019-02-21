@@ -35,6 +35,26 @@
 #+LATEX: \defaultfontfeatures{Ligatures=TeX}
 #+LATEX_HEADER: \usepackage{parskip}
 # #+LATEX_HEADER_EXTRA:
+#+BEGIN_SRC latex
+\newcommand*\justify{%
+  \fontdimen2\font=0.4em% interword space
+  \fontdimen3\font=0.2em% interword stretch
+  \fontdimen4\font=0.1em% interword shrink
+  \fontdimen7\font=0.1em% extra space
+  \hyphenchar\font=`\-% allowing hyphenation
+}
+
+\renewcommand{\texttt}[1]{%
+  \begingroup
+  \ttfamily
+  \begingroup\lccode`~=`/\lowercase{\endgroup\def~}{/\discretionary{}{}{}}%
+  \begingroup\lccode`~=`[\lowercase{\endgroup\def~}{[\discretionary{}{}{}}%
+  \begingroup\lccode`~=`.\lowercase{\endgroup\def~}{.\discretionary{}{}{}}%
+  \catcode`/=\active\catcode`[=\active\catcode`.=\active
+  \justify\scantokens{#1\noexpand}%
+  \endgroup
+}
+#+END_SRC
 
 #+EXCLUDE_TAGS: noexport
 :END:
@@ -1832,7 +1852,7 @@ ctl.!default {
 The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*. The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
-In order to use the keyboard layout configured during installation for the X-Server the script ~write-x11-keyboard-config~ reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to create ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
+In order to use the keyboard layout configured during installation for the X-Server we are using a script ~write-x11-keyboard-config,~ which reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to automatically create the configuration file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
 
 To prevent stopping the X-server when vdr is running, additional dependencies are set up - see the drop-in rules created in ~/etc/systemd/system/vdr.service.d/~.
 
@@ -2336,6 +2356,12 @@ preferred_refreshrates:
       - '-w alsa-driver-broken'
       # - '-a pulse' # do we need this with our existing asound.conf?
 
+- name: vdr-config | use vaapi for softhddevice if we got an intel IGP
+  lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    line: '-v va-pi'
+    state: present if intel_detected else absent
+
 - name: add a login shell for the user vdr
   user:
       name: '{{ vdr.user }}'
@@ -2704,21 +2730,41 @@ EndSection
 ***** intel graphics xorg.conf snippet
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/20-intel.conf.j2
 {{ ansible_managed | comment }}
-
-{% set output = xorg.primary.connector|replace("-", "") %}
+{% set primary_output = xorg.primary.connector|replace("-", "") %}
+{% if xorg.secondary is defined %}
+  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
+{% endif %}
 
 Section "Device"
   Identifier  "Device0"
   Driver      "intel"
   Option      "TearFree" "true"
-  
-  Option      "UseEDID" "true"
-  Option      "CustomEDID" "{{ output }}:{{ xorg.primary.edid }}"
+{% if xorg.secondary is defined %}
+  Option      "ZaphodHeads" "{{ primary_output }}"
+  Screen      0  
+{% endif %}
 EndSection
+
+{% if xorg.secondary is defined %}
+Section "Device"
+  Identifier  "Device1"
+  Driver      "intel"
+  Option      "TearFree" "true"
+  Option      "ZaphodHeads" "{{ secondary_output }}"
+  Screen      1  
+EndSection
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+    Screen      1  "Screen1" RightOf "Screen0"
+EndSection
+{% endif %}
+
 Section "Screen"
   Identifier  "Screen0"
   Device      "Device0"
-  Monitor     "{{ output }}"
+  Monitor     "{{ primary_output }}"
   DefaultDepth  24
   SubSection "Display"
     Depth       24
@@ -2729,8 +2775,26 @@ Section "Screen"
 {% endif %}
   EndSubSection
 EndSection
+
+{% if xorg.secondary is defined %}
+Section "Screen"
+  Identifier  "Screen1"
+  Device      "Device1"
+  Monitor     "{{ secondary_output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.secondary.mode %}
+    Modes     "{{ xorg.secondary.mode }}"
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+
+{% endif %}
 Section "Monitor"
-  Identifier  "{{ output }}"
+  Identifier  "{{ primary_output }}"
 {% if xorg.primary.modelines %}
 {% for modeline in xorg.primary.modelines %}
   {{ modeline }}
@@ -2742,8 +2806,23 @@ Section "Monitor"
 {% endif %}
 EndSection
 
+{% if xorg.secondary is defined %}
+Section "Monitor"
+  Identifier  "{{ secondary_output }}"
+{% if xorg.secondary.modelines %}
+{% for modeline in xorg.secondary.modelines %}
+  {{ modeline }}
+{% endfor %}
+{% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+{% endif %}
+EndSection
+
+{% endif %}
 {% for connector, data in xrandr["Screen 0:"].iteritems() %}
-{% if not data.is_connected or connector != xorg.primary.connector %}
+{% if not data.is_connected or connector != xorg.primary.connector or (xorg.secondary is defined and connector != xorg.secondary.connector) %}
 Section "Monitor"
   Identifier "{{ connector|replace("-","") }}"
   Option "Ignore" "true"

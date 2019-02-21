@@ -255,33 +255,39 @@ def collect_nvidia_data():
     raise ValueError
 
 
-Connector = namedtuple('Connector', "name xrandr_edid")
-
-
-def find_drm_connectors(primary):
+def find_drm_connectors(connections):
     """
-    takes a namedtuple Connector as the only argument.
-
-    returns a dict with the following schema:
+    returns a dict with the following schema (secondary may be empty):
     {
         'primary': {
             'edid': 'edid.HDMI-1.bin',
             'drm_connector': 'HDMI-A-1',
             'xrandr_connector': 'HDMI-1',
         },
+        'secondary': {
+            'edid': 'edid.eDP-1.bin',
+            'drm_connector': 'eDP-1',
+            'xrandr_connector': 'eDP-1',
+        }
         'ignored_outputs': ['HDMI-A-2', 'DP-1']
     }
     """
     STATUS_GLOB = '/sys/class/drm/card0*/status'
     CONNECTOR_RE = re.compile('card0-(?P<connector>[^/]+)/status')
 
-    try:
-        with open(primary.xrandr_edid, 'rb') as f:
-            xrandr_edid_bytes = f.read()
-    except IOError:
-        xrandr_edid_bytes = b''
+    def read_edid_bytes(edid_file):
+        edid_bytes = b''
+        try:
+            with open(edid_file, 'rb') as f:
+                edid_bytes = f.read()
+        except IOError:
+            pass
+        return edid_bytes
 
-    drm = {'primary': {}, 'ignored_outputs': []}
+    xrandr_edid_bytes = read_edid_bytes(connections.get('primary', {}).get('edid', ""))
+    secondary_xrandr_edid_bytes = read_edid_bytes(connections.get('secondary', {}).get('edid', ''))
+
+    drm = {'primary': {}, 'secondary': {}, 'ignored_outputs': []}
     for status_p in glob(STATUS_GLOB):
         match = re.search(CONNECTOR_RE, status_p)
         if match:
@@ -295,19 +301,22 @@ def find_drm_connectors(primary):
         except IOError:
             continue
 
-        if connected and xrandr_edid_bytes:
-            drm_edid = os.path.join(os.path.dirname(status_p), 'edid')
-            try:
-                with open(drm_edid, 'rb') as f:
-                    is_primary = f.read() == xrandr_edid_bytes
-            except IOError:
-                continue
-            else:
-                if is_primary:
+        if connected:
+            edid = read_edid_bytes(os.path.join(
+                os.path.dirname(status_p), 'edid'))
+            if edid:
+                if edid == xrandr_edid_bytes:
                     drm['primary'] = {
-                        'edid': os.path.basename(primary.xrandr_edid),
+                        'edid': os.path.basename(connections['primary'].get('edid', "")),
                         'drm_connector': drm_connector,
-                        'xrandr_connector': primary.name,
+                        'xrandr_connector': connections['primary'].get('connector',''),
+                    }
+                    continue
+                if secondary_xrandr_edid_bytes:
+                    drm['secondary'] = {
+                        'edid': os.path.basename(connections.get('secondary').get('edid', '')),
+                        'drm_connector': drm_connector,
+                        'xrandr_connector': connections['secondary'].get('connector',''),
                     }
                     continue
         drm['ignored_outputs'].append(drm_connector)
@@ -350,21 +359,23 @@ def output_data(data, write_edids=True):
                     result[name]['bus_id'] = bus_id
 
             connector_0, resolution_0, refreshrate_0 = max(modes, key=sort_mode)[:3]
-            vendor_0, model_0, modelines_0 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_0))
+            connector_0_edid = '/etc/X11/edid.{}.bin'.format(connector_0)
+            vendor_0, model_0, modelines_0 = parse_edid_data(connector_0_edid)
             create_entry(result, 'primary', connector_0, resolution_0,
                          refreshrate_0, vendor_0, model_0, modelines_0)
-
-            if write_edids:
-                drm = find_drm_connectors(Connector(connector_0,
-                                                    '/etc/X11/edid.{}.bin'.format(connector_0)))
 
             # check if additional monitors exist
             other_modes = [mode for mode in modes if mode[0] != connector_0]
             if other_modes:
                 connector_1, resolution_1, refreshrate_1 = max(other_modes, key=sort_mode)[:3]
-                vendor_1, model_1, modelines_1 = parse_edid_data('/etc/X11/edid.{}.bin'.format(connector_1))
+                connector_1_edid = '/etc/X11/edid.{}.bin'.format(connector_1)
+                vendor_1, model_1, modelines_1 = parse_edid_data(connector_1_edid)
                 create_entry(result, 'secondary', connector_1, resolution_1,
                              refreshrate_1, vendor_1, model_1, modelines_1)
+
+            if write_edids:
+                drm = find_drm_connectors(result)
+
 
     module.exit_json(changed=True if write_edids else False,
                      ansible_facts={'xrandr': data, 'xorg': result, 'drm': drm})
