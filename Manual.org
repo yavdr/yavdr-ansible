@@ -2359,7 +2359,7 @@ preferred_refreshrates:
 - name: vdr-config | use vaapi for softhddevice if we got an intel IGP
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
-    line: '-v va-pi'
+    line: '-v va-api'
     state: present if intel_detected else absent
 
 - name: add a login shell for the user vdr
@@ -2617,7 +2617,7 @@ KMS drivers (like for intel (i915) and amd (radeon)) require additional configur
 
 This task therefore performs the following actions after the xrandr detection has been executed:
  - create an initramfs-hook to copy the EDID(s) into the initramfs
- - get the connector names and match them to the ones determined by xrandr
+ - get the connector names and match them to the ones determined by xrandr (this is done by xrandr_facts.py)
  - add kernel boot arguments to set EDID and mode (refreshrate and resolution) for all outputs
  - recreate and update initramfs and grub config
 
@@ -2728,109 +2728,7 @@ EndSection
 #+END_SRC
 
 ***** intel graphics xorg.conf snippet
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/20-intel.conf.j2
-{{ ansible_managed | comment }}
-{% set primary_output = xorg.primary.connector|replace("-", "") %}
-{% if xorg.secondary is defined %}
-  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
-{% endif %}
-
-Section "Device"
-  Identifier  "Device0"
-  Driver      "intel"
-  Option      "TearFree" "true"
-{% if xorg.secondary is defined %}
-  Option      "ZaphodHeads" "{{ primary_output }}"
-  Screen      0  
-{% endif %}
-EndSection
-
-{% if xorg.secondary is defined %}
-Section "Device"
-  Identifier  "Device1"
-  Driver      "intel"
-  Option      "TearFree" "true"
-  Option      "ZaphodHeads" "{{ secondary_output }}"
-  Screen      1  
-EndSection
-
-Section "ServerLayout"
-    Identifier     "Layout0"
-    Screen      0  "Screen0" 0 0
-    Screen      1  "Screen1" RightOf "Screen0"
-EndSection
-{% endif %}
-
-Section "Screen"
-  Identifier  "Screen0"
-  Device      "Device0"
-  Monitor     "{{ primary_output }}"
-  DefaultDepth  24
-  SubSection "Display"
-    Depth       24
-{% if xorg.primary.mode %}
-    Modes     "{{ xorg.primary.mode }}"
-{% else %}
-    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
-{% endif %}
-  EndSubSection
-EndSection
-
-{% if xorg.secondary is defined %}
-Section "Screen"
-  Identifier  "Screen1"
-  Device      "Device1"
-  Monitor     "{{ secondary_output }}"
-  DefaultDepth  24
-  SubSection "Display"
-    Depth       24
-{% if xorg.secondary.mode %}
-    Modes     "{{ xorg.secondary.mode }}"
-{% else %}
-    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
-{% endif %}
-  EndSubSection
-EndSection
-
-{% endif %}
-Section "Monitor"
-  Identifier  "{{ primary_output }}"
-{% if xorg.primary.modelines %}
-{% for modeline in xorg.primary.modelines %}
-  {{ modeline }}
-{% endfor %}
-{% else %}
-  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
-  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
-  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
-{% endif %}
-EndSection
-
-{% if xorg.secondary is defined %}
-Section "Monitor"
-  Identifier  "{{ secondary_output }}"
-{% if xorg.secondary.modelines %}
-{% for modeline in xorg.secondary.modelines %}
-  {{ modeline }}
-{% endfor %}
-{% else %}
-  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
-  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
-  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
-{% endif %}
-EndSection
-
-{% endif %}
-{% for connector, data in xrandr["Screen 0:"].iteritems() %}
-{% if not data.is_connected or connector != xorg.primary.connector or (xorg.secondary is defined and connector != xorg.secondary.connector) %}
-Section "Monitor"
-  Identifier "{{ connector|replace("-","") }}"
-  Option "Ignore" "true"
-EndSection
-{% endif %}
-
-{% endfor %}
-#+END_SRC
+#+INCLUDE: "roles/yavdr-xorg/templates/20-intel.conf.j2" src jinja2
 ***** xorg.conf
 :PROPERTIES:
 :ID:       d7064700-5a05-478a-a20d-10a5fe472661
