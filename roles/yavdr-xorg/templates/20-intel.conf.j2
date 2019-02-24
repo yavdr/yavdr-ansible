@@ -90,7 +90,7 @@ Section "Monitor"
 EndSection
 
 {% endif %}
-{% for connector, data in xrandr["Screen 0:"].iteritems() %}
+{% for connector, data in xrandr["Screen 0:"].items() | list %}
 {% if not data.is_connected or connector != xorg.primary.connector or (xorg.secondary is defined and connector != xorg.secondary.connector) %}
 Section "Monitor"
   Identifier "{{ connector|replace("-","") }}"
