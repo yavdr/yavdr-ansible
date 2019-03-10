@@ -1,0 +1,94 @@
+#Installing mariadb, epg-daemon and epg2vdr.
+#bind-address is set to 0.0.0.0 --> 99-epgd.cnf.
+#The root SQL password is only stored (NONE), because the epgd-tool
+#is expecting it. But it is not really used,
+#because the connection is established via a socket without a password.
+#Normal users must use sudo if they want to access mysql as root.
+#TODO:
+    # - Create channelmap if channels.conf is present.
+    #   (the script already exists at mld.)
+    # - because skindesigner-logos delivers only svg-logos, logoSuffix svg should be the preset --> vdr-epg-daemon / lib / parameters.c
+    # - customize epgd-tool for mariadb
+
+
+- name: MariaDB and Plugin | install
+  apt:
+    name: ['mariadb-server', 'mariadb-plugin-epglv', 'python-pymysql']
+    state: present
+    
+- name: copy file | epgd mariadb config
+  template:
+    src: templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2
+    dest: /etc/mysql/mariadb.conf.d/99-epgd.cnf
+    owner: root
+    group: root
+
+- name: create /root/.ssh if it doesn't exist yes
+  file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: 0700
+    
+- name: copy file | mysqlpasswd
+  template:
+    src: templates/root_.ssh_mysqlpasswd.j2
+    dest: /root/.ssh/mysqlpasswd
+    owner: root
+    group: root
+    mode: 0600
+    backup: yes
+
+- name: Restart mariadb
+  systemd:
+    name: mariadb.service
+    state: restarted
+    enabled: yes
+    masked: no
+    
+- name: Create a new database for epgd
+  mysql_db:
+    name: "{{ epgd_dbname }}"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    
+- name: Create User for epgd database  
+  mysql_user:
+    name: "{{ epgd_dbuser }}"
+    password: "{{ epgd_dbpass }}"
+    host: '%'
+    priv: '{{ epgd_dbname }}.*:ALL'
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Create User for epgd database  
+  mysql_user:
+    name: "{{ epgd_dbuser }}"
+    password: "{{ epgd_dbpass }}"
+    host: 'localhost'
+    priv: '{{ epgd_dbname }}.*:ALL'
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: create epgd config folder
+  file:
+   path: /etc/epgd
+   state: directory
+
+- name: epgd config
+  template:
+    src: templates/etc_epgd_epgd.conf.j2
+    dest: /etc/epgd/epgd.conf
+
+- name: epgd | install
+  apt:
+    name: ['vdr-epg-daemon', 'vdr-plugin-epg2vdr', 'skindesigner-logos']
+    state: present
+
+#- name: epgd | start
+  #systemd:
+    #name: epgd_service
+    #state: started
+    #enabled: yes
+    #masked: no

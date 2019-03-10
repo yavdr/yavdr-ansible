@@ -291,6 +291,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
      - autoinstall-firmware       # download and install firmware files for dvb devices
      #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
+     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
@@ -328,6 +329,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
+    #- epgd                      # install vdr-epg-daemon
     - wakeup
   tags:
     - always
@@ -513,8 +515,8 @@ install nvidia-396 from ppa:graphics-drivers/ppa
 - name: install nvidia-396 and other required packages
   apt:
     name:
-      -nvidia-396
-      -nvidia-settings
+      - nvidia-396
+      - nvidia-settings
     state: present
     install_recommends: no
   tags:
@@ -6041,14 +6043,42 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 :ID:       7e7f26cf-073d-4d1c-8f6e-cc69de259aaf
 :END:
 #+INCLUDE: "roles/dvd/tasks/main.yml" src yaml
+
+** vdr-epg-daemon
+This role installs the vdr-epg-daemon
+*** defaults
+#+include: roles/epgd/defaults/main.yml src yaml
+
+*** tasks
+#+include: roles/epgd/tasks/main.yml src yml
+
+*** templates
+#+include: roles/epgd/templates/etc_mysql_mardiadb.conf.d_99-epgd.cnf.j2 src jinja2
+#+include: roles/epgd/templates/root_.ssh_mysqlpasswd.j2 src jinja2
+#+include: roles/epgd/templates/etc_epgd_epgd.conf.j2 src jinja2
+
 ** install-sundtek
 :PROPERTIES:
 :ID:       de68c6d2-92c7-47c2-9d28-bfa6be00ec3e
 :END:
-*** variables
-:PROPERTIES:
-:ID:       bab04ad5-86b1-4953-a87e-bb6bfa9e5d0c
-:END:
+*** dependencies
+#+BEGIN_SRC yaml :tangle roles/install-sundtek/meta/main.yml :padline no
+---
+dependencies:
+  - { role: collect-facts }
+
+#+END_SRC
+*** defaults 
+#+BEGIN_SRC yaml :tangle roles/install-sundtek/defaults/main.yml
+--- 
+# file: roles/install-sundtek/defaults/main.yml
+
+sundtek:
+  install: auto
+  wait_for_devices: true
+  wait_for_network: false
+#+END_SRC
+
 *** tasks
 :PROPERTIES:
 :ID:       f06b2ce3-e6c0-41d7-809a-12d869525a11

@@ -1,0 +1,74 @@
+{{ ansible_managed | comment }}
+# ------------------------------------
+# Configuration of EPG Daemon
+# ------------------------------------
+
+DbHost = {{ epgd_dbhost }}
+DbPort = {{ epgd_dbport }}
+DbName = {{ epgd_dbname }}
+DbUser = {{ epgd_dbuser }}
+DbPass = {{ epgd_dbpass }}
+
+EpgView = {{ epgd_epgview }}
+EpgViewWeb = {{ epgd_epgviewweb }}
+TheTvDBView = {{ epgd_thetvdbview }}
+
+CheckInitial = {{ epgd_checkinitial }}
+DaysInAdvance = {{ epgd_daysinadvance }}
+DaysToUpdate = {{ epgd_daystoupdate }}
+UpdateTime = {{ epgd_updatetime }}
+UpdateThreshold = {{ epgd_updatethreshold }}
+
+XmlStoreToFs = {{ epgd_xmlstoretofs }}
+
+GetEPGImages = {{ epgd_getepgimages }}
+# EpgImageSize
+# 0 = 174x130
+# 1 = 329x245
+# 2 = 525x400
+EpgImageSize = {{ epgd_epgimagesize }}
+MaxImagesPerEvent = {{ epgd_maximagesperevent }}
+
+SeriesEnabled = {{ epgd_seriesenabled }}
+SeriesPort = {{ epgd_seriesport }}
+SeriesStoreToFs = {{ epgd_seriesstoretofs }}
+SeriesUrl = {{ epgd_seriesurl }}
+
+ScrapEpg = {{ epgd_scrapepg }}
+ScrapRecordings = {{ epgd_scrapRecordings }}
+{% if epgd_scrapmoviedbapikey is defined %}
+ScapMovieDbApiKey = {{ epgd_scrapmoviedbapikey }}
+{% else %}
+#ScrapMovieDbApiKey =
+{% endif %}
+
+{% if epgd_netdevice is defined %}
+NetDevice = {{ epgd_netdevice }}
+{% else %}
+# NetDevice = eth0
+{% endif %}
+
+CachePath = {{ epgd_cachepath }}
+HttpPort = {{ epgd_epghttpd_port }}
+
+{% if epgd_httpproxy is defined %}
+HttpProxy = {{ epgd_httpproxy }}
+UserName = {{ epgd_httpproxy_username }}
+Password = {{ epgd_httpproxy_password }}
+{% else %}
+# HttpProxy = 127.0.0.1:8000
+# UserName =
+# Password =
+{% endif %}
+
+LogLevel = {{ epgd_LogLevel }}
+
+# ---------------
+# epgdata plugin
+# ---------------
+
+epgdata.url = {{ epgd_epgdata_url }}
+epgdata.pin = {{ epgd_epgdata_pin }} 
+
+# Download timeout in seconds (default 180)
+epgdata.timeout = {{ epgd_epgdata_timeout }}
