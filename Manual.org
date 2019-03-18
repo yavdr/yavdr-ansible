@@ -1101,7 +1101,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     mode: 0644
     force: no
 
-- name: "vdr configuration | copy channels.conf if it doesn't exist yes"
+- name: "vdr configuration | copy channels.conf if it doesn't exist yet"
   copy:
     src: '{{ vdr_channels_conf }}'
     dest: '{{ vdr.confdir }}/channels.conf'
@@ -1110,6 +1110,16 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     mode: 0644
     force: no
   when: vdr_channels_conf is defined
+
+- name: "vdr configuration | download channels.conf if it doesn't exist yet"
+  get_url:
+    url: '{{ vdr_channels_conf_url }}'
+    dest: '{{ vdr.confdir }}/channels.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: no
+  when: vdr_channels_conf is not defined and vdr_channels_conf_url is defined
 #+END_SRC
 
 **** start vdr after network-online.target
