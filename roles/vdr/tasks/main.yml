@@ -74,6 +74,16 @@
     group: '{{ vdr.group }}'
     mode: 0644
     force: no
+
+- name: "vdr configuration | copy channels.conf if it doesn't exist yes"
+  copy:
+    src: '{{ vdr_channels_conf }}'
+    dest: '{{ vdr.confdir }}/channels.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: no
+  when: vdr_channels_conf is defined
 - name: create directory for vdr.service systemd drop-in files
   file:
     dest: '{{ item }}'
