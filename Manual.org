@@ -87,10 +87,6 @@ Several roles are used to tie everything together:
 - yavdr-xorg :: install and configure a systemd user session with a running X-server.  A frontend script will manage VDR's frontend and other applications like KODI.  Also choose the best possible output plugin.
 - grub-config :: update grub configuration based on executed roles 
 
-*** Using vdr, pulseaudio and xorg together
-:PROPERTIES:
-:ID:       a107fd52-172c-4018-8374-8f2ce299f842
-:END:
 
 * Notes :noexport:
 :PROPERTIES:
@@ -105,15 +101,18 @@ Several roles are used to tie everything together:
 :PROPERTIES:
 :ID:       ca82eb6b-e491-4c61-b65f-a394b6b654de
 :END:
-*** STARTED BusID für (nvidia) Grafikkarten aus lspci auslesen
+*** DONE BusID für (nvidia) Grafikkarten aus lspci auslesen
 :PROPERTIES:
 :ID:       e664458a-ad80-4b29-a794-bd433f8d2a22
+:END:
+:LOGBOOK:
+- State "DONE"       from "STARTED"    [2019-03-20 Mi 19:35]
 :END:
 Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, device, function)
 - Wie mit mehreren GPUs umgehen? Priorität bzw. Reihenfolge?
 - Was ist mit NVidia Optimus/Bumblebee (AFAIK keine VDPAU-Funktionalität)?
 - Wie BusID der xrandr-Ausgabe zuordnen?
-*** NVIDIA-Documentation about the BusID:
+*** NOTE NVIDIA-Documentation about the BusID:
 :PROPERTIES:
 :ID:       4341f6bd-fdec-4dad-8d3b-83b95c20189d
 :END:
@@ -175,9 +174,13 @@ either directly or using a configuration wizard or a web frontend
 :PROPERTIES:
 :ID:       324e03d0-7fe8-4382-be44-7372e14d0b82
 :END:
-- intel :: softhddevice-vpp
+- intel :: softhddevice-vpp or vaapidevice
 - amd :: softhddevice-vpp
 - nvidia :: softhddevice-openglosd (if no HEVC channels are needed)
+** TODO Document using vdr, pulseaudio and xorg together
+:PROPERTIES:
+:ID:       a107fd52-172c-4018-8374-8f2ce299f842
+:END:
 
 * Introduction
 :PROPERTIES:
@@ -1120,6 +1123,14 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     mode: 0644
     force: no
   when: vdr_channels_conf is not defined and vdr_channels_conf_url is defined
+
+- name: "vdr configuration | svdrphosts.conf"
+  template:
+    src: templates/svdrphosts.conf.j2
+    dest: '{{ vdr.confdir }}/svdrphosts.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
 #+END_SRC
 
 **** start vdr after network-online.target
@@ -1144,10 +1155,36 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 :PROPERTIES:
 :ID:       0c5c2e3b-57af-46a9-b69e-3499e25fce59
 :END:
-Start after network-online.target
+**** Start vdr.service after network-online.target
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
+{{ansible_managed | comment }}
 [Unit]
 After=network-online.target
+#+END_SRC
+
+**** svdrphosts.conf
+#+BEGIN_SRC jinja2 :tangle roles/vdr/templates/svdrphosts.conf.j2 :mkdirp yes
+{{ ansible_managed | comment }}
+#
+# svdrphosts    This file describes a number of host addresses that
+#               are allowed to connect to the SVDRP port of the Video
+#               Disk Recorder (VDR) running on this system.
+# Syntax:
+#
+# IP-Address[/Netmask]
+#
+
+127.0.0.1             # always accept localhost
+#192.168.100.0/24     # any host on the local net
+#204.152.189.113      # a specific host
+#0.0.0.0/0            # any host on any net (USE THIS WITH CARE!)
+
+{% if vdr_svdrphosts is defined %}
+{% for host_or_subnet in vdr_svdrphosts %}
+{{ host_or_subnet }}
+{% endfor %}
+{% endif %}
+
 #+END_SRC
 *** files
 :PROPERTIES:
@@ -6079,14 +6116,15 @@ This role installs the vdr-epg-daemon
 #+include: roles/epgd/tasks/main.yml src yml
 
 *** templates
-**** Template to allow Database access from network
-~roles/epgd/templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2~
+**** Template for /etc/mysql/mariadb.conf.d/99-epgd.cnf
+to allow Database access from all hosts on network
+~file: roles/epgd/templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2~
 #+include: roles/epgd/templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2 src jinja2
-**** mysqlpasswd template so epgd-tool is happy
-~roles/epgd/templates/root_.ssh_mysqlpasswd.j2~
+**** template for ~/root/.ssh/mysqlpasswd~ so epgd-tool is happy
+~file: roles/epgd/templates/root_.ssh_mysqlpasswd.j2~
 #+include: roles/epgd/templates/root_.ssh_mysqlpasswd.j2 src jinja2
-**** epgd.conf template
-~roles/epgd/templates/etc_epgd_epgd.conf.j2~
+**** template for /etc/epgd/epgd.conf 
+~file: roles/epgd/templates/etc_epgd_epgd.conf.j2~
 #+include: roles/epgd/templates/etc_epgd_epgd.conf.j2 src jinja2
 
 ** install-sundtek
