@@ -48,6 +48,15 @@ sudo -H ./install-yavdr-headless.sh
 
 ## First Steps after the installation:
 
+### Wait for local dvb adapters
+The yaVDR VDR Package provides a systemd service `wait-for-dvb@.service` which allows to delay the start of vdr until all given locally connected dvb adapters have been initalized - e.g. to wait for `/dev/dvb/adapter0 .. /dev/dvb/adapter3`you can enable the required instances of this service like this:
+```shell
+systemctl enable wait-for-dvb@{0..3}.service
+```
+Please remember to adapt the enabled service instances if you change your configuration.
+
+This should work foll all DVB adaptors for which udev events are generated. Note that devices with userspace drivers (e.g. by Sundtek) won't emit such events.
+
 ### Add a /var/lib/vdr/channels.conf
 
 You can use the wirbelscan-Plugin, w_scan, t2scan (especially useful for DVB-T2) or ready-to-use channellists from http://channelpedia.yavdr.com/gen/
