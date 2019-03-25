@@ -23,6 +23,17 @@ vdr:
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: false
 
+# optional additional hosts and subnets for svdrphosts.conf
+#
+# vdr_svdrphosts:
+#   - 192.168.0.0/24
+
+# copy channels.conf from a local file
+# vdr_channels_conf: /path/to/channels.conf
+
+# download channels.conf from a given url (supports HTTP(S) and FTP)
+# vdr_channels_conf_url: http://example.com/vdr/channels.conf
+
 # add the vdr plugins you want to install
 vdr_plugins:
   - vdr-plugin-devstatus
@@ -54,6 +65,11 @@ extra_packages:
   - vdr-addon-lifeguard-ng
   - vdrpbd
 frontend: vdr
+
+# vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
+# for standby use "/bin/systemctl suspend"
+vdr_shutdown_command: poweroff
+
 #system:
 #  shutdown: poweroff
 wakeup_method: acpiwakeup

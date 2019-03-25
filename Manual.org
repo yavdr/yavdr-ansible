@@ -389,6 +389,17 @@ vdr:
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: false
 
+# optional additional hosts and subnets for svdrphosts.conf
+#
+# vdr_svdrphosts:
+#   - 192.168.0.0/24
+
+# copy channels.conf from a local file
+# vdr_channels_conf: /path/to/channels.conf
+
+# download channels.conf from a given url (supports HTTP(S) and FTP)
+# vdr_channels_conf_url: http://example.com/vdr/channels.conf
+
 # add the vdr plugins you want to install
 vdr_plugins:
   - vdr-plugin-devstatus
@@ -450,6 +461,11 @@ extra_packages:
 :END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 frontend: vdr
+
+# vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
+# for standby use "/bin/systemctl suspend"
+vdr_shutdown_command: poweroff
+
 #system:
 #  shutdown: poweroff
 wakeup_method: acpiwakeup
@@ -1131,6 +1147,12 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
+
+- name: "vdr configuration | /etc/default/vdr"
+  template:
+    src: templates/default_vdr.j2
+    dest: /etc/default/vdr
+
 #+END_SRC
 
 **** start vdr after network-online.target
@@ -1162,6 +1184,16 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 After=network-online.target
 #+END_SRC
 
+**** /etc/default/vdr
+#+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
+{{ ansible_managed | comment }}
+# /etc/default/vdr
+#
+# See also /usr/share/doc/vdr/README.Debian.gz
+#
+
+SHUTDOWNCMD="{{ vdr_shutdown_command }}"
+#+END_SRC
 **** svdrphosts.conf
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/svdrphosts.conf.j2 :mkdirp yes
 {{ ansible_managed | comment }}
