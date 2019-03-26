@@ -99,14 +99,64 @@
   template:
     src: templates/svdrphosts.conf.j2
     dest: '/etc/vdr/svdrphosts.conf'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
     mode: 0644
+  vars:
+    svdrphosts: '{{ vdr_svdrphosts | default(vdr_allowed_hosts) }}'
 
 - name: "vdr configuration | /etc/default/vdr"
   template:
     src: templates/default_vdr.j2
     dest: /etc/default/vdr
+- name: ensure directory '/etc/vdr/xineliboutput' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/xineliboutput'
+  
+- name: "vdr configuration | allowed_hosts.conf for xineliboutput"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: xineliboutput
+
+- name: "vdr configuration | xineliboutput.conf host settings"
+  template:
+    src: templates/xineliboutput.conf.j2
+    dest: /etc/vdr/conf.avail/xineliboutput.conf
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+- name: ensure directory '/etc/vdr/plugins/vnsiserver' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/vnsiserver'
+  
+- name: "vdr configuration | allowed_hosts.conf for vnsiserver"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ vnsiserver_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: vnsiserver
+- name: ensure directory '/etc/vdr/plugins' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/'
+  
+- name: "vdr configuration | streamdevhosts.conf for streamdev-server"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/streamdevhosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ streamdev_server_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: streamdev-server
 - name: create directory for vdr.service systemd drop-in files
   file:
     dest: '{{ item }}'

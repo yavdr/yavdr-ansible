@@ -615,6 +615,7 @@ vdr:
     hide_first_recording_level: false
     safe_dirnames: true
     override_vdr_charset: false
+vdr_allowed_hosts: []
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -1144,14 +1145,80 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
   template:
     src: templates/svdrphosts.conf.j2
     dest: '/etc/vdr/svdrphosts.conf'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
     mode: 0644
+  vars:
+    svdrphosts: '{{ vdr_svdrphosts | default(vdr_allowed_hosts) }}'
 
 - name: "vdr configuration | /etc/default/vdr"
   template:
     src: templates/default_vdr.j2
     dest: /etc/default/vdr
+
+#+END_SRC
+
+**** plugin preconfiguration
+
+***** xineliboutput
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: ensure directory '/etc/vdr/xineliboutput' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/xineliboutput'
+  
+- name: "vdr configuration | allowed_hosts.conf for xineliboutput"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: xineliboutput
+
+- name: "vdr configuration | xineliboutput.conf host settings"
+  template:
+    src: templates/xineliboutput.conf.j2
+    dest: /etc/vdr/conf.avail/xineliboutput.conf
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+    
+#+END_SRC
+***** vnsiserver
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: ensure directory '/etc/vdr/plugins/vnsiserver' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/vnsiserver'
+  
+- name: "vdr configuration | allowed_hosts.conf for vnsiserver"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ vnsiserver_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: vnsiserver
+
+#+END_SRC
+
+***** streamdev-server
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: ensure directory '/etc/vdr/plugins' exists
+  file:
+    state: directory
+    mode: 0775
+    dest: '/etc/vdr/plugins/'
+  
+- name: "vdr configuration | streamdevhosts.conf for streamdev-server"
+  template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: '/etc/vdr/plugins/streamdevhosts.conf'
+    mode: 0644
+  vars:
+    allowed_hosts: '{{ streamdev_server_allowed_hosts | default(vdr_allowed_hosts) }}'
+    vdr_service: streamdev-server
 
 #+END_SRC
 
@@ -1171,8 +1238,8 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
   template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
-#+END_SRC
 
+#+END_SRC
 *** templates
 :PROPERTIES:
 :ID:       0c5c2e3b-57af-46a9-b69e-3499e25fce59
@@ -1205,18 +1272,57 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 #
 # IP-Address[/Netmask]
 #
+# Examples:
+# 192.168.100.0/24     # any host on the local net
+# 204.152.189.113      # a specific host
+# 0.0.0.0/0            # any host on any net (USE THIS WITH CARE!)
 
-127.0.0.1             # always accept localhost
-#192.168.100.0/24     # any host on the local net
-#204.152.189.113      # a specific host
-#0.0.0.0/0            # any host on any net (USE THIS WITH CARE!)
-
-{% if vdr_svdrphosts is defined %}
-{% for host_or_subnet in vdr_svdrphosts %}
+127.0.0.1              # always accept localhost
+{% for host_or_subnet in svdrphosts %}
 {{ host_or_subnet }}
 {% endfor %}
-{% endif %}
 
+#+END_SRC
+**** allowed_hosts.conf style template
+#+BEGIN_SRC jinja2 :tangle roles/vdr/templates/generic_allowed_hosts.conf.j2 :mkdirp yes
+{{ ansible_managed | comment }}
+# This file describes a number of host addresses that
+# are allowed to connect to the {{ vdr_service }}
+# running with the Video Disk Recorder (VDR) on this system.
+#
+# Syntax:
+#
+# IP-Address[/Netmask]
+#
+# Examples:
+#
+# 192.168.100.0/24     # any host on the local net
+# 204.152.189.113      # a specific host
+{% if vdr_service == 'streamdev-server' %}
+# 239.255.0.0/16       # uncomment for IGMP multicast streaming
+{% endif %}
+# 0.0.0.0/0            # any host on any net (USE THIS WITH CARE!)
+
+127.0.0.1              # always accept localhost
+{% for host_or_subnet in allowed_hosts %}
+{{ host_or_subnet }}
+{% endfor %}
+#+END_SRC
+**** xineliboutput.conf template
+#+BEGIN_SRC jinja2 :tangle roles/vdr/templates/xineliboutput.conf.j2 :mkdirp yes
+#
+# Command line parameters for vdr-plugin-xineliboutput
+#
+# For more details see:
+#   - /usr/share/doc/vdr-plugin-xineliboutput/README.Debian
+#   - `vdr --help -Pxineliboutput`
+#   - /usr/share/doc/vdr-plugin-xineliboutput/README
+#
+[xineliboutput]
+--local=none
+--primary
+--remote={{ "" if allowed_hosts else "127.0.0.1" }}:37890
+--truecolor
 #+END_SRC
 *** files
 :PROPERTIES:
