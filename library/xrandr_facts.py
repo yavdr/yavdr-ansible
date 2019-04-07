@@ -211,7 +211,14 @@ def parse_edid_data(edid):
             if "Modeline" in line:
                 print(line)
                 _, _, line = line.split('"', 2)
-                FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS = line.split(None, 9)
+                if not line:
+                    print("no timing information")
+                    continue
+                try:
+                    FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS = line.split(None, 9)
+                except ValueError:
+                    print("invalid timing information")
+                    continue
                 print(FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS)
                 refresh = round(float(FF) * 1E6 / (float(H4) * float(V4)))
                 interlaced = "interlaced" in FLAGS
