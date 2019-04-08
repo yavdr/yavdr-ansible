@@ -66,10 +66,10 @@
     mode: 0644
     force: no
 
-- name: "vdr configuration | copy keymacros.conf if it doesn't exist yet"
+- name: "vdr configuration | copy keymacros.conf"
   copy:
     src: files/keymacros.conf
-    dest: '{{ vdr.confdir }}/keymacros.conf'
+    dest: '{{ vdr.etc_confdir }}/keymacros.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
@@ -98,7 +98,7 @@
 - name: "vdr configuration | svdrphosts.conf"
   template:
     src: templates/svdrphosts.conf.j2
-    dest: '/etc/vdr/svdrphosts.conf'
+    dest: '{{ vdr.etc_confdir }}/svdrphosts.conf'
     mode: 0644
   vars:
     svdrphosts: '{{ vdr_svdrphosts | default(vdr_allowed_hosts) }}'

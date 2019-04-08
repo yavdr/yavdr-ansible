@@ -383,16 +383,12 @@ vdr:
   uid: 666
   gid: 666
   home: /var/lib/vdr
+  etc_confdir: /etc/vdr
   confdir: /var/lib/vdr
   recdir: /srv/vdr/video
   hide_first_recording_level: false
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: false
-
-# optional additional hosts and subnets for svdrphosts.conf
-#
-# vdr_svdrphosts:
-#   - 192.168.0.0/24
 
 # copy channels.conf from a local file
 # vdr_channels_conf: /path/to/channels.conf
@@ -405,6 +401,26 @@ vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad
   - vdr-plugin-softhddevice-vpp
+
+# IP (range) filter for vdr and plugins (this must be an array):
+# vdr_allowed_hosts:
+#   - 192.168.0.0/24
+#
+# hosts and subnets for svdrphosts.conf (overrides vdr_allowed_hosts):
+# vdr_svdrphosts:
+#   - 192.168.0.0/24
+#
+# hosts and subnets for allowed_hosts.conf of xineliboutput (overrides vdr_allowed_hosts):
+# xineliboutput_allowed_hosts:
+#   - 192.168.0.0/24
+#
+# hosts and subnets for allowed_hosts.conf of vnsiserver (overrides vdr_allowed_hosts):
+# vnsiserver_allowed_hosts:
+#   - 192.168.0.0/24
+#
+# hosts and subnets for streamdevhosts.conf (overrides vdr_allowed_hosts):
+# streamdev_server_allowed_hosts:
+#   - 192.168.0.0/24
 #+END_SRC
 ** Media directories
 :PROPERTIES:
@@ -1112,10 +1128,10 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     mode: 0644
     force: no
 
-- name: "vdr configuration | copy keymacros.conf if it doesn't exist yet"
+- name: "vdr configuration | copy keymacros.conf"
   copy:
     src: files/keymacros.conf
-    dest: '{{ vdr.confdir }}/keymacros.conf'
+    dest: '{{ vdr.etc_confdir }}/keymacros.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
@@ -1144,7 +1160,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 - name: "vdr configuration | svdrphosts.conf"
   template:
     src: templates/svdrphosts.conf.j2
-    dest: '/etc/vdr/svdrphosts.conf'
+    dest: '{{ vdr.etc_confdir }}/svdrphosts.conf'
     mode: 0644
   vars:
     svdrphosts: '{{ vdr_svdrphosts | default(vdr_allowed_hosts) }}'
@@ -1155,9 +1171,8 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     dest: /etc/default/vdr
 
 #+END_SRC
-
 **** plugin preconfiguration
-
+Set up IP resp. IP range based access for VDR plugins
 ***** xineliboutput
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: ensure directory '/etc/vdr/xineliboutput' exists
@@ -1202,7 +1217,6 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     vdr_service: vnsiserver
 
 #+END_SRC
-
 ***** streamdev-server
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: ensure directory '/etc/vdr/plugins' exists
@@ -1221,7 +1235,6 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     vdr_service: streamdev-server
 
 #+END_SRC
-
 **** start vdr after network-online.target
 :PROPERTIES:
 :ID:       e435efbc-0690-40cc-bf55-5516b23f4ccf
@@ -1244,13 +1257,12 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 :PROPERTIES:
 :ID:       0c5c2e3b-57af-46a9-b69e-3499e25fce59
 :END:
-**** Start vdr.service after network-online.target
+**** Systemd Drop-in to start vdr.service after network-online.target
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
 {{ansible_managed | comment }}
 [Unit]
 After=network-online.target
 #+END_SRC
-
 **** /etc/default/vdr
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
 {{ ansible_managed | comment }}
@@ -2061,9 +2073,13 @@ The autostart script then enables all services to be pulled in by yavdr-desktop.
 # TODO: describe yavdr-frontend
 
 In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a dependency of the systemd unit instance ~user@666.service~ and all processes within the session must be shutdown properly when stopping ~xlogin@vdr.service~.  If systemd units are used within the user session, they must stop their process(es) successfully (you should set them up to accept expected exit codes appropriately).  The window manager /openbox/ is started using the =~/.xinitrc= and stopped using the systemd unit ~exit-wm.service~ (which runs on stopping the jobs pulled in by the ~default.target~ of the session).
-*** TODO automatic X-server configuration                        :noexport:
+*** STARTED automatic X-server configuration                     :noexport:
 :PROPERTIES:
 :ID:       8d3876e1-2cbb-4f82-9e8d-fe66dae2e1b2
+:END:
+:LOGBOOK:
+- State "STARTED"    from "DONE"       [2019-03-27 Mi 15:23]
+- State "DONE"       from "TODO"       [2019-03-27 Mi 15:23]
 :END:
 - [X] detect connected display
 - [X] read EDID from displays
@@ -2072,10 +2088,16 @@ create a xorg.conf for
 - [X] intel
 - [ ] amd gpus
 - [ ] allow overscan compensation in xorg.conf or via xrandr on startup
+Missing steps:
+- [ ] X-Server configuration for AMD graphics cards
+- [ ] load edids by setting kernel boot arguments
 
-**** HOLD Nvidia-GPUs:read  EDID:
+**** DONE Nvidia-GPUs:read  EDID:
 :PROPERTIES:
 :ID:       a25ee66a-e37c-497e-ae0e-99d579785e6b
+:END:
+:LOGBOOK:
+- State "DONE"       from "HOLD"       [2019-03-27 Mi 15:22]
 :END:
 
 #+BEGIN_SRC shell
@@ -2453,7 +2475,6 @@ HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis
         v: height  480 start  490 end  492 total  525           clock  59.94Hz
 
 #+END_SRC
-
 ***** parse hex-strings
 :PROPERTIES:
 :ID:       96a9168e-9acb-4c9b-bd12-df5f24a619e4
