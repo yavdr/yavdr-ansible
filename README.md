@@ -62,3 +62,12 @@ This should work foll all DVB adaptors for which udev events are generated. Note
 You can use the wirbelscan-Plugin, w_scan, t2scan (especially useful for DVB-T2) or ready-to-use channellists from http://channelpedia.yavdr.com/gen/
 
 Important: vdr.service must be stopped if you want to edit VDR configuration files: `sudo stop vdr.service`
+
+### Rescan displays
+If you change the connected displays you may need to update the display configuration. This can be achived by running the `yavdr-xorg` role:
+```shell
+sudo -H ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="yavdr-xorg"
+```
+
+### running single roles without a custom playbook
+You can choose to (re-)run single roles included in a playbook by including their name in the `--tags` argument (see example above for rescanning displays with `yavdr-xorg`).
