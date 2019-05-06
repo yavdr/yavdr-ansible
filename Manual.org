@@ -227,7 +227,7 @@ add-apt-repository -y ppa:ansible/ansible-2.7
 apt-get -y install --no-install-recommends ansible python-jmespath
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=True"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle install-yavdr-headless.sh :shebang "#!/bin/bash"
@@ -246,7 +246,7 @@ add-apt-repository -y ppa:ansible/ansible-2.7
 apt-get -y install --no-install-recommends ansible python-jmespath
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=True"
+ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 * Playbooks
 :PROPERTIES:
@@ -971,7 +971,6 @@ if __name__ == '__main__':
 :ID:       348d726a-1030-4fa9-b791-ced571a71d36
 :END:
 #+BEGIN_SRC yaml :tangle roles/collect-facts/defaults/main.yml :mkdirp yes
-first_run: False
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -2490,7 +2489,6 @@ b'\xde\xad\xbe\xef'
 :ID:       c03c69a3-2576-4d14-a6bd-1b45e545676c
 :END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/defaults/main.yml :mkdirp yes :padline no
-first_run: False
 preferred_outputs:
   - HDMI
   - DP
@@ -2731,43 +2729,6 @@ preferred_refreshrates:
     - nvidia_detected
     - nvidia_driver_installed
     - '"nouveau" in modules'
-
-#- name: Workaround for wrong connector names on first run
-#  block:
-#    - name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
-#      wait_for:
-#        timeout: 10
-#    
-#    - name: "start x-verbose@.service"
-#      systemd:
-#          name: "x-verbose@vt7.service"
-#          state: started
-#          enabled: false
-#          masked: false
-#          daemon_reload: true
-#    
-#    - name: "wait a little bit, so X has some time to start up (needed?)"
-#      wait_for:
-#        timeout: 3
-#    
-#    - name: "stop x-verbose@vt7.service"
-#      systemd:
-#        name: "x-verbose@vt7.service"
-#        state: stopped
-#        enabled: false
-#        masked: true
-#  when: first_run
-
-#- name: "wait a little bit, so X has some time to shut down (needed?)"
-#  wait_for:
-#    timeout: 3
-#
-#- name: "trigger udevadm reload"
-#  command: 'udevadm trigger '
-#
-#- name: "wait a little bit, so udev has some time to reapply rules (needed?)"
-#  wait_for:
-#    timeout: 3
 
 - name: "start x-verbose@.service"
   systemd:

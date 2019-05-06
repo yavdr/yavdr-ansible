@@ -14,4 +14,4 @@ add-apt-repository -y ppa:ansible/ansible-2.7
 apt-get -y install --no-install-recommends ansible python-jmespath
 
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all" --extra-vars "first_run=True"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
