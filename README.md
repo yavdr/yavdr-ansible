@@ -16,11 +16,13 @@ Please note that this is still work in progress and several features of yaVDR 0.
 
 ## Usage:
 
-Set up a Ubuntu Server 18.04.x Installation
+Set up a Ubuntu Server 18.04.x Installation and install `openss-server`.
 
 NOTE: it is important to use the [alternative server installer](https://www.ubuntu.com/download/alternative-downloads#alternate-ubuntu-server-installer) or the [mini.iso](https://help.ubuntu.com/community/Installation/MinimalCD), otherwise the boot splash and Xorg won't work properly.
 
 ### Download yavdr-ansible
+NOTE: It is recommended to use a SSH connection to run the playbook, especially if a nvidia card is used (in order to change from the nouveau to the nvidia driver the local console output needs to be disabled temporarily).
+
 Run the following commands to download the current version of yavdr-ansible:
 ```
 sudo apt-get install git
