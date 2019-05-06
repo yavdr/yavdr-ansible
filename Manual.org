@@ -2688,42 +2688,86 @@ preferred_refreshrates:
     name: x@vt7.service
     state: stopped
 
-- name: Workaround for wrong connector names on first run
+- name: check if a nvidia driver has been installed
+  set_fact:
+    nvidia_driver_installed: '{{ "nvidia" in lookup("file", "/etc/yavdr/autoinstalled") }}'
+
+- name: unload nouveau driver, replace with nvidia
   block:
-    - name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
+    - name: unbind vconsole
+      shell: echo 0 > /sys/class/vtconsole/vtcon1/bind
+
+    - name: "wait a little, so noveau isn't used anymore"
       wait_for:
-        timeout: 10
-    
-    - name: "start x-verbose@.service"
-      systemd:
-          name: "x-verbose@vt7.service"
-          state: started
-          enabled: false
-          masked: false
-          daemon_reload: true
-    
-    - name: "wait a little bit, so X has some time to start up (needed?)"
+        timeout: 1
+
+    # unloading the drivers using the modprobe module does not work for some strange reason...
+    - name: unload kms drivers
+      command: rmmod '{{ item }}'
+      loop:
+        - nouveau
+        - ttm
+        - drm_kms_helper
+        - drm
+      ignore_errors: yes
+
+    - name: load nvidia driver
+      modprobe:
+        name: "nvidia"
+        state: present
+
+    - name: "wait a little before starting nvidia-persistenced"
       wait_for:
-        timeout: 3
-    
-    - name: "stop x-verbose@vt7.service"
+        timeout: 1
+
+    - name: start nvidia-persistenced
       systemd:
-        name: "x-verbose@vt7.service"
-        state: stopped
-        enabled: false
-        masked: true
-  when: first_run
+        name: "nvidia-persistenced"
+        state: started
+        enabled: true
+        masked: false
+        daemon_reload: true
+  when:
+    - nvidia_detected
+    - nvidia_driver_installed
+    - '"nouveau" in modules'
 
-- name: "wait a little bit, so X has some time to shut down (needed?)"
-  wait_for:
-    timeout: 3
+#- name: Workaround for wrong connector names on first run
+#  block:
+#    - name: "wait a little bit before starting x-verbose@vt7.service (needed?)"
+#      wait_for:
+#        timeout: 10
+#    
+#    - name: "start x-verbose@.service"
+#      systemd:
+#          name: "x-verbose@vt7.service"
+#          state: started
+#          enabled: false
+#          masked: false
+#          daemon_reload: true
+#    
+#    - name: "wait a little bit, so X has some time to start up (needed?)"
+#      wait_for:
+#        timeout: 3
+#    
+#    - name: "stop x-verbose@vt7.service"
+#      systemd:
+#        name: "x-verbose@vt7.service"
+#        state: stopped
+#        enabled: false
+#        masked: true
+#  when: first_run
 
-- name: "trigger udevadm reload"
-  command: 'udevadm trigger '
-
-- name: "wait a little bit, so udev has some time to reapply rules (needed?)"
-  wait_for:
-    timeout: 3
+#- name: "wait a little bit, so X has some time to shut down (needed?)"
+#  wait_for:
+#    timeout: 3
+#
+#- name: "trigger udevadm reload"
+#  command: 'udevadm trigger '
+#
+#- name: "wait a little bit, so udev has some time to reapply rules (needed?)"
+#  wait_for:
+#    timeout: 3
 
 - name: "start x-verbose@.service"
   systemd:
@@ -2733,7 +2777,7 @@ preferred_refreshrates:
     masked: false
     daemon_reload: true
 
-- name: "wait a little bit, so X has some time to start up (needed?)"
+- name: "wait a little, so X has some time to start up"
   wait_for:
     timeout: 3
 
@@ -2761,9 +2805,9 @@ preferred_refreshrates:
     enabled: false
     masked: true
 
-- name: "wait a little bit, so X has some time to shut down (needed?)"
-  wait_for:
-    timeout: 3
+#- name: "wait a little bit, so X has some time to shut down (needed?)"
+#  wait_for:
+#    timeout: 3
 
 - name: save results
   block:
