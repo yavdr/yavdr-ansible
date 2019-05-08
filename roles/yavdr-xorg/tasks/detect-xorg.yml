@@ -56,13 +56,22 @@
 
     # unloading the drivers using the modprobe module does not work for some strange reason...
     - name: unload kms drivers
-      command: rmmod '{{ item }}'
+      rmmod:
+        name: '{{ item }}'
       loop:
         - nouveau
         - ttm
         - drm_kms_helper
         - drm
-      ignore_errors: yes
+
+    #- name: unload kms drivers
+    #  command: rmmod '{{ item }}'
+    #  loop:
+    #    - nouveau
+    #    - ttm
+    #    - drm_kms_helper
+    #    - drm
+    #  ignore_errors: yes
 
     - name: load nvidia driver
       modprobe:
