@@ -16,7 +16,7 @@ Please note that this is still work in progress and several features of yaVDR 0.
 
 ## Usage:
 
-Set up a Ubuntu Server 18.04.x Installation and install `openss-server`.
+Set up a Ubuntu Server 18.04.x Installation and install `openssh-server`.
 
 NOTE: it is important to use the [alternative server installer](https://www.ubuntu.com/download/alternative-downloads#alternate-ubuntu-server-installer) or the [mini.iso](https://help.ubuntu.com/community/Installation/MinimalCD), otherwise the boot splash and Xorg won't work properly.
 
