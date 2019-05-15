@@ -5286,6 +5286,7 @@ udiskie &
 **** udiskie
 ***** config.yml
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
+{{ ansible_managed | comment }}
 program_options:
   tray:             false    # [bool] Enable the tray icon. "auto"
   menu:             flat    # ["flat" | "nested"] Set the
@@ -5313,6 +5314,8 @@ notifications:
 ***** mount helper script
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
 #!/bin/bash
+{{ ansible_managed | comment }}
+
 videodir="{{ vdr.recdir }}"
 event="$1"
 device_node="$2"
@@ -5360,6 +5363,7 @@ esac
 
 ***** udiskie snippet for commands.conf
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+{{ ansible_managed | comment }}
 {{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
 #+END_SRC
 
