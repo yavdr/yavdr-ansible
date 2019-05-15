@@ -774,6 +774,7 @@ yavdr-common executes the following tasks:
       - wpasupplicant
       - usbutils
       - xfsprogs
+      - yavdr-i18n
     state: present
     install_recommends: no
 
@@ -3485,6 +3486,9 @@ exit 0
         group: '{{ vdr.group }}'
         force: no
 
+- name: set up udiskie
+  include_tasks: udiskie.yml
+
 - name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
   file:
     src: /usr/bin/start-desktop
@@ -3497,6 +3501,36 @@ exit 0
     name: 'yavdr-xorg'
     enabled: yes
     state: started
+#+END_SRC
+
+**** udiskie.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-desktop/tasks/udiskie.yml :mkdirp yes :padline no
+- name: install udiskie
+  apt:
+    name:
+      - udiskie
+
+- name: create ~/.config/udiskie
+  file:
+    name: '{{ vdr.home }}/.config/udiskie'
+
+- name: expand template for udiskie's config.yml
+  template:
+    src: templates/udiskie/config.yml.j2
+    dest: '{{ vdr.home }}/.config/udiskie/config.yml'
+
+- name: expand template for mount helper script
+  template:
+    src: templates/udiskie/udiskie_vdr_mount_helper.j2
+    dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
+    mode: 0755
+    owner: vdr
+    group: vdr
+
+- name: expand template for udiskie vdr commands
+  template:
+    src: templates/udiskie/umount_all.j2
+    dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
 #+END_SRC
 *** Templates
 :PROPERTIES:
@@ -3576,6 +3610,7 @@ fi
 
 # start systemd units for the yavdr user session
 systemctl --user isolate yavdr-desktop.target
+udiskie &
 #+END_SRC
 ***** rc.xml
 :PROPERTIES:
@@ -5247,6 +5282,85 @@ systemctl --user isolate yavdr-desktop.target
   </applications>
 </openbox_config>
 
+#+END_SRC
+**** udiskie
+***** config.yml
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
+program_options:
+  tray:             false    # [bool] Enable the tray icon. "auto"
+  menu:             flat    # ["flat" | "nested"] Set the
+  automount:        true   # [bool] Enable automatic mounting.
+  notify:           true    # [bool] Enable notifications.
+  password_cache:   false      # [int] Password cache in minutes. Caching is
+
+  file_manager:     ""
+  notify_command: "{{ vdr.home }}/bin/udiskie_vdr_mount_helper '{event}' '{device_presentation}' '{mount_path}'"
+
+device_config:
+  - is_loop: true
+    ignore: true
+
+  - is_external: false
+    ignore: true
+
+notifications:
+  device_mounted:   5       # mount notification
+  device_unmounted: true   # unmount notification
+  device_added:     true   # device has appeared
+  device_removed:   true   # device has disappeared
+#+END_SRC
+
+***** mount helper script
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
+#!/bin/bash
+videodir="{{ vdr.recdir }}"
+event="$1"
+device_node="$2"
+mount_path="$3"
+
+
+logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
+case "$event" in
+    'device_mounted')
+        target="${videodir}/$(basename "${mount_path}")"
+        ln -s -T "$mount_path" "$target" ||
+            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
+        # check if we got a vdr recording on the mountpoint
+        if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
+        then
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path mounted (with recordings)"
+            svdrpsend updr
+        else
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path' mounted"
+        fi
+        ;;
+    'device_unmounted')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        logger -t "device umounted" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node umounted"
+        svdrpsend updr
+        ;;
+    'device_removed')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        if [ -z "$device_node" ] && exit
+        logger -t "device removed" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node removed"
+        svdrpsend updr
+        ;;
+    'job_failed')
+        if [ -n "$mount_path" ]
+        then
+            logger -t "umount failed" "could not unmount $mount_path"
+        else
+            logger -t "operation failed" 'could not mount(?) '"$device_node"
+        fi
+        ;;
+esac
+#+END_SRC
+
+***** udiskie snippet for commands.conf
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+{{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
 #+END_SRC
 
 **** Systemd User Session

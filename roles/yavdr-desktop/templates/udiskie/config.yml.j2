@@ -1,0 +1,23 @@
+#!/bin/bash
+program_options:
+  tray:             false    # [bool] Enable the tray icon. "auto"
+  menu:             flat    # ["flat" | "nested"] Set the
+  automount:        true   # [bool] Enable automatic mounting.
+  notify:           true    # [bool] Enable notifications.
+  password_cache:   false      # [int] Password cache in minutes. Caching is
+
+  file_manager:     ""
+  notify_command: "{{ vdr.home }}/bin/udiskie_vdr_mount_helper '{event}' '{device_presentation}' '{mount_path}'"
+
+device_config:
+  - is_loop: true
+    ignore: true
+
+  - is_external: false
+    ignore: true
+
+notifications:
+  device_mounted:   5       # mount notification
+  device_unmounted: true   # unmount notification
+  device_added:     true   # device has appeared
+  device_removed:   true   # device has disappeared

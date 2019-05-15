@@ -1,0 +1,45 @@
+#!/bin/bash
+#!/bin/bash
+videodir="{{ vdr.recdir }}"
+event="$1"
+device_node="$2"
+mount_path="$3"
+
+
+logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
+case "$event" in
+    'device_mounted')
+        target="${videodir}/$(basename "${mount_path}")"
+        ln -s -T "$mount_path" "$target" ||
+            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
+        # check if we got a vdr recording on the mountpoint
+        if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
+        then
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path mounted (with recordings)"
+            svdrpsend updr
+        else
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path' mounted"
+        fi
+        ;;
+    'device_unmounted')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        logger -t "device umounted" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node umounted"
+        svdrpsend updr
+        ;;
+    'device_removed')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        if [ -z "$device_node" ] && exit
+        logger -t "device removed" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node removed"
+        svdrpsend updr
+        ;;
+    'job_failed')
+        if [ -n "$mount_path" ]
+        then
+            logger -t "umount failed" "could not unmount $mount_path"
+        else
+            logger -t "operation failed" 'could not mount(?) '"$device_node"
+        fi
+        ;;
+esac
