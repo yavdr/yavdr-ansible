@@ -15,14 +15,15 @@ ANSIBLE_METADATA = {
 import gettext
 from ansible.errors import AnsibleFilterError
 from ansible.utils import helpers
+from ansible.module_utils._text import to_text
 
 
 def translate_yavdr(text):
     gettext.textdomain('yavdr')
     try:
-        return gettext.gettext(text)
+        return to_text(gettext.gettext(text))
     except:
-        return text
+        return to_text(text)
 
 # ---- Ansible filters ----
 class FilterModule(object):
