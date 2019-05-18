@@ -30,7 +30,7 @@ case "$event" in
         ;;
     'device_removed')
         removed_symlinks=($(find "$videodir" -xtype l -delete -print))
-        if [ -z "$device_node" ] && exit
+        [ -z "$device_node" ] && exit
         logger -t "device removed" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
         vdr-dbus-send /Skin skin.QueueMessage string:"$device_node removed"
         svdrpsend updr
