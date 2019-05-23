@@ -2698,11 +2698,11 @@ preferred_refreshrates:
     regexp: '.*nvidia.*'
     state: absent
   check_mode: yes
-  register: nvidia_detected
+  register: nvidia_driver_detected
 
 - name: set_fact | nvidia_driver_installed
   set_fact:
-    nvidia_driver_installed: '{{ nvidia_detected.changed }}'
+    nvidia_driver_installed: '{{ nvidia_driver_detected.changed | bool }}'
 
 - name: unload nouveau driver, replace with nvidia
   block:
