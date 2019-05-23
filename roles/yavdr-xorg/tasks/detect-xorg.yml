@@ -89,8 +89,8 @@
         masked: false
         daemon_reload: true
   when:
-    - nvidia_detected
-    - nvidia_driver_installed
+    - nvidia_detected | bool
+    - nvidia_driver_installed | bool
     - '"nouveau" in modules'
 
 - name: "start x-verbose@.service"
@@ -181,14 +181,14 @@
         dest: /etc/X11/xorg.conf
         backup: yes
   when:
-    - nvidia_detected
+    - nvidia_detected | bool
 
 - name: intel xorg config snippet
   template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
   when:
-    - intel_detected and not nvidia_detected
+    - intel_detected | bool and not nvidia_detected | bool
 
 - name: server flags config snippet to disable screen blanking
   template:

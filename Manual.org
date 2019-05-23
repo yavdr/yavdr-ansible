@@ -744,7 +744,7 @@ yavdr-common executes the following tasks:
   with_first_found:
     - files:
       - /etc/update-manager/release-upgrades
-      skip: true
+      errors: ignore
 
 #+END_SRC
 ***** Install essential packages
@@ -2618,7 +2618,7 @@ preferred_refreshrates:
       - xserver-xorg-video-intel
       - i965-va-driver-shaders
     state: present
-  when: intel_detected and not nvidia_detected
+  when: intel_detected | bool and not nvidia_detected | bool
 
 - name: Install yaVDR Media (e.g. Backgrounds)
   apt:
@@ -2740,8 +2740,8 @@ preferred_refreshrates:
         masked: false
         daemon_reload: true
   when:
-    - nvidia_detected
-    - nvidia_driver_installed
+    - nvidia_detected | bool
+    - nvidia_driver_installed | bool
     - '"nouveau" in modules'
 
 - name: "start x-verbose@.service"
@@ -2832,14 +2832,14 @@ preferred_refreshrates:
         dest: /etc/X11/xorg.conf
         backup: yes
   when:
-    - nvidia_detected
+    - nvidia_detected | bool
 
 - name: intel xorg config snippet
   template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
   when:
-    - intel_detected and not nvidia_detected
+    - intel_detected | bool and not nvidia_detected | bool
 
 - name: server flags config snippet to disable screen blanking
   template:
@@ -6004,7 +6004,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   apt:
     name: vdr-plugin-satip
     state: present
-  when: satip_devices
+  when: satip_devices | bool
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-targavfd
