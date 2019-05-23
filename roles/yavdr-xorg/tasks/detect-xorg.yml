@@ -41,9 +41,17 @@
     name: x@vt7.service
     state: stopped
 
-- name: check if a nvidia driver has been installed
+- name: check /etc/yavdr/autoinstalled if a nvidia driver has been installed
+  lineinfile:
+    name: /etc/yavdr/autoinstalled
+    regexp: '.*nvidia.*'
+    state: absent
+  check_mode: yes
+  register: nvidia_detected
+
+- name: set_fact | nvidia_driver_installed
   set_fact:
-    nvidia_driver_installed: '{{ "nvidia" in lookup("file", "/etc/yavdr/autoinstalled") }}'
+    nvidia_driver_installed: '{{ nvidia_detected.changed }}'
 
 - name: unload nouveau driver, replace with nvidia
   block:
