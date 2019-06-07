@@ -8,7 +8,7 @@ fi
 # update packages
 apt update
 apt -y install software-properties-common
-add-apt-repository -y ppa:ansible/ansible-2.7
+add-apt-repository -y ppa:ansible/ansible-2.8
 
 # install required packages
 apt-get -y install --no-install-recommends ansible python-jmespath
