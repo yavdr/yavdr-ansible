@@ -2863,11 +2863,13 @@ This task therefore performs the following actions after the xrandr detection ha
 
 Please note that rescanning the connected displays works only after removing the forced loading of EDID(s) during boot (call ~clean-edids~) and a reboot.
 
+TODO: create ~clean-edids~ script/role/Playbook to undo kernel boot options for edid loading
+
 #+CAPTION: roles/yavdr-xorg/tasks/intel.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/intel.yml :mkdirp yes :padline no
 - name: "create initramfs hook to copy EDID files"
-  copy:
-    src: files/include-edid-data.sh
+  template:
+    src: templates/include-edid-data.sh.j2
     dest: '/etc/initramfs-tools/hooks/include-edid-data'
     mode: 0755
     force: yes
@@ -2897,8 +2899,7 @@ template:
 :END:
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/grub.d/intel.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
-{% set output_flag = 'D' if ("HDMI" in xorg.primary.connector or "DVI" in xorg.primary.connector or "DP" in xorg.primary.connector) else 'e' %} 
-GRUB_CMDLINE_LINUX+=" video={{ drm.primary.drm_connector }}:{{ xorg.primary.mode|replace('_', '@') }}{{ output_flag }} drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
+GRUB_CMDLINE_LINUX+=" drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
 #+END_SRC
 **** xorg
 :PROPERTIES:
@@ -3318,7 +3319,7 @@ EnvironmentFile=-/var/lib/vdr/.session-env
 :PROPERTIES:
 :ID:       41434b9a-1580-4214-ba40-0e11e00ca82a
 :END:
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/files/cp-edid-data.sh
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2
 #!/bin/bash
 {{ ansible_managed | comment }}
 # This hook copies EDID files with the naming scheme "edid.${OUTPUT}.bin" to the initramfs.
