@@ -1356,10 +1356,10 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 **** command-hooks
 #+begin_src jinja2 :tangle roles/vdr/templates/command-hooks/commands.yavdr.conf.j2
 {{ ansible_managed | comment }}
-{{ "Update vdr recordings list" | translate }}    : /usr/bin/svdrpsend updr >/dev/null 2>&1 &
+{{ "Update vdr recordings list" | translate }}    : echo "/usr/bin/svdrpsend updr" | at now
 {{ "Restart VDR" | translate }}                   : sudo /bin/systemctl --no-block restart vdr.service
 {{ "Reboot computer" | translate }}               : sudo /bin/systemctl --no-block reboot
-{{ "Shutdown computer" | translate }}             : /usr/bin/lircd2uinput-send KEY_POWER2 2>&1 /dev/null &
+{{ "Shutdown system" | translate }}               : echo "/usr/bin/lircd2uinput-send KEY_POWER2" | at now
 #+end_src
 *** files
 :PROPERTIES:
