@@ -1262,6 +1262,14 @@ Set up IP resp. IP range based access for VDR plugins
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
 
 #+END_SRC
+**** create commands.conf entries
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: create snippet with yavdr commands
+  template:
+    src: templates/command-hooks/commands.yavdr.conf.j2
+    dest: /usr/share/vdr/command-hooks/commands.yavdr.conf
+#+END_SRC
+
 *** templates
 :PROPERTIES:
 :ID:       0c5c2e3b-57af-46a9-b69e-3499e25fce59
@@ -1345,6 +1353,11 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 --remote={{ "" if allowed_hosts else "127.0.0.1" }}:37890
 --truecolor
 #+END_SRC
+**** command-hooks
+#+begin_src jinja2 :tangle roles/vdr/templates/command-hooks/commands.yavdr.conf.j2
+{{ "Restart VDR" | translate }}                   : sudo /bin/systemctl --no-block restart vdr.service
+{{ "Reboot computer" | translate }}               : sudo /bin/systemctl --no-block reboot
+#+end_src
 *** files
 :PROPERTIES:
 :ID:       a784d230-8455-4414-a01c-fbc4acea82bc
