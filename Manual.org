@@ -1359,7 +1359,7 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 {{ ansible_managed | comment }}
 {{ "Update vdr recordings list" | translate }}    : echo "/usr/bin/svdrpsend updr" | at now
 {{ "Restart VDR" | translate }}                   : sudo /bin/systemctl --no-block restart vdr.service
-{{ "Reboot computer" | translate }}               : sudo /bin/systemctl --no-block reboot
+{{ "Reboot system" | translate }}               : sudo /bin/systemctl --no-block reboot
 {{ "Shutdown system" | translate }}               : echo "/usr/bin/lircd2uinput-send KEY_POWER2" | at now
 #+end_src
 *** files
@@ -1522,7 +1522,7 @@ User0     @osdteletext
 
 
 #+END_SRC
-** STARTED yavdr-network
+** yavdr-network
 :PROPERTIES:
 :ID:       5cae8669-27f7-4fd5-844c-8b16daa4daf4
 :END:
@@ -1698,7 +1698,7 @@ description of the config file format.
 :PROPERTIES:
 :ID:       dc47cc3a-6f18-4c8f-8d07-845f18015ee7
 :END:
-*** TODO avahi-services für NFS beim Stoppen des nfs-kernel-servers depublizieren, beim Start wieder announcen
+*** TODO disable announcement for NFS avahi-services before stopping nfs-kernel-server, announce them again after a (re)start :noexport:
 :PROPERTIES:
 :ID:       3b548bca-9c10-41f8-bd0f-71fb4b8d76dc
 :END:
@@ -5750,7 +5750,7 @@ end
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
 include = /etc/samba/smb.conf.custom
 #+END_SRC
-** STARTED autoinstall-drivers
+** TODO autoinstall-drivers                                       :noexport:
 :PROPERTIES:
 :ID:       2802c8ea-614e-4b9b-8c3e-cd7efc0f4f0e
 :END:
@@ -5758,6 +5758,9 @@ It would be nice to be able to detect if it is suitable to install those drivers
 *** TODO sundtek for Sundtek devices (local or network connection)
 :PROPERTIES:
 :ID:       8b66ce8d-0095-4fbd-8868-8bc5c43d19fc
+:END:
+:LOGBOOK:
+- State "STARTED"    from "TODO"       [2019-06-11 Di 08:54]
 :END:
 
 For now we plan to have the role ~install-sundtek~, in the future we could do a little better:
@@ -5773,18 +5776,19 @@ Vendor-IDs:
 :ID:       f5970635-da3e-4929-a17c-3226b69497c5
 :END:
 - [X] python3-sundtek (Python C-extension for sundtek API)
-- yavdr-hardware-sundtek (basic configuration files and scripts, sundtek-avahi-mounter)
-- yavdr-backend-sundtek (WFE)
+- [ ] yavdr-hardware-sundtek (basic configuration files and scripts, sundtek-avahi-mounter)
+- [ ] yavdr-backend-sundtek (WFE)
 *** TODO drivers for TT S2-6400 FF
 :PROPERTIES:
 :ID:       257ce3b7-ecfc-4e13-b394-f3b0707be30a
 :END:
-https://github.com/s-moch/linux-saa716x - how to build this as dkms package?
+https://github.com/s-moch/linux-saa716x - how to build this as a dkms package?
 ** autoinstall-ubuntu-drivers
 :PROPERTIES:
 :ID:       a9c88346-c91c-4d02-8dac-19148795d4df
 :END:
 The tool ubuntu-drivers is used to install the matching driver version for nvidia graphics cards, virtualbox guest additions and Intel and AMD microcode updates.
+Please note that you need to disable this role if you are using nvidia drivers which are not in the official ubuntu package repositories.
 *** tasks
 :PROPERTIES:
 :ID:       bfe4d498-7d66-4e5f-85b1-d60e29cf309a
@@ -6439,7 +6443,6 @@ This file maps the keys defined in Lircmap.xml to actions within kodi.
 :ID:       7e7f26cf-073d-4d1c-8f6e-cc69de259aaf
 :END:
 #+INCLUDE: "roles/dvd/tasks/main.yml" src yaml
-
 ** vdr-epg-daemon
 This role installs the vdr-epg-daemon
 *** defaults
@@ -6459,11 +6462,27 @@ to allow Database access from all hosts on network
 **** template for /etc/epgd/epgd.conf 
 ~file: roles/epgd/templates/etc_epgd_epgd.conf.j2~
 #+include: roles/epgd/templates/etc_epgd_epgd.conf.j2 src jinja2
-
 ** install-sundtek
 :PROPERTIES:
 :ID:       de68c6d2-92c7-47c2-9d28-bfa6be00ec3e
 :END:
+This role checks for USB IDs ~2659:*~ and ~ab1a:5*~. If you want to force installation of sundtek packages (e.g. for accessing network tuners), set ~sundtek.force_install~ to ~True~.
+
+There are two ways to configure the VDR to use sundtek devices:
+ - delay starting the VDR until the sundtek ~mediasrv~ has initialized all local devices -> set ~sundtek.wait_for_devices~ to ~True~ (default)
+ - use the vdr plugins ~vdr-plugin-dynamite~ and ~vdr-plugin-sundtek~ to allow the VDR to add (and remove) those tuners at runtime -> set ~sundtek.wait_for_devices~ to ~False~
+
+If you need to statically mount network tuners via ~/etc/sundtek.conf~, set ~sundtek.wait_for_network~ to ~True~. Please note that in this case the server has to be always avaible while the client is running.
+
+Each program accessing sundtek tuners over device nodes in ~/dev/dvb~ needs to be started with the environment variable ~LD_PRELOAD=/opt/lib/libmediaclient.so~. E.g. when using ~w_scan~:
+#+begin_src shell
+sudo LD_PRELOAD=/opt/lib/libmediaclient.so w_scan -f c -c de > new_channels.conf
+#+end_src
+
+*** TODO additional services                                     :noexport:
+- [ ] avahi-sundtek-mounter
+- [ ] yavdr-backend-sundtek (for WFE)
+
 *** dependencies
 #+BEGIN_SRC yaml :tangle roles/install-sundtek/meta/main.yml :padline no
 ---
@@ -6477,7 +6496,7 @@ dependencies:
 # file: roles/install-sundtek/defaults/main.yml
 
 sundtek:
-  install: auto
+  force_install: false
   wait_for_devices: true
   wait_for_network: false
 #+END_SRC
@@ -6490,42 +6509,63 @@ sundtek:
 ---
 # file roles/install-sundtek/tasks/main.yml
 
-# TODO: include LD_PRELOAD and other dependencies in yavdr-hardware-sundtek package
-#- name: apt | install yavdr-hardware-sundtek
-#  apt:
-#    name: yavdr-hardware-sundtek
+- name: check for connected sundtek devices
+  set_fact:
+    install_sundtek: "{{ (usb | select('match', '2659:') | list | length | bool) or (usb | select('match', 'eb1a:5') | list | length | bool) or (sundtek.force_install | bool) }}"
 
-- name: expand template for custom sundtek.service
-  template:
-    src: templates/systemd/sundtek.service.j2
-    dest: /etc/systemd/systemd/sundtek.service
-  when: sundtek.install
+- name: Preconfigure sundtek drivers
+  block:
+    - name: override udev rule installed by dvb-driver-sundtek
+      template:
+        src: templates/udev/80-mediasrv-sundtek.rules.j2
+        dest: /etc/udev/rules.d/80-mediasrv-sundtek.rules
+
+    - name: expand template for custom sundtek.service
+      template:
+        src: templates/systemd/sundtek.service.j2
+        dest: /etc/systemd/system/sundtek.service
+
+    - name: set LD_PRELOAD for sundtek driver to VDR's environment
+      template:
+        src: templates/systemd/vdr.service.d/sundtek.conf.j2
+        dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
+      notify: ['Restart VDR']
+
+  when: install_sundtek | bool
 
 - name: apt | install sundtek dvb driver
   apt:
     name: dvb-driver-sundtek
-    state: present
-  when: sundtek.install
-# TODO: state should depend on sundtek.install:
-# '{{ "present" if sundtek.install else "absent" }}'
+    state: '{{ "present" if install_sundtek | bool else "absent" }}'
 
 - name: apt | install vdr-plugins for dynamic sundtek configuration else uninstall
   apt:
     name:
-      - vdr-plugin-dynamite
-      - vdr-plugin-sundtek
-    state: '{{ "absent" if sundtek.wait_for_devices else "present" }}'
-  when: sundtek.install
+    - vdr-plugin-dynamite
+    - vdr-plugin-sundtek
+    state: '{{ "absent" if sundtek.wait_for_devices or not install_sundtek else "present" }}'
 
+- name: install and run sundtek.service
+  block:
+    - name: check if sundtek.service is running
+      systemd:
+        name: sundtek.service
+        state: started
+      check_mode: yes
+      register: sundtek_service_state
 
-- name: systemd | start sundtek.service
-  systemd:
-    name: sundtek.service
-    state: started
-    enabled: yes
-    masked: no
-    daemon-reload: yes
-  when: sundtek.install
+    - name: get mediasrv pids
+      command: pgrep mediasrv
+      register: mediasrv_pids
+    
+    - name: systemd | start sundtek.service
+      systemd:
+        name: sundtek.service
+        state: '{{ "started" if (mediasrv_pids.stdout_lines and not sundtek_service_state.changed) or not mediasrv_pids.stdout_lines else "stopped" }}'
+        enabled: yes
+        masked: no
+        daemon-reload: yes
+  when: install_sundtek | bool
 
 # TODO: Scan for local and remote sundtek sticks and create
 #       /etc/sundtek.conf - needs yavdr-hardware-sundtek
@@ -6543,11 +6583,10 @@ sundtek:
 #    dest: /etc/sundtek.conf
 #  notify: Restart sundtek.service
 
-- name: set LD_PRELOAD for sundtek driver to VDR's environment
-  template:
-    src: templates/systemd/vdr.service.d/sundtek.conf.j2
-    dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
-  notify: ['Restart VDR']
+# TODO: install yavdr-hardware-sundtek
+#- name: apt | install yavdr-hardware-sundtek
+#  apt:
+#    name: yavdr-hardware-sundtek
 
 # TODO: enable sundtek-avahi-mounter (needs to be ported to python3 and 
 #       work indenpendently of yavdrhw.db files)
@@ -6563,16 +6602,24 @@ sundtek:
 :PROPERTIES:
 :ID:       30011bae-7869-4928-b8ea-b66034badf9e
 :END:
+**** udev rule to force sundtek mediaclient to start the mediasrv using systemd
+#+BEGIN_SRC systemd :tangle roles/install-sundtek/templates/udev/80-mediasrv-sundtek.rules.j2 :mkdirp yes
+{{ ansible_managed | comment }}
+
+{% if install_sundtek %}
+SUBSYSTEM=="usb", ACTION=="add", RUN+="/opt/bin/mediaclient --start=5 --systemdcheck"
+{% endif %}
+#+END_SRC
+***** TODO I wonder if this rule can to better than running mediaclient on every usb device :noexport:
 **** LD_PRELOAD for vdr.service
 #+BEGIN_SRC systemd :tangle roles/install-sundtek/templates/systemd/vdr.service.d/sundtek.conf.j2
 {{ ansible_managed | comment }}
 
-{% if sundtek.install %}
+{% if install_sundtek %}
 [Service]
 Environment=LD_PRELOAD=/opt/lib/libmediaclient.so
 {% endif %}
 #+END_SRC
-
 **** /etc/systemd/system/sundtek.service
 #+BEGIN_SRC systemd :tangle roles/install-sundtek/templates/systemd/sundtek.service.j2
 {{ ansible_managed | comment }}
@@ -6582,16 +6629,17 @@ Description=Sundtek mediasrv
 {% if sundtek.wait_for_network %}
 After=network-online.target
 {% endif %}
+
 Before=vdr.service
 [Service]
 Type=forking
 ExecStart=/opt/bin/mediasrv -d --pluginpath=/opt/bin {% if sundtek.wait_for_devices %}--wait-for-devices{% endif%}
+
 ExecStop=/opt/bin/mediaclient --shutdown
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 #+END_SRC
-
 **** /etc/sundtek.conf
 :PROPERTIES:
 :ID:       73609a51-8209-47c2-82a0-48838f47b884

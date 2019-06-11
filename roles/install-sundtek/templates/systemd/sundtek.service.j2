@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=Sundtek mediasrv
+{% if sundtek.wait_for_network %}
+After=network-online.target
+{% endif %}
+
+Before=vdr.service
+[Service]
+Type=forking
+ExecStart=/opt/bin/mediasrv -d --pluginpath=/opt/bin {% if sundtek.wait_for_devices %}--wait-for-devices{% endif%}
+
+ExecStop=/opt/bin/mediaclient --shutdown
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,91 @@
+---
+# file roles/install-sundtek/tasks/main.yml
+
+- name: check for connected sundtek devices
+  set_fact:
+    install_sundtek: "{{ (usb | select('match', '2659:') | list | length | bool) or (usb | select('match', 'eb1a:5') | list | length | bool) or (sundtek.force_install | bool) }}"
+
+- name: Preconfigure sundtek drivers
+  block:
+    - name: override udev rule installed by dvb-driver-sundtek
+      template:
+        src: templates/udev/80-mediasrv-sundtek.rules.j2
+        dest: /etc/udev/rules.d/80-mediasrv-sundtek.rules
+
+    - name: expand template for custom sundtek.service
+      template:
+        src: templates/systemd/sundtek.service.j2
+        dest: /etc/systemd/system/sundtek.service
+
+    - name: set LD_PRELOAD for sundtek driver to VDR's environment
+      template:
+        src: templates/systemd/vdr.service.d/sundtek.conf.j2
+        dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
+      notify: ['Restart VDR']
+
+  when: install_sundtek | bool
+
+- name: apt | install sundtek dvb driver
+  apt:
+    name: dvb-driver-sundtek
+    state: '{{ "present" if install_sundtek | bool else "absent" }}'
+
+- name: apt | install vdr-plugins for dynamic sundtek configuration else uninstall
+  apt:
+    name:
+    - vdr-plugin-dynamite
+    - vdr-plugin-sundtek
+    state: '{{ "absent" if sundtek.wait_for_devices or not install_sundtek else "present" }}'
+
+- name: install and run sundtek.service
+  block:
+    - name: check if sundtek.service is running
+      systemd:
+        name: sundtek.service
+        state: started
+      check_mode: yes
+      register: sundtek_service_state
+
+    - name: get mediasrv pids
+      command: pgrep mediasrv
+      register: mediasrv_pids
+    
+    - name: systemd | start sundtek.service
+      systemd:
+        name: sundtek.service
+        state: '{{ "started" if (mediasrv_pids.stdout_lines and not sundtek_service_state.changed) or not mediasrv_pids.stdout_lines else "stopped" }}'
+        enabled: yes
+        masked: no
+        daemon-reload: yes
+  when: install_sundtek | bool
+
+# TODO: Scan for local and remote sundtek sticks and create
+#       /etc/sundtek.conf - needs yavdr-hardware-sundtek
+#- name: detect local and remote sundtek devices
+#  command: scansundtek
+#  register: sundtek_scan
+# 
+# - name: set variable sundtek_scan
+#   set_fact:
+#     sundtek_devices: "{{ sundtek_scan.stdout | from_json }}"
+#
+#- name: create /etc/sundtek.conf
+#  template:
+#    src: templates/sundtek.conf.j2
+#    dest: /etc/sundtek.conf
+#  notify: Restart sundtek.service
+
+# TODO: install yavdr-hardware-sundtek
+#- name: apt | install yavdr-hardware-sundtek
+#  apt:
+#    name: yavdr-hardware-sundtek
+
+# TODO: enable sundtek-avahi-mounter (needs to be ported to python3 and 
+#       work indenpendently of yavdrhw.db files)
+#- name: systemd | start sundtek-avahi-mounter.service
+#  systemd:
+#    name: sundtek-avahi-mounter.service
+#    state: started
+#    masked: no
+#    enabled: yes
+#    daemon-reload: yes
