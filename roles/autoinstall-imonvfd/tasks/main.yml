@@ -1,0 +1,39 @@
+---
+# file roles/autoinstall-imonvfd/tasks/main
+
+- name: Set up IMON VFD
+  block:
+    - name: check which display type we got
+      set_fact:
+        imon_vfd_device: '{{ "imon_00044" if "15c2:0044" in usb else "imon_0044" }}'
+    - name: apt | install lcdproc and vdr-plugin-lcdproc for IMON VFD
+      apt:
+        name:  vdr-plugin-lcdproc
+    
+    - name: copy udev rule for IMON VFD
+      template:
+        src: templates/92-imonvfd.rules.j2
+        dest: /etc/udev/rules.d/92-imonvfd.rules
+        mode: 0644
+        force: yes
+      notify: [ 'reboot required' ]
+    
+    - name: expand template for /etc/LCDd.conf
+      template:
+        src: templates/LCDd.conf.j2
+        dest: /etc/LCDd.conf
+        owner: root
+        group: root
+        mode: 0644
+        force: yes
+
+    - name: enable service LCDd.service and ensure it is not masked
+      systemd:
+        name: LCDd.service
+        state: started
+        enabled: yes
+        masked: no
+        daemon_reload: yes
+
+  when: '"15c2:0036" in usb or "15c2:0044" in usb'
+  tags: [imonvfd]
