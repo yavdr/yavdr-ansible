@@ -878,16 +878,24 @@ Allow the vdr user to restart ~vdr.service~ and reboot the system
 case $1 in
   pre)
     /bin/systemctl stop vdr
+    /usr/bin/frontend-dbus-send shutdown_successfull
     /usr/local/bin/module-helper -u dvb_core
     ;;
   post)
+    # start frontend again
+    if [ -x /usr/bin/frontend-dbus-send ]
+    then
+        /usr/bin/frontend-dbus-send start ||:
+    fi
+
     # reload rc-core keytables
-    [ -x /usr/bin/ir-keytable ] && {
+    if [ -x /usr/bin/ir-keytable ]
+    then
         for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
         do 
-            ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
+            /usr/bin/ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
         done
-    }
+    fi
 
     /usr/local/bin/module-helper -r
     /bin/systemctl start vdr
