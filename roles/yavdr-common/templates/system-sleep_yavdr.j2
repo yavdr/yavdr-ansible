@@ -3,12 +3,20 @@
 
 case $1 in
   pre)
+    # disable "_nfs.tcp" avahi announcements
+    for file in /etc/avahi/services/*.service; do
+    	if grep -Fq "_nfs._tcp" "$file"; then
+    	    echo "rename $file to ${file%%.*}.disabled"
+    	    mv "$file" "${file%%.*}.disabled"
+    	fi
+    done
+
     /bin/systemctl stop vdr
     /usr/bin/frontend-dbus-send shutdown_successfull
     /usr/local/bin/module-helper -u dvb_core
     ;;
   post)
-    # start frontend again
+    # start current frontend again
     if [ -x /usr/bin/frontend-dbus-send ]
     then
         /usr/bin/frontend-dbus-send start ||:
@@ -24,6 +32,24 @@ case $1 in
     fi
 
     /usr/local/bin/module-helper -r
+
+    # wait up to 10 seconds for the network
+    timeout=0
+    while [ -z "$(hostname --all-fqdns)" ]
+    do
+        echo "waiting for network..."
+        sleep .5
+        [ $(( timeout++ )) -ge 20 ] && break
+    done
+
+    # restore "_nfs._tcp" avahi announcements
+    for file in /etc/avahi/services/*.disabled; do
+    	if grep -Fq "_nfs._tcp" "$file"; then
+    	    echo "rename $file to ${file%%.*}.service"
+    	    mv "$file" "${file%%.*}.service"
+    	fi
+    done
+
     /bin/systemctl start vdr
     ;;
 esac
