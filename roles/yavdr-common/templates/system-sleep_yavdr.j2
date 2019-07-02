@@ -13,7 +13,10 @@ case $1 in
 
     /bin/systemctl stop vdr
     /usr/bin/frontend-dbus-send shutdown_successfull
+    {% if standby_reload_dvb %}
+    echo "unload dvb drivers"
     /usr/local/bin/module-helper -u dvb_core
+    {% endif %}
     ;;
   post)
     # start current frontend again
@@ -31,7 +34,10 @@ case $1 in
         done
     fi
 
+    {% if standby_reload_dvb %}
+    echo "restore dvb drivers"
     /usr/local/bin/module-helper -r
+    {% endif %}
 
     # wait up to 10 seconds for the network
     timeout=0

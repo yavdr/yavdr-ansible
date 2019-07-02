@@ -88,10 +88,18 @@ vdr_shutdown_command: poweroff
 
 #system:
 #  shutdown: poweroff
+
+# choose one of acpiwakeup, stm32wakeup
 wakeup_method: acpiwakeup
 grub:
   timeout: 0
   boot_options: quiet splash
+
+# unload dvb drivers before standby, reload them afterwards.
+# disable this setting if
+# - you don't have local dvb devices (e.g. satip client)
+# - your dvb drivers have problems being unloaded
+standby_reload_dvb: true
 # Serial device to configure for a homebrew receiver.
 # Choose either ttyS0 (COM1) or ttyS1 (COM2)
 # Also ensure that the role serial-ir is enabled in yavdr07.yml 

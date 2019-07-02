@@ -6,8 +6,19 @@
     name: vdr-addon-acpiwakeup
     state: present
   when: wakeup_method == "acpiwakeup"
+
+- name: install and configure vdr-addon-stm32wakeup
+  apt:
+    name: vdr-addon-stmp32-wakeup
+    state: present
+  when: wakeup_method == "stm32wakeup"
       
 - name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
   template:
     src: templates/vdr-addon-acpiwakeup.conf.j2
     dest: /etc/vdr/vdr-addon-acpiwakeup.conf
+
+- name: expand template for /etc/vdr/vdr-addon-stm32imrp-wakeup.conf
+  template:
+    src: templates/vdr-addon-stm32irmp-wakeup.conf.j2
+    dest: /etc/vdr/vdr-addon-stm32irmp-wakeup.conf
