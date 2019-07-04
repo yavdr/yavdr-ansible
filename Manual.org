@@ -301,6 +301,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
      #- install-sundtek            # install and configure sundtek drivers
      #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
      #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
+     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
      - kodi
      - dvd                        # set up packages and a udev rule to allow kodi and other players
                                   # to play and eject optical media
@@ -339,6 +340,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
     #- epgd                      # install vdr-epg-daemon
+    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
     - wakeup
   tags:
     - always
@@ -6906,6 +6908,89 @@ disable_analogtv=1                                      #disable initialization 
 {% endif %}
 {% endfor %}
 {% endif %}
+#+END_SRC
+** channelpedia upload
+This role requires three variables to be set (otherwise it won't do anything):
+- channelpedia_url :: the url the data will be uploaded to
+- channelpedia_username :: the username required for authentication
+- channelpedia_password :: the password required for authentication
+
+If you are a channelpedia contributor, you should already know the required url (as of 07/2019 https is supported) and authentication data.
+
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/channelpedia/tasks/main.yml :padline no
+---
+# file roles/channelpedia/tasks/main.yml
+
+- name: upload channels.conf to channelpedia once a day
+  block:
+    - name: ensure curl is installed
+      apt:
+        name: curl
+        state: present
+
+    - name: expand template for channelpedia.service
+      template:
+        src: templates/channelpedia.service.j2
+        dest: /etc/systemd/system/channelpedia.service
+    
+    - name: expand template for channelpedia.timer
+      template:
+        src: templates/channelpedia.timer.j2
+        dest: /etc/systemd/system/channelpedia.timer
+    
+    - name: create credentials file
+      template:
+        src: templates/channelpedia_credentials.j2
+        dest: /root/.channelpedia_credentials
+        mode: 0700
+
+    - name: start channelpedia timer and service
+      systemd:
+        name: '{{ item }}'
+        state: started
+        enabled: yes
+        masked: no
+      loop:
+        - channelpedia.service
+        - channelpedia.timer
+
+  when:
+    - channelpedia_url is defined
+    - channelpedia_username is defined
+    - channelpedia_password is defined
+#+END_SRC
+*** templates
+**** channelpedia.service
+#+BEGIN_SRC jinja2 :tangle roles/channelpedia/templates/channelpedia.service.j2 :padline no
+[Unit]
+Description=Upload channels.conf to channelpedia.yavdr.com
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+EnvironmentFile=/root/.channelpedia_credentials
+Type=oneshot
+DynamicUser=true
+ExecStart=/usr/bin/curl  -F "channels=@/var/lib/vdr/channels.conf;type=text/plain" -F "user=${user}" -F "password=${password}" "${url}"
+#+END_SRC
+**** channelpedia.timer
+#+BEGIN_SRC jinja2 :tangle roles/channelpedia/templates/channelpedia.timer.j2 :padline no
+[Unit]
+Description=Upload channels.conf to channelpedia.yavdr.com
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+#+END_SRC
+**** .channelpedia_credentials
+#+BEGIN_SRC jinja2 :tangle roles/channelpedia/templates/channelpedia_credentials.j2 :padline no
+url={{ channelpedia_url }}
+user={{ channelpedia_username }}
+password={{ channelpedia_password }}
 #+END_SRC
 ** template-test
 :PROPERTIES:

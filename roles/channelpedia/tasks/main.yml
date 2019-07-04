@@ -1,0 +1,40 @@
+---
+# file roles/channelpedia/tasks/main.yml
+
+- name: upload channels.conf to channelpedia once a day
+  block:
+    - name: ensure curl is installed
+      apt:
+        name: curl
+        state: present
+
+    - name: expand template for channelpedia.service
+      template:
+        src: templates/channelpedia.service.j2
+        dest: /etc/systemd/system/channelpedia.service
+    
+    - name: expand template for channelpedia.timer
+      template:
+        src: templates/channelpedia.timer.j2
+        dest: /etc/systemd/system/channelpedia.timer
+    
+    - name: create credentials file
+      template:
+        src: templates/channelpedia_credentials.j2
+        dest: /root/.channelpedia_credentials
+        mode: 0700
+
+    - name: start channelpedia timer and service
+      systemd:
+        name: '{{ item }}'
+        state: started
+        enabled: yes
+        masked: no
+      loop:
+        - channelpedia.service
+        - channelpedia.timer
+
+  when:
+    - channelpedia_url is defined
+    - channelpedia_username is defined
+    - channelpedia_password is defined

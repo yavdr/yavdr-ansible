@@ -1,0 +1,10 @@
+[Unit]
+Description=Upload channels.conf to channelpedia.yavdr.com
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+EnvironmentFile=/root/.channelpedia_credentials
+Type=oneshot
+DynamicUser=true
+ExecStart=/usr/bin/curl  -F "channels=@/var/lib/vdr/channels.conf;type=text/plain" -F "user=${user}" -F "password=${password}" "${url}"
