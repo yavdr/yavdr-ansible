@@ -168,5 +168,5 @@ def main():
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 
-if __name__ == '__main__':  
+if __name__ == '__main__':
     main()

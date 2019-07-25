@@ -3,7 +3,7 @@
 :PROPERTIES:
 :ID:       bf0e4a53-06be-4c8c-aa60-be8cb48d790f
 :END:
-:DOCUMENT_OPTIONS: 
+:DOCUMENT_OPTIONS:
 #+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
 #+OPTIONS: ^:nil
 #+LANGUAGE: en
@@ -27,7 +27,7 @@
 #+LATEX_HEADER: \usepackage{url}
 #+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
 #+LATEX_HEADER: \usemintedstyle{lovelace}
-#+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space}, 
+#+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
 #+LATEX_HEADER:         xleftmargin=17pt,
 #+LATEX_HEADER:         framexleftmargin=17pt,
 #+LATEX_HEADER:         framexrightmargin=5pt,
@@ -89,14 +89,14 @@ Several roles are used to tie everything together:
 - autoinstall-targavfd :: install vdr-plugin-targavfd if display is connected
 - autoinstall-imonlcd :: install vdr-plugin-imonlcd if a matchind display is connected
 - yavdr-xorg :: install and configure a systemd user session with a running X-server.  A frontend script will manage VDR's frontend and other applications like KODI.  Also choose the best possible output plugin.
-- grub-config :: update grub configuration based on executed roles 
+- grub-config :: update grub configuration based on executed roles
 
 
 * Notes :noexport:
 :PROPERTIES:
 :noexport: nil
 :ID:       3e321e69-f1c1-4ec3-8f53-1cf714ea1af5
-:END:      
+:END:
 ** TODO [#A] optimize and document data structure for xorg parsing script
 :PROPERTIES:
 :ID:       5aceca9d-016f-45eb-a4bf-7d79dea9c48d
@@ -359,7 +359,7 @@ This playbook can either be used to run the installation on the localhost or any
 
 #+BEGIN_SRC conf :tangle localhost_inventory :mkdirp yes :padline no
 [local]
-localhost connection=local
+localhost ansible_connection=local
 
 #+END_SRC
 * Group Variables
@@ -514,7 +514,7 @@ standby_reload_dvb: true
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # Serial device to configure for a homebrew receiver.
 # Choose either ttyS0 (COM1) or ttyS1 (COM2)
-# Also ensure that the role serial-ir is enabled in yavdr07.yml 
+# Also ensure that the role serial-ir is enabled in yavdr07.yml
 serial_ir_device: ttyS0
 #+END_SRC
 * Roles
@@ -670,7 +670,7 @@ yavdr-common executes the following tasks:
 :END:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
 ---
-# file: roles/yavdr-common/tasks/main.yml 
+# file: roles/yavdr-common/tasks/main.yml
 
 - name: basic installation
   block:
@@ -714,6 +714,14 @@ yavdr-common executes the following tasks:
       upgrade: dist
       update_cache: yes
  #+END_SRC
+***** ensure cloud-init is not installed
+This should at least prevent black screen errors after a reboot, if the Ubuntu Cloud Server Image has been used for install.
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
+- name: ensure package cloud-config is not installed
+  apt:
+    name: cloud-init
+    state: absent
+#+END_SRC
 ***** Use bash instead of dash
 :PROPERTIES:
 :ID:       2a09027d-cb5a-4957-98ed-6140d495b048
@@ -815,7 +823,7 @@ yavdr-common executes the following tasks:
     name: '{{ extra_packages }}'
     state: present
     install_recommends: no
-      
+
 #+END_SRC
 ***** create directories
 :PROPERTIES:
@@ -898,10 +906,10 @@ case $1 in
   pre)
     # disable "_nfs.tcp" avahi announcements
     for file in /etc/avahi/services/*.service; do
-    	if grep -Fq "_nfs._tcp" "$file"; then
-    	    echo "rename $file to ${file%%.*}.disabled"
-    	    mv "$file" "${file%%.*}.disabled"
-    	fi
+        if grep -Fq "_nfs._tcp" "$file"; then
+            echo "rename $file to ${file%%.*}.disabled"
+            mv "$file" "${file%%.*}.disabled"
+        fi
     done
 
     /bin/systemctl stop vdr
@@ -922,7 +930,7 @@ case $1 in
     if [ -x /usr/bin/ir-keytable ]
     then
         for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
-        do 
+        do
             /usr/bin/ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
         done
     fi
@@ -943,10 +951,10 @@ case $1 in
 
     # restore "_nfs._tcp" avahi announcements
     for file in /etc/avahi/services/*.disabled; do
-    	if grep -Fq "_nfs._tcp" "$file"; then
-    	    echo "rename $file to ${file%%.*}.service"
-    	    mv "$file" "${file%%.*}.service"
-    	fi
+        if grep -Fq "_nfs._tcp" "$file"; then
+            echo "rename $file to ${file%%.*}.service"
+            mv "$file" "${file%%.*}.service"
+        fi
     done
 
     /bin/systemctl start vdr
@@ -1034,7 +1042,7 @@ if __name__ == '__main__':
     else:
         parser.print_help()
 #+END_SRC
-** collect facts about the system with custom modules 
+** collect facts about the system with custom modules
 :PROPERTIES:
 :ID:       6fb47bef-2511-4d82-b5ef-5cdfac62087f
 :END:
@@ -1088,7 +1096,7 @@ if __name__ == '__main__':
 
 - name: known vdr output plugins
   set_fact:
-    vdr_output_plugins:    
+    vdr_output_plugins:
       - softhddevice
       - xineliboutput
       - xine
@@ -1251,7 +1259,7 @@ Set up IP resp. IP range based access for VDR plugins
     state: directory
     mode: 0775
     dest: '/etc/vdr/plugins/xineliboutput'
-  
+
 - name: "vdr configuration | allowed_hosts.conf for xineliboutput"
   template:
     src: templates/generic_allowed_hosts.conf.j2
@@ -1277,7 +1285,7 @@ Set up IP resp. IP range based access for VDR plugins
     state: directory
     mode: 0775
     dest: '/etc/vdr/plugins/vnsiserver'
-  
+
 - name: "vdr configuration | allowed_hosts.conf for vnsiserver"
   template:
     src: templates/generic_allowed_hosts.conf.j2
@@ -1295,7 +1303,7 @@ Set up IP resp. IP range based access for VDR plugins
     state: directory
     mode: 0775
     dest: '/etc/vdr/plugins/'
-  
+
 - name: "vdr configuration | streamdevhosts.conf for streamdev-server"
   template:
     src: templates/generic_allowed_hosts.conf.j2
@@ -1672,7 +1680,7 @@ install_avahi: true
 - name: apt | install vdr-plugin-menuorg
   apt:
     name:
-      - vdr-plugin-menuorg 
+      - vdr-plugin-menuorg
     state: present
     install_recommends: no
 
@@ -1713,7 +1721,7 @@ description of the config file format.
         <plugin name="markad" />
         <plugin name="recsearch" />
         <plugin name="recstatus" />
-        <plugin name="webvideo" /> 
+        <plugin name="webvideo" />
         <plugin name="vodcatcher" />
         <plugin name="vcd" />
         <plugin name="undelete" />
@@ -2173,7 +2181,7 @@ ctl.!default {
 The X-Server is started by using the two systemd units ~xlogin@.service~ and ~x@.service~ provided by the package *xlogin*. The former is enabled (and started) for the vdr user - which results (using the default settings for the user *vdr* with the uid *666*) in the activation of ~xlogin@vdr.service~ when reaching the graphical.target. To simplify starting and stopping the X-server and the desktop session a ~yavdr-xorg.service~ is provided by the package ~yavdr-xorg~, which depends on the two units mentioned before.
 
 ~x@vt7.service~ is started automatically as a dependency of ~xlogin@vdr.service~ and starts the X-server.  ~xlogin@vdr.service~ also starts a systemd user session using ~user@666.service~.
-In order to use the keyboard layout configured during installation for the X-Server we are using a script ~write-x11-keyboard-config,~ which reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to automatically create the configuration file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings). 
+In order to use the keyboard layout configured during installation for the X-Server we are using a script ~write-x11-keyboard-config,~ which reads the keyboard configuration from ~/etc/default/keyboard~ when starting ~x@.service~ and writes the file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ (because systemd for Ubuntu (and Debian) has been patched not to automatically create the configuration file ~/etc/X11/xorg.conf.d/00-keyboard.conf~ according to the ~localectl~ settings).
 
 To prevent stopping the X-server when vdr is running, additional dependencies are set up - see the drop-in rules created in ~/etc/systemd/system/vdr.service.d/~.
 
@@ -2224,62 +2232,62 @@ Screen 0: minimum 8 x 8, current 3200 x 1200, maximum 8192 x 8192
 DVI-I-0 disconnected primary (normal left inverted right x axis y axis)
 VGA-0 connected 1920x1200+1280+0 (normal left inverted right x axis y axis) 519mm x 324mm
    1920x1200     59.95*+
-   1680x1050     59.95  
-   1280x1024     75.02    60.02  
-   1152x864      75.00  
-   1024x768      75.03    60.00  
-   800x600       75.00    60.32  
-   640x480       75.00    59.94  
+   1680x1050     59.95
+   1280x1024     75.02    60.02
+   1152x864      75.00
+   1024x768      75.03    60.00
+   800x600       75.00    60.32
+   640x480       75.00    59.94
 DVI-I-1 disconnected (normal left inverted right x axis y axis)
 HDMI-0 connected 1280x1024+0+0 (normal left inverted right x axis y axis) 338mm x 270mm
    1280x1024     60.02*+
-   1024x768      60.00  
-   800x600       60.32  
+   1024x768      60.00
+   800x600       60.32
    640x480       59.95    59.94
 
 $ parse-edid < /tmp/edid.bin.0.1
 Checksum Correct
 
 Section "Monitor"
-	Identifier "ADI A715"
-	ModelName "ADI A715"
-	VendorName "ADI"
-	# Monitor Manufactured week 15 of 2003
-	# EDID version 1.3
-	# Digital Display
-	DisplaySize 330 270
-	Gamma 2.20
-	Option "DPMS" "true"
-	#Not giving standard mode: 640x480, 60Hz
-	#Not giving standard mode: 800x600, 60Hz
-	#Not giving standard mode: 1024x768, 60Hz
-	#Not giving standard mode: 1280x1024, 60Hz
-	Modeline 	"Mode 0" 108.00 1280 1328 1440 1688 1024 1025 1028 1066 +hsync +vsync 
-	Modeline 	"Mode 1" 40.00 800 840 968 1056 600 601 605 628 +hsync +vsync 
+    Identifier "ADI A715"
+    ModelName "ADI A715"
+    VendorName "ADI"
+    # Monitor Manufactured week 15 of 2003
+    # EDID version 1.3
+    # Digital Display
+    DisplaySize 330 270
+    Gamma 2.20
+    Option "DPMS" "true"
+    #Not giving standard mode: 640x480, 60Hz
+    #Not giving standard mode: 800x600, 60Hz
+    #Not giving standard mode: 1024x768, 60Hz
+    #Not giving standard mode: 1280x1024, 60Hz
+    Modeline    "Mode 0" 108.00 1280 1328 1440 1688 1024 1025 1028 1066 +hsync +vsync
+    Modeline    "Mode 1" 40.00 800 840 968 1056 600 601 605 628 +hsync +vsync
 EndSection
 
 $ parse-edid < /tmp/edid.bin.0.0
 Checksum Correct
 
 Section "Monitor"
-	Identifier "DELL 2407WFP"
-	ModelName "DELL 2407WFP"
-	VendorName "DEL"
-	# Monitor Manufactured week 24 of 2007
-	# EDID version 1.3
-	# Analog Display
-	Option "SyncOnGreen" "true"
-	DisplaySize 520 330
-	Gamma 2.20
-	Option "DPMS" "true"
-	Horizsync 30-83
-	VertRefresh 56-76
-	# Maximum pixel clock is 170MHz
-	#Not giving standard mode: 1280x1024, 60Hz
-	#Not giving standard mode: 1600x1200, 60Hz
-	#Not giving standard mode: 1152x864, 75Hz
-	#Not giving standard mode: 1680x1050, 60Hz
-	Modeline 	"Mode 0" 154.00 1920 1968 2000 2080 1200 1203 1209 1235 +hsync -vsync 
+    Identifier "DELL 2407WFP"
+    ModelName "DELL 2407WFP"
+    VendorName "DEL"
+    # Monitor Manufactured week 24 of 2007
+    # EDID version 1.3
+    # Analog Display
+    Option "SyncOnGreen" "true"
+    DisplaySize 520 330
+    Gamma 2.20
+    Option "DPMS" "true"
+    Horizsync 30-83
+    VertRefresh 56-76
+    # Maximum pixel clock is 170MHz
+    #Not giving standard mode: 1280x1024, 60Hz
+    #Not giving standard mode: 1600x1200, 60Hz
+    #Not giving standard mode: 1152x864, 75Hz
+    #Not giving standard mode: 1680x1050, 60Hz
+    Modeline    "Mode 0" 154.00 1920 1968 2000 2080 1200 1203 1209 1235 +hsync -vsync
 EndSection
 
 #+END_SRC
@@ -2338,63 +2346,63 @@ EndSection
 $ xrandr --verbose
 Screen 0: minimum 8 x 8, current 1280 x 720, maximum 8192 x 8192
 VGA-0 disconnected primary (normal left inverted right x axis y axis)
-	Identifier: 0x1c4
-	Timestamp:  18571
-	Subpixel:   unknown
-	Clones:    
-	CRTCs:      0 1
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	BorderDimensions: 4 
-		supported: 4
-	Border: 0 0 0 0 
-		range: (0, 65535)
-	SignalFormat: VGA 
-		supported: VGA
-	ConnectorType: VGA 
-	ConnectorNumber: 0 
-	_ConnectorLocation: 1 
+    Identifier: 0x1c4
+    Timestamp:  18571
+    Subpixel:   unknown
+    Clones:
+    CRTCs:      0 1
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    BorderDimensions: 4
+        supported: 4
+    Border: 0 0 0 0
+        range: (0, 65535)
+    SignalFormat: VGA
+        supported: VGA
+    ConnectorType: VGA
+    ConnectorNumber: 0
+    _ConnectorLocation: 1
 HDMI-0 connected 1280x720+0+0 (0x1cb) normal (normal left inverted right x axis y axis) 885mm x 498mm
-	Identifier: 0x1c5
-	Timestamp:  18571
-	Subpixel:   unknown
-	Gamma:      1.0:1.0:1.0
-	Brightness: 1.0
-	Clones:    
-	CRTC:       0
-	CRTCs:      0 1fg
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	EDID: 
-		00ffffffffffff004c2d800100000000
-		2c0e01038059328c0ae2bda15b4a9824
-		15474a20000001010101010101010101
-		010101010101011d007251d01e206e28
-		550075f23100001e011d00bc52d01e20
-		b828554075f23100001e000000fd0032
-		3d0f2e08000a202020202020000000fc
-		0053414d53554e470a20202020200181
-		02031971468413051403122309070783
-		01000065030c001000011d8018711c16
-		20582c250075f23100009e011d80d072
-		1c1620102c258075f23100009e8c0ad0
-		8a20e02d10103e960075f2310000188c
-		0ad090204031200c40550075f2310000
-		18000000000000000000000000000000
-		000000000000000000000000000000ca
-	BorderDimensions: 4 
-		supported: 4
-	Border: 39 24 41 21 
-		range: (0, 65535)
-	SignalFormat: TMDS 
-		supported: TMDS
-	ConnectorType: HDMI 
-	ConnectorNumber: 1 
-	_ConnectorLocation: 2 
+    Identifier: 0x1c5
+    Timestamp:  18571
+    Subpixel:   unknown
+    Gamma:      1.0:1.0:1.0
+    Brightness: 1.0
+    Clones:
+    CRTC:       0
+    CRTCs:      0 1fg
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    EDID:
+        00ffffffffffff004c2d800100000000
+        2c0e01038059328c0ae2bda15b4a9824
+        15474a20000001010101010101010101
+        010101010101011d007251d01e206e28
+        550075f23100001e011d00bc52d01e20
+        b828554075f23100001e000000fd0032
+        3d0f2e08000a202020202020000000fc
+        0053414d53554e470a20202020200181
+        02031971468413051403122309070783
+        01000065030c001000011d8018711c16
+        20582c250075f23100009e011d80d072
+        1c1620102c258075f23100009e8c0ad0
+        8a20e02d10103e960075f2310000188c
+        0ad090204031200c40550075f2310000
+        18000000000000000000000000000000
+        000000000000000000000000000000ca
+    BorderDimensions: 4
+        supported: 4
+    Border: 39 24 41 21
+        range: (0, 65535)
+    SignalFormat: TMDS
+        supported: TMDS
+    ConnectorType: HDMI
+    ConnectorNumber: 1
+    _ConnectorLocation: 2
   1280x720 (0x1c6)   74.2MHz +HSync +VSync +preferred
         h: width  1280 start 1390 end 1430 total 1650 skew    0 clock   45.0KHz
         v: height  720 start  725 end  730 total  750           clock   60.0Hz
@@ -2438,55 +2446,55 @@ HDMI-0 connected 1280x720+0+0 (0x1cb) normal (normal left inverted right x axis 
 $ xrandr --verbose
 Screen 0: minimum 8 x 8, current 3200 x 1200, maximum 8192 x 8192
 DVI-I-0 disconnected primary (normal left inverted right x axis y axis)
-	Identifier: 0x1c4
-	Timestamp:  641679
-	Subpixel:   unknown
-	Clones:    
-	CRTCs:      0 1
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	BorderDimensions: 4 
-		supported: 4
-	Border: 0 0 0 0 
-		range: (0, 65535)
-	SignalFormat: VGA 
-		supported: VGA
-	ConnectorType: DVI-I 
-	ConnectorNumber: 0 
-	_ConnectorLocation: 0 
+    Identifier: 0x1c4
+    Timestamp:  641679
+    Subpixel:   unknown
+    Clones:
+    CRTCs:      0 1
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    BorderDimensions: 4
+        supported: 4
+    Border: 0 0 0 0
+        range: (0, 65535)
+    SignalFormat: VGA
+        supported: VGA
+    ConnectorType: DVI-I
+    ConnectorNumber: 0
+    _ConnectorLocation: 0
 VGA-0 connected 1920x1200+1280+0 (0x1c6) normal (normal left inverted right x axis y axis) 519mm x 324mm
-	Identifier: 0x1c5
-	Timestamp:  641679
-	Subpixel:   unknown
-	Gamma:      1.0:1.0:1.0
-	Brightness: 1.0
-	Clones:    
-	CRTC:       1
-	CRTCs:      0 1
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	EDID: 
-		00ffffffffffff0010ac16a0534b4431
-		181101030e342178eeee91a3544c9926
-		0f5054a54b008180a940714fb3000101
-		010101010101283c80a070b023403020
-		360007442100001a000000ff00555935
-		343537364531444b5320000000fc0044
-		454c4c20323430375746500a000000fd
-		00384c1e5311000a20202020202000f1
-	BorderDimensions: 4 
-		supported: 4
-	Border: 0 0 0 0 
-		range: (0, 65535)
-	SignalFormat: VGA 
-		supported: VGA
-	ConnectorType: VGA 
-	ConnectorNumber: 2 
-	_ConnectorLocation: 2 
+    Identifier: 0x1c5
+    Timestamp:  641679
+    Subpixel:   unknown
+    Gamma:      1.0:1.0:1.0
+    Brightness: 1.0
+    Clones:
+    CRTC:       1
+    CRTCs:      0 1
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    EDID:
+        00ffffffffffff0010ac16a0534b4431
+        181101030e342178eeee91a3544c9926
+        0f5054a54b008180a940714fb3000101
+        010101010101283c80a070b023403020
+        360007442100001a000000ff00555935
+        343537364531444b5320000000fc0044
+        454c4c20323430375746500a000000fd
+        00384c1e5311000a20202020202000f1
+    BorderDimensions: 4
+        supported: 4
+    Border: 0 0 0 0
+        range: (0, 65535)
+    SignalFormat: VGA
+        supported: VGA
+    ConnectorType: VGA
+    ConnectorNumber: 2
+    _ConnectorLocation: 2
   1920x1200 (0x1c6) 154.000MHz +HSync -VSync *current +preferred
         h: width  1920 start 1968 end 2000 total 2080 skew    0 clock  74.04KHz
         v: height 1200 start 1203 end 1209 total 1235           clock  59.95Hz
@@ -2521,55 +2529,55 @@ VGA-0 connected 1920x1200+1280+0 (0x1c6) normal (normal left inverted right x ax
         h: width   640 start  656 end  752 total  800 skew    0 clock  31.47KHz
         v: height  480 start  490 end  492 total  525           clock  59.94Hz
 DVI-I-1 disconnected (normal left inverted right x axis y axis)
-	Identifier: 0x1d1
-	Timestamp:  641679
-	Subpixel:   unknown
-	Clones:    
-	CRTCs:      0 1
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	BorderDimensions: 4 
-		supported: 4
-	Border: 0 0 0 0 
-		range: (0, 65535)
-	SignalFormat: TMDS 
-		supported: TMDS
-	ConnectorType: DVI-I 
-	ConnectorNumber: 0 
-	_ConnectorLocation: 0 
+    Identifier: 0x1d1
+    Timestamp:  641679
+    Subpixel:   unknown
+    Clones:
+    CRTCs:      0 1
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    BorderDimensions: 4
+        supported: 4
+    Border: 0 0 0 0
+        range: (0, 65535)
+    SignalFormat: TMDS
+        supported: TMDS
+    ConnectorType: DVI-I
+    ConnectorNumber: 0
+    _ConnectorLocation: 0
 HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis y axis) 338mm x 270mm
-	Identifier: 0x1d2
-	Timestamp:  641679
-	Subpixel:   unknown
-	Gamma:      1.0:1.0:1.0
-	Brightness: 1.0
-	Clones:    
-	CRTC:       0
-	CRTCs:      0 1
-	Transform:  1.000000 0.000000 0.000000
-	            0.000000 1.000000 0.000000
-	            0.000000 0.000000 1.000000
-	           filter: 
-	EDID: 
-		00ffffffffffff0004895d2320090000
-		0f0d0103e0211b782ac5c6a3574a9c23
-		124f5421080031404540614081800101
-		010101010101302a009851002a403070
-		1300520e1100001ea00f200031581c20
-		28801400520e1100001e000000ff0033
-		31355430324530323333360a000000fc
-		0041444920413731350a20202020002b
-	BorderDimensions: 4 
-		supported: 4
-	Border: 0 0 0 0 
-		range: (0, 65535)
-	SignalFormat: TMDS 
-		supported: TMDS
-	ConnectorType: HDMI 
-	ConnectorNumber: 1 
-	_ConnectorLocation: 1 
+    Identifier: 0x1d2
+    Timestamp:  641679
+    Subpixel:   unknown
+    Gamma:      1.0:1.0:1.0
+    Brightness: 1.0
+    Clones:
+    CRTC:       0
+    CRTCs:      0 1
+    Transform:  1.000000 0.000000 0.000000
+                0.000000 1.000000 0.000000
+                0.000000 0.000000 1.000000
+               filter:
+    EDID:
+        00ffffffffffff0004895d2320090000
+        0f0d0103e0211b782ac5c6a3574a9c23
+        124f5421080031404540614081800101
+        010101010101302a009851002a403070
+        1300520e1100001ea00f200031581c20
+        28801400520e1100001e000000ff0033
+        31355430324530323333360a000000fc
+        0041444920413731350a20202020002b
+    BorderDimensions: 4
+        supported: 4
+    Border: 0 0 0 0
+        range: (0, 65535)
+    SignalFormat: TMDS
+        supported: TMDS
+    ConnectorType: HDMI
+    ConnectorNumber: 1
+    _ConnectorLocation: 1
   1280x1024 (0x1c9) 108.000MHz +HSync +VSync *current +preferred
         h: width  1280 start 1328 end 1440 total 1688 skew    0 clock  63.98KHz
         v: height 1024 start 1025 end 1028 total 1066           clock  60.02Hz
@@ -3235,7 +3243,7 @@ Section "InputDevice"
     Option         "ZAxisMapping" "4 5"
 EndSection
 
-# ignore devices with eventlircd tag 
+# ignore devices with eventlircd tag
 # ENV{ID_INPUT.tags}+="eventlircd"
 # must be set by an udev rule
 Section "InputClass"
@@ -3372,7 +3380,7 @@ Section "Screen"
 # <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.0.device) ?>
 #     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:system.x11.display.0.default ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"
 # <?cs each:mode = system.x11.display.0.mode ?><?cs if:(mode != system.x11.display.0.default) ?>
-#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?> 
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?>
 {% endif %}
 EndSection
 
@@ -3616,7 +3624,7 @@ exit 0
     src: /usr/bin/start-desktop
     dest: /var/lib/vdr/plugins/desktop/starter
     state: link
-  
+
 - name: enable and start yavdr-xorg for the vdr user
   systemd:
     daemon_reload: yes
@@ -3686,7 +3694,7 @@ xterm*renderFont: true
 XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
 #+END_SRC
-***** .xinitrc 
+***** .xinitrc
 :PROPERTIES:
 :ID:       22f69dea-f6f6-407e-b9d5-7edc38f88093
 :END:
@@ -4474,7 +4482,7 @@ udiskie &
   # order that they appear in this list
 
 
-    # each rule element can be left out or set to 'default' to specify to not 
+    # each rule element can be left out or set to 'default' to specify to not
     # change that attribute of the window
 
     <decor>yes</decor>
@@ -5299,7 +5307,7 @@ udiskie &
   # order that they appear in this list
 
 
-    # each rule element can be left out or set to 'default' to specify to not 
+    # each rule element can be left out or set to 'default' to specify to not
     # change that attribute of the window
 
     <decor>yes</decor>
@@ -5694,7 +5702,7 @@ end
     state: touch
     dest: '/etc/samba/smb.conf.custom'
   notify: [ 'Restart Samba' ]
-    
+
 - name: expand template for smb.conf
   template:
     src: 'templates/smb.conf.j2'
@@ -5763,7 +5771,7 @@ end
    encrypt passwords = true
 
 # If you are using encrypted passwords, Samba will need to know what
-# password database type you are using.  
+# password database type you are using.
    passdb backend = tdbsam
 
    obey pam restrictions = yes
@@ -5784,7 +5792,7 @@ end
 # 'passwd program'. The default is 'no'.
    pam password change = yes
 
-# This option controls how unsuccessful authentication attempts are mapped 
+# This option controls how unsuccessful authentication attempts are mapped
 # to anonymous connections
    map to guest = bad password
    guest account = nobody
@@ -6177,7 +6185,7 @@ This role handles IMON VFD devices with the USB-IDs ~15c2:0036~ and ~15c2:0044~.
     - name: apt | install lcdproc and vdr-plugin-lcdproc for IMON VFD
       apt:
         name:  vdr-plugin-lcdproc
-    
+
     - name: copy udev rule for IMON VFD
       template:
         src: templates/92-imonvfd.rules.j2
@@ -6185,7 +6193,7 @@ This role handles IMON VFD devices with the USB-IDs ~15c2:0036~ and ~15c2:0044~.
         mode: 0644
         force: yes
       notify: [ 'reboot required' ]
-    
+
     - name: expand template for /etc/LCDd.conf
       template:
         src: templates/LCDd.conf.j2
@@ -6268,7 +6276,7 @@ Size=16x2
 - name: apt | install libcec-daemon if connected
   apt:
     name: libcec-daemon
-  when: 
+  when:
     - "2548:1002" in usb
 #+END_SRC
 ** autoinstall-pvr350
@@ -6477,7 +6485,7 @@ This role preconfigures the system for serial "homebrew" receivers. Newer kernel
 As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps.cfg]]) a keytable for a RC-6 MCE remote is loaded by default. You can choose a different keymap which may also use another ir-protocol.
 *** defaults
 #+BEGIN_SRC yaml :tangle roles/serial-ir/defaults/main.yml
---- 
+---
 # file: roles/serial-ir/defaults/main.yml
 
 serial_ir_device: ttyS0
@@ -6625,7 +6633,7 @@ to allow Database access from all hosts on network
 **** template for ~/root/.ssh/mysqlpasswd~ so epgd-tool is happy
 ~file: roles/epgd/templates/root_.ssh_mysqlpasswd.j2~
 #+include: roles/epgd/templates/root_.ssh_mysqlpasswd.j2 src jinja2
-**** template for /etc/epgd/epgd.conf 
+**** template for /etc/epgd/epgd.conf
 ~file: roles/epgd/templates/etc_epgd_epgd.conf.j2~
 #+include: roles/epgd/templates/etc_epgd_epgd.conf.j2 src jinja2
 ** install-sundtek
@@ -6656,9 +6664,9 @@ dependencies:
   - { role: collect-facts }
 
 #+END_SRC
-*** defaults 
+*** defaults
 #+BEGIN_SRC yaml :tangle roles/install-sundtek/defaults/main.yml
---- 
+---
 # file: roles/install-sundtek/defaults/main.yml
 
 sundtek:
@@ -6723,7 +6731,7 @@ sundtek:
     - name: get mediasrv pids
       command: pgrep mediasrv
       register: mediasrv_pids
-    
+
     - name: systemd | start sundtek.service
       systemd:
         name: sundtek.service
@@ -6738,7 +6746,7 @@ sundtek:
 #- name: detect local and remote sundtek devices
 #  command: scansundtek
 #  register: sundtek_scan
-# 
+#
 # - name: set variable sundtek_scan
 #   set_fact:
 #     sundtek_devices: "{{ sundtek_scan.stdout | from_json }}"
@@ -6754,7 +6762,7 @@ sundtek:
 #  apt:
 #    name: yavdr-hardware-sundtek
 
-# TODO: enable sundtek-avahi-mounter (needs to be ported to python3 and 
+# TODO: enable sundtek-avahi-mounter (needs to be ported to python3 and
 #       work indenpendently of yavdrhw.db files)
 #- name: systemd | start sundtek-avahi-mounter.service
 #  systemd:
@@ -6816,15 +6824,15 @@ WantedBy=multi-user.target
 #Set loglevel for logging to /var/log/mediasrv.log
 #autoupdate=[on|off]                    #enable automatic driver update, default off
 autoupdate=off
-#loglevel=[off|min|full]	        #default: off
-					#max .. little bit more
+#loglevel=[off|min|full]            #default: off
+                    #max .. little bit more
 loglevel=off
 #pluginpath=/path/to/drivers            #set path to drivers
 #dvb_api_version=x.y                    #default API version will be parsed from
                                         #/usr/include/linux/dvb/version.h, if no such file is
-                                        #available the latest internally supported API ::version will be 
+                                        #available the latest internally supported API ::version will be
                                         #used (which will be quite new)
-#audio_skip_bytes=N                     #when changing analogTV channels, 
+#audio_skip_bytes=N                     #when changing analogTV channels,
                                         #skip N bytes to suppress audio noise
 #bulk_notification[on|off]              #default off, bulk_notification will only trigger device_attach once
                                         #after the the first device scan when the driver is started up
@@ -6839,7 +6847,7 @@ loglevel=off
 #use_tvvideo=[on|off]                   #use /dev/tvvideoN instead of /dev/video
                                         #this works around a new Adobe Flash bug in 2012, where flash crashes
                                         #if files (/dev/videoN) other than /dev/video0 are available
- 
+
 #use_hwpidfilter=[on|off]               #For DVB-C, DVB-T, DVB-S/S2
                                         #enable PID filter, please be careful with that, there are only 15 HW Pid filters available
                                         #when more than 15 pids are set up the pid filter will be disabled automatically
@@ -6854,7 +6862,7 @@ loglevel=off
 #usb_timeout=[0 - N]                    #USB timeout for each transaction in milliseconds, 0 default infinite
 #voltage_tone_off=[1 or 0]              #0 .. default, normal behaviour
                                         #1 .. force DVB-S/S2 to not use any Voltage or Tone (ignore any user parameters)
-                                        
+
 #ir_disabled=[1 or 0]                   #0 .. enable remote control polling, the driver will permanently check for remote control keys
                                         #1 .. disable remote control polling, might fix bugs with weak USB stacks on embedded boards
 
@@ -6937,12 +6945,12 @@ If you are a channelpedia contributor, you should already know the required url 
       template:
         src: templates/channelpedia.service.j2
         dest: /etc/systemd/system/channelpedia.service
-    
+
     - name: expand template for channelpedia.timer
       template:
         src: templates/channelpedia.timer.j2
         dest: /etc/systemd/system/channelpedia.timer
-    
+
     - name: create credentials file
       template:
         src: templates/channelpedia_credentials.j2
@@ -7005,7 +7013,7 @@ password={{ channelpedia_password }}
 ---
 
 - name: show vars
-  debug: 
+  debug:
     var: '{{ system }}'
 
 - name: test templates
@@ -7036,7 +7044,7 @@ Section "InputDevice"
     Option         "ZAxisMapping" "4 5"
 EndSection
 
-# ignore devices with eventlircd tag 
+# ignore devices with eventlircd tag
 # ENV{ID_INPUT.tags}+="eventlircd"
 # must be set by an udev rule
 Section "InputClass"
@@ -7169,7 +7177,7 @@ Section "Screen"
 # <?cs if:(system.hardware.nvidia.detected == 1 && ?system.x11.display.0.device) ?>
 #     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:system.x11.display.0.default ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"
 # <?cs each:mode = system.x11.display.0.mode ?><?cs if:(mode != system.x11.display.0.default) ?>
-#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?> 
+#     Option          "MetaModes" "<?cs call:fix_display_name(system.x11.display.0.device) ?>: <?cs var:mode ?> { ViewPortIn=<?cs var:system.x11.display.0.viewport.in.x ?>x<?cs var:system.x11.display.0.viewport.in.y ?>, ViewPortOut=<?cs var:system.x11.display.0.viewport.out.x ?>x<?cs var:system.x11.display.0.viewport.out.y ?>+<?cs var:system.x11.display.0.viewport.out.plusx ?>+<?cs var:system.x11.display.0.viewport.out.plusy ?> }"<?cs /if ?><?cs /each ?>
 {% endif %}
 EndSection
 
@@ -7267,7 +7275,7 @@ wakeup_method: "acpiwakeup"
     name: vdr-addon-stmp32-wakeup
     state: present
   when: wakeup_method == "stm32wakeup"
-      
+
 #- name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
 #  template:
 #    src: templates/vdr-addon-acpiwakeup.conf.j2
@@ -7362,7 +7370,7 @@ grub:
       backrefs: yes
   notify: [ 'Update GRUB' ]
 #+END_SRC
-*** templates 
+*** templates
 :PROPERTIES:
 :ID:       b6b30fe9-27b4-4713-8a0d-56d4ef1919d4
 :END:
@@ -7583,7 +7591,7 @@ def main():
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 
-if __name__ == '__main__':  
+if __name__ == '__main__':
     main()
 #+END_SRC
 ** pci_facts.py
@@ -7803,7 +7811,7 @@ if __name__ == '__main__':
 
 - name: Trigger Udev
   command: 'udevadm trigger '
-  
+
 - name: Restart Samba
   systemd:
     name: smbd.service

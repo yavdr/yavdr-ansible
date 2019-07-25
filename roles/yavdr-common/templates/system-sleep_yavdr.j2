@@ -5,10 +5,10 @@ case $1 in
   pre)
     # disable "_nfs.tcp" avahi announcements
     for file in /etc/avahi/services/*.service; do
-    	if grep -Fq "_nfs._tcp" "$file"; then
-    	    echo "rename $file to ${file%%.*}.disabled"
-    	    mv "$file" "${file%%.*}.disabled"
-    	fi
+        if grep -Fq "_nfs._tcp" "$file"; then
+            echo "rename $file to ${file%%.*}.disabled"
+            mv "$file" "${file%%.*}.disabled"
+        fi
     done
 
     /bin/systemctl stop vdr
@@ -29,7 +29,7 @@ case $1 in
     if [ -x /usr/bin/ir-keytable ]
     then
         for remote in $(ir-keytable 2>&1 | grep rc/rc | egrep -o "rc[0-9]{1,}")
-        do 
+        do
             /usr/bin/ir-keytable -a /etc/rc_maps.cfg --sysdev $remote
         done
     fi
@@ -50,10 +50,10 @@ case $1 in
 
     # restore "_nfs._tcp" avahi announcements
     for file in /etc/avahi/services/*.disabled; do
-    	if grep -Fq "_nfs._tcp" "$file"; then
-    	    echo "rename $file to ${file%%.*}.service"
-    	    mv "$file" "${file%%.*}.service"
-    	fi
+        if grep -Fq "_nfs._tcp" "$file"; then
+            echo "rename $file to ${file%%.*}.service"
+            mv "$file" "${file%%.*}.service"
+        fi
     done
 
     /bin/systemctl start vdr
