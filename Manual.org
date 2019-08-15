@@ -7457,6 +7457,24 @@ grub:
       line: '\1{{ grub.boot_options}}"'
       backrefs: yes
   notify: [ 'Update GRUB' ]
+
+- name: set GRUB_TIMEOUT
+  lineinfile:
+      dest: /etc/default/grub
+      state: present
+      regexp: '^(GRUB_TIMEOUT=)'
+      line: 'GRUB_TIMEOUT={{grub.timeout}}'
+      backrefs: yes
+  notify: [ 'Update GRUB' ]
+
+- name: set GRUB_TIMEOUT_STYLE
+  lineinfile:
+      dest: /etc/default/grub
+      state: present
+      regexp: '^(GRUB_TIMEOUT_STYLE=)'
+      line: '\1{{"hidden" if grub.timeout == 0 else "menu"}}'
+      backrefs: yes
+  notify: [ 'Update GRUB' ]
 #+END_SRC
 *** templates
 :PROPERTIES:
