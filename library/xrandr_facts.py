@@ -192,6 +192,13 @@ def parse_xrandr_verbose(iterator):
     return xorg
 
 
+Modeline_Data = namedtuple("Modeline", [
+    "pixelclock",
+    "hdisp", "hsyncstart", "hsyncend", "htotal",
+    "vdisp", "vsyncstart", "vsyncend", "vtotal",
+    "flags"])
+
+
 def parse_edid_data(edid):
     vendor = "Unknown"
     model = "Unknown"
@@ -206,28 +213,32 @@ def parse_edid_data(edid):
             line = line.strip()
             if "VendorName" in line:
                 vendor = line.split('"')[1]
-            if "ModelName" in line:
+            elif "ModelName" in line:
                 model = line.split('"')[1]
-            if "Modeline" in line:
+            elif "Modeline" in line:
+                # For the fields of a modeline see
+                # https://en.wikipedia.org/wiki/XFree86_Modeline
                 print(line)
+                # ignore 'Modeline "Mode N"' part of Modeline
                 _, _, line = line.split('"', 2)
                 if not line:
                     print("no timing information")
                     continue
                 try:
-                    FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS = line.split(None, 9)
-                except ValueError:
+                    mode = Modeline_Data(line.split(None, 9))
+                except (ValueError, TypeError):
                     print("invalid timing information")
                     continue
-                print(FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS)
-                refresh = round(float(FF) * 1E6 / (float(H4) * float(V4)))
-                interlaced = "interlaced" in FLAGS
+                refresh = round(float(mode.pixelclock) * 1E6 /
+                                (float(mode.htotal) * float(mode.vtotal)))
+                interlaced = "interlaced" in mode.flags
                 if interlaced:
                     refresh /= 2
                 refresh = int(refresh)
-                modeline_name = '"{}x{}_{}{}"'.format(H1, V1, refresh, "i" if interlaced else '')
+                modeline_name = '"{}x{}_{}{}"'.format(mode.hdisp, mode.vdisp,
+                                                      refresh, "i" if interlaced else '')
                 modelines.append(" ".join(("Modeline", modeline_name,
-                                          FF, H1, H2, H3, H4, V1, V2, V3, V4, FLAGS)))
+                                           mode)))
     return vendor, model, modelines
 
 
