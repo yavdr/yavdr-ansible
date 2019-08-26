@@ -17,12 +17,13 @@ Basic algorithm:
 """
 
 import copy
+import logging
 import os
 import sys
 import subprocess
 from lxml import etree as ET
 
-
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 GUISETTINGS = '/var/lib/vdr/.kodi/userdata/guisettings.xml'
 CACHE_DIR = '/var/lib/vdr/.kodi/.display_cache'
 VIDEOSCREEN_TEMPLATE = """<settings version="2">
@@ -35,8 +36,9 @@ def create_cache_dir():
         os.makedirs(CACHE_DIR, exist_ok=True)
     except PermissionError:
         sys.exit(f"Error: insufficient permissions to create cachedir {CACHE_DIR}")
-    except Exception as e:
-        sys.exit(f"Unexpected Error when trying to create {CACHE_DIR}:", e)
+    except Exception:
+        logging.exception(f"Unexpected Error when trying to create {CACHE_DIR}:")
+        sys.exit(1)
 
 
 
@@ -52,18 +54,29 @@ def get_output_name():
             ).decode("utf-8").splitlines()
         ]
         return next(l.split()[0] for l in xrandr_output if " connected " in l)
-    except Exception as e:
-        sys.exit("could not determine output name", e)
+    except Exception:
+        logging.exception("could not determine output name")
+        sys.exit("output name unknown, exiting early")
 
 
 def parse_template(template_path, template, output=""):
     """read videoscreen settings from backup or create a stub file"""
+    def xml_tree_from_template(template, output):
+        xml_template = ET.fromstring(template.format(output))
+        xml_tree = ET.ElementTree(xml_template)
+        return xml_tree
+
     try:
         xml_tree = ET.parse(template_path)
     except OSError:
-        print(f"{template_path} not found, creating stub file", file=sys.stderr)
-        xml_template = ET.fromstring(template.format(output))
-        xml_tree = ET.ElementTree(xml_template)
+        logging.debug(f"{template_path} not found, creating stub file")
+        xml_tree = xml_tree_from_template(template, output)
+    except ET.XMLSyntaxError as e:
+        if e.msg.startswith('Document is empty'):
+            logging.info(f"{template_path} is empty, creating stub file")
+            xml_tree = xml_tree_from_template(template, output)
+        else:
+            sys.exit(f"Could not parse {template_path}, please fix file or remove it")
     finally:
         xml_tree.write(template_path)
     return xml_tree
@@ -76,7 +89,7 @@ def main(output):
     root = guisettings.getroot()
     old_output = root.find("./setting[@id='videoscreen.monitor']").text
     if old_output == output:
-        print("no changes necessary, exiting", file=sys.stderr)
+        logging.debug("no changes necessary, exiting")
         sys.exit()
 
     # create a minimal guisettings etree
@@ -92,7 +105,7 @@ def main(output):
         backup_root.append(copy.deepcopy(element))
         element.getparent().remove(element)
     xml_tree.write(xml_path)
-    print(f"written backup for {old_output} to {xml_path}", file=sys.stderr)
+    logging.debug(f"written backup for {old_output} to {xml_path}")
 
     # change videoscreen node to content of backup file
     xml_path = os.path.join(CACHE_DIR, f'{output}-videoscreen.xml')
@@ -113,5 +126,5 @@ if __name__ == '__main__':
     output = get_output_name()
     try:
         main(output)
-    except Exception as e:
-        print("Could not change videoscreen.* settings:", str(e), file=sys.stderr)
+    except Exception:
+        logging.exception("Could not change videoscreen.* settings")
