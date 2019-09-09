@@ -1835,14 +1835,14 @@ install_avahi: true
     enabled: yes
     masked: no
 
-- name: start avahi-linker
+- name: ensure avahi-linker is started
   systemd:
     name: avahi-linker
     state: started
     enabled: yes
     masked: no
 
-- name: enable and start additional services for avahi-linker
+- name: ensure additional services for avahi-linker are active
   systemd:
     name: '{{ item }}'
     state: started
@@ -2827,6 +2827,9 @@ preferred_resolutions:
 preferred_refreshrates:
   - 50
   - 60
+
+intel_boot_options: ""
+intel_set_boot_edid: false
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -3192,14 +3195,11 @@ TODO: create ~clean-edids~ script/role/Playbook to undo kernel boot options for 
   file:
     state: directory
     dest: /lib/firmware/edid
-# TODO:
-# - write EDID files to /lib/firmware/edid/
-# - complete template for grub.d
-name: "add kernel boot parameters for static display configuration"
-template:
-  src: templates/grub.d/intel.j2
-  dest: /etc/grub.d/99_intel
-  mode: 0755
+
+- name: "set intel_boot_options variable"
+  set_fact:
+    intel_boot_options: " drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
+  when: intel_set_boot_edid | bool
   notify: ['Update Initramfs', 'Update GRUB']
 
 #+END_SRC
@@ -3207,16 +3207,6 @@ template:
 :PROPERTIES:
 :CUSTOM_ID:  yavdr-xorg-templates
 :END:
-**** grub snippet for intel
-:PROPERTIES:
-:CUSTOM_ID: grub-intel-snippet
-:END:
-
-#+CAPTION: roles/yavdr-xorg/templates/grub.d/intel.j2
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/grub.d/intel.j2 :mkdirp yes :padline no
-{{ ansible_managed | comment }}
-GRUB_CMDLINE_LINUX+=" drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
-#+END_SRC
 **** xorg
 :PROPERTIES:
 :CUSTOM_ID: xorg-templates
@@ -7553,6 +7543,7 @@ system:
 grub:
   timeout: 0
   boot_options: quiet nosplash
+intel_boot_options: ""
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -7574,7 +7565,7 @@ grub:
       dest: /etc/default/grub
       state: present
       regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
-      line: '\1{{ grub.boot_options}}"'
+      line: '\1{{ grub.boot_options }}{{ intel_boot_options }}"'
       backrefs: yes
   notify: [ 'Update GRUB' ]
 
