@@ -1252,10 +1252,11 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     install_recommends: no
   notify: [ 'Restart VDR' ]
 #+END_SRC
-**** copy vdr configuration files (if they don't exist yet)
+**** create or copy vdr configuration files
 :PROPERTIES:
 :ID:       d89c1baa-2aff-495f-b74b-64431d9fa4ba
 :END:
+Because some files are changed by the vdr at runtime, we won't overwrite them if the task is marked with =force: no=.
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: ensure vdr is stopped
   systemd:
@@ -1279,7 +1280,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
-    force: no
+    force: yes
 
 - name: "vdr configuration | copy channels.conf if it doesn't exist yet"
   copy:
@@ -1854,6 +1855,7 @@ install_avahi: true
     - prevent-umount-on-pause
 #+END_SRC
 ** vdr-plugin-menuorg
+The menuorg plugin provides a more organized osd menu and allows to sort entries for plugins, vdr menu entries and custom commands using submenus. You can customize the =menuorg.xml= template to your liking. Please remember that the =translate= filter requires the localization data from the package =yavdr-i18n= on the device which executes the ansible playbook (this package is installed by default when running the =install-yavdr.sh= script).
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/vdr-plugin-menuorg/tasks/main.yml
 ---
