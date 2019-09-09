@@ -1,8 +1,5 @@
 # -*- mode: org; -*-
 * Settings for Export :noexport:
-:PROPERTIES:
-:ID:       bf0e4a53-06be-4c8c-aa60-be8cb48d790f
-:END:
 :DOCUMENT_OPTIONS:
 #+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
 #+OPTIONS: ^:nil
@@ -128,13 +125,7 @@
 - [[#handlers][Handlers]]
 
 * User Stories                                                     :noexport:
-:PROPERTIES:
-:ID:       b698d444-465b-4c57-855a-2abac22c5b7d
-:END:
 ** yavdr-full
-:PROPERTIES:
-:ID:       944c65e5-87d9-4db1-aa0b-dbaae3ba8f13
-:END:
 A User wants to install yaVDR without customization and relies on full automation.
 
 After installing a supported Ubuntu Server version and (if needed) setting up the network connection, the install script is downloaded and started.
@@ -159,20 +150,10 @@ Several roles are used to tie everything together:
 * Notes :noexport:
 :PROPERTIES:
 :noexport: nil
-:ID:       3e321e69-f1c1-4ec3-8f53-1cf714ea1af5
 :END:
 ** TODO [#A] optimize and document data structure for xorg parsing script
-:PROPERTIES:
-:ID:       5aceca9d-016f-45eb-a4bf-7d79dea9c48d
-:END:
 ** TODO [#A] xorg.conf templates for intel, nvidia, noveau and radeon drivers
-:PROPERTIES:
-:ID:       ca82eb6b-e491-4c61-b65f-a394b6b654de
-:END:
 *** DONE BusID für (nvidia) Grafikkarten aus lspci auslesen
-:PROPERTIES:
-:ID:       e664458a-ad80-4b29-a794-bd433f8d2a22
-:END:
 :LOGBOOK:
 - State "DONE"       from "STARTED"    [2019-03-20 Mi 19:35]
 :END:
@@ -181,13 +162,7 @@ Format: "%d:%d:%d" (lspci liefert es als "%04x:%02x:%02x.%x", domain, bus, devic
 - Was ist mit NVidia Optimus/Bumblebee (AFAIK keine VDPAU-Funktionalität)?
 - Wie BusID der xrandr-Ausgabe zuordnen?
 *** NOTE NVIDIA-Documentation about the BusID:
-:PROPERTIES:
-:ID:       4341f6bd-fdec-4dad-8d3b-83b95c20189d
-:END:
 **** What is the format of a PCI Bus ID?
-:PROPERTIES:
-:ID:       54bf4fd1-3bd2-4752-a0ae-22e90c477235
-:END:
 Different tools have different formats for the PCI Bus ID of a PCI device.
 
 The X server's "BusID" X configuration file option interprets the BusID string in the format "bus@domain:device:function" (the "@domain" portion is only needed if the PCI domain is non-zero), in decimal. More specifically,
@@ -200,9 +175,6 @@ The lspci(8) utility, in contrast, reports the PCI BusID of a PCI device in the 
 "%04x:%02x:%02x.%x", domain, bus, device, function
 in printf(3) syntax. The "Bus Location" reported in the /proc/driver/nvidia/gpus/0..N/information files matches the lspci format.
 **** Parsen der /proc/driver/nvidia/gpus/*/information Dateien
-:PROPERTIES:
-:ID:       9e10199a-5b92-4272-b82d-66a11820a03c
-:END:
 #+BEGIN_SRC python
 # read the BusID for nvidia cards and the model name
 # from the /proc/driver/nvidia/gpus/*/information file(s)
@@ -234,31 +206,16 @@ if __name__ == '__main__':
     print(BusIDs)
 #+END_SRC
 ** TODO [#B] plan for customization of xorg settings by the user
-:PROPERTIES:
-:ID:       1b0281a3-1bc7-4b57-936b-f2a13d8723d3
-:END:
 either directly or using a configuration wizard or a web frontend
 ** SOMEDAY [#C] select best frontend based on GPU
-:PROPERTIES:
-:ID:       324e03d0-7fe8-4382-be44-7372e14d0b82
-:END:
 - intel :: softhddevice-vpp or vaapidevice
 - amd :: softhddevice-vpp
 - nvidia :: softhddevice-openglosd (if no HEVC channels are needed)
 ** TODO Document using vdr, pulseaudio and xorg together
-:PROPERTIES:
-:ID:       a107fd52-172c-4018-8374-8f2ce299f842
-:END:
 
 * Introduction
-:PROPERTIES:
-:ID:       7156cbd8-2071-4e6c-9636-4b84e54cf7be
-:END:
 One of the major problems we faced with customized Ubuntu ISO files as installation media for prior yaVDR versions has been the limited hardware support and the time consuming process to create and update them.  An interesting alternative to this approach is to enable the user to choose the installation medium by himself, so point releases, kernel versions and additional drivers can be chosen deliberately.  After the basic setup is complete (and a working internet connection is available), a fully customizable install script completes the yaVDR installation.
 * Installing and configuring yaVDR with Ansible
-:PROPERTIES:
-:ID:       a22ce6b4-b251-4293-aa85-78d6dfd6669a
-:END:
 This is an experimental feature which allows to set up a yaVDR installation based on a normal Ubuntu Server 16.04.x installation using [[http://ansible.com][Ansible]].
 
 This Manual is written in org-mode for Emacs and can rewrite the complete ansible configuration if you call ~org-babel-tangle~ from within emacs.
@@ -276,9 +233,6 @@ We use a callback to generate tags for all roles autmatically:
 #+INCLUDE: "ansible.cfg" src conf
 
 ** Install scripts for local usage
-:PROPERTIES:
-:ID:       c41eda06-8a67-478e-ae66-cc11f764f279
-:END:
 #+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
 set -e
 if (( $EUID != 0 )); then
@@ -321,13 +275,7 @@ export ANSIBLE_PIPELINING=1
 ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 * Playbooks
-:PROPERTIES:
-:ID:       4fa1a3d2-e504-4764-b587-ae9fd0bc7789
-:END:
 ** yavdr07.yml
-:PROPERTIES:
-:ID:       2070ae90-9db7-4e82-bd1a-7320d396bfaf
-:END:
 The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
 #+BEGIN_SRC yaml :tangle yavdr07.yml :mkdirp yes :padline no
 ---
@@ -380,9 +328,6 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     - import_tasks: handlers/main.yml
 #+END_SRC
 ** yavdr07-headless.yml
-:PROPERTIES:
-:ID:       c13a8871-5fe1-48cd-ae63-93a3641f93c1
-:END:
 For a headless server installation ~yavdr07-headless.yml~ is a good choice
 #+BEGIN_SRC yaml :tangle yavdr07-headless.yml :mkdirp yes :padline no
 ---
@@ -416,9 +361,6 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - import_tasks: handlers/main.yml
 #+END_SRC
 * Hosts
-:PROPERTIES:
-:ID:       552370c6-7ee3-4fa4-9244-957dce8abb8e
-:END:
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
 #+BEGIN_SRC conf :tangle localhost_inventory :mkdirp yes :padline no
@@ -427,13 +369,7 @@ localhost ansible_connection=local
 
 #+END_SRC
 * Group Variables
-:PROPERTIES:
-:ID:       4cdb74a4-5ad2-47f4-b0ed-bd65fc8fc65f
-:END:
 ** PPAs
-:PROPERTIES:
-:ID:       dbae36e3-610a-4abc-aa76-5a6fc75edb9b
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 ---
 # file: group_vars/all
@@ -448,9 +384,6 @@ repositories:
   #- '{{ ppa_owner }}/{{branch}}-yavdr'
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
-:PROPERTIES:
-:ID:       6b9a4009-32f6-431f-8c5f-1f0199755dde
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # properties of the user vdr and vdr-related options
 # NOTE: user name, uid and confdir must match the values set by the vdr package
@@ -500,9 +433,6 @@ vdr_plugins:
 #   - 192.168.0.0/24
 #+END_SRC
 ** Media directories
-:PROPERTIES:
-:ID:       eb002b3a-d1c9-4d57-9913-97ab2a85e568
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
 media_dirs:
@@ -514,26 +444,17 @@ media_dirs:
   recordings: '{{ vdr.recdir }}'
 #+END_SRC
 ** NFS
-:PROPERTIES:
-:ID:       3a5a4687-36a1-496f-929b-7455917abcf4
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
 #+END_SRC
 ** Samba
-:PROPERTIES:
-:ID:       a796849f-6bde-41db-b92b-57e328697480
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 samba:
   workgroup: YAVDR
   windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
 #+END_SRC
 ** Additional packages
-:PROPERTIES:
-:ID:       68883dc3-9bab-42d3-a7eb-0d4cbd747711
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 # additional packages you want to install
 extra_packages:
@@ -549,9 +470,6 @@ extra_packages:
   - vdrpbd
 #+END_SRC
 ** System pre-configuration
-:PROPERTIES:
-:ID:       4fd6c8f3-e7bc-4dbc-ad12-5faadb74516a
-:END:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 frontend: vdr
 
@@ -582,21 +500,9 @@ standby_reload_dvb: true
 serial_ir_device: ttyS0
 #+END_SRC
 * Roles
-:PROPERTIES:
-:ID:       50ac2e79-c494-4a32-8632-313d49bdb2b7
-:END:
 ** install-dependencies
-:PROPERTIES:
-:ID:       5b6afb72-fabe-4cfc-b61e-ed40bd05396a
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       928993cf-fa67-4eae-8bb3-1d09bbceb704
-:END:
 **** main.yml
-:PROPERTIES:
-:ID:       9d20ce2f-a503-4f50-8fe2-97517da6557f
-:END:
 #+BEGIN_SRC yaml :tangle roles/install-packages/tasks/main.yml :mkdirp yes :padline no
 ---
 
@@ -608,18 +514,9 @@ serial_ir_device: ttyS0
     cache_valid_time: 60
 #+END_SRC
 ** nvidia experimental drivers
-:PROPERTIES:
-:ID:       32fdd667-36a0-4dc8-a94f-cbb2bf24ef75
-:END:
 install nvidia-430 from ppa:graphics-drivers/ppa
 *** tasks
-:PROPERTIES:
-:ID:       efc51a02-dbf3-4421-a1a8-fd0b5dab1a5c
-:END:
 **** main.yml
-:PROPERTIES:
-:ID:       27504b06-bf0f-4b0a-8756-8d6d1cc23abf
-:END:
 #+BEGIN_SRC yaml :tangle roles/nvidia-experimental/tasks/main.yml :mkdirp yes :padline no
 ---
 
@@ -642,14 +539,8 @@ install nvidia-430 from ppa:graphics-drivers/ppa
     - packages
 #+END_SRC
 ** yavdr-common
-:PROPERTIES:
-:ID:       83814b17-9170-4b92-8b3b-4ee87f9eee26
-:END:
 This role is used to set up a basic yaVDR installation. It creates the directories, installs the vdr and other useful packages.
 *** default variables
-:PROPERTIES:
-:ID:       61465f32-6b30-43a0-804a-032256acbb18
-:END:
 This section is for reference only, please use the files in ~global_vars~ for customizations.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline no
 ---
@@ -657,9 +548,6 @@ This section is for reference only, please use the files in ~global_vars~ for cu
 #+END_SRC
 
 **** Repositories
-:PROPERTIES:
-:ID:       c78ea666-ecff-4360-89e7-543df5e980a9
-:END:
 You can set a list of package repositories which provide the necessary packages. Feel free to use own PPAs if you need special customization to the VDR and it's plugins.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 branch: unstable
@@ -671,9 +559,6 @@ repositories:
   - 'ppa:yavdr/{{branch}}-yavdr'
 #+END_SRC
 **** Drivers
-:PROPERTIES:
-:ID:       0ec042d9-e535-42f2-8996-4322e12ba171
-:END:
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 drivers:
@@ -681,9 +566,6 @@ drivers:
   ddvb-dkms: auto
 #+END_SRC
 **** Additional Packages
-:PROPERTIES:
-:ID:       01776db6-487d-4926-9032-bf2c802cf537
-:END:
 Add additional packages you would like to have on your installation to this list
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 extra_packages:
@@ -692,9 +574,6 @@ extra_packages:
   - w-scan
 #+END_SRC
 **** VDR
-:PROPERTIES:
-:ID:       865faeec-1c2b-43ca-9a72-99aa59a78a74
-:END:
 This section allows you to set the recording directory, the user and group that runs the vdr and it's home directory.
  - user :: the vdr user name
  - group :: the main group for the user vdr
@@ -724,14 +603,8 @@ vdr_allowed_hosts: []
 standby_reload_dvb: true
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       64dc0a0b-48b4-48f7-b92f-0c52db61e0c0
-:END:
 yavdr-common executes the following tasks:
 **** main.yml
-:PROPERTIES:
-:ID:       91c2ffd5-6dc9-4cbc-b50a-525bf0e79a34
-:END:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-common/tasks/main.yml
@@ -746,9 +619,6 @@ yavdr-common executes the following tasks:
   tags: [install]
  #+END_SRC
 ***** Disable default installation of recommended packages
-:PROPERTIES:
-:ID:       9ffe98b0-452a-463b-a29e-507cb519533e
-:END:
  This task prevents apt to automatically install all recommended dependencies for packages:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes :padline no
 ---
@@ -760,9 +630,6 @@ yavdr-common executes the following tasks:
 
  #+END_SRC
 ***** Set up package repositories
-:PROPERTIES:
-:ID:       9e37b558-6748-4b07-aefc-5528bfa337ab
-:END:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_apt.yml :mkdirp yes
 - name: add PPAs
   apt_repository:
@@ -787,9 +654,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     state: absent
 #+END_SRC
 ***** Use bash instead of dash
-:PROPERTIES:
-:ID:       2a09027d-cb5a-4957-98ed-6140d495b048
-:END:
 ~dash~ is more limited than bash (albeit faster) - since vdr packages and addons ship with a lot of scripts, we use ~bash~ as the default shell.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: use bash instead of dash
@@ -799,9 +663,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 #+END_SRC
 
 ***** create user vdr
-:PROPERTIES:
-:ID:       c3a9bb0e-51e1-472a-b1c9-14215a7a3e5c
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :exports none :mkdirp yes
 - name: create vdr group
   group:
@@ -821,13 +682,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 #+END_SRC
 
 ***** Disable release-upgrade notifications
-:PROPERTIES:
-:ID:       e4269c24-0273-4221-b6ca-a429cd2cf4f1
-:END:
 ****** SOMEDAY move from lineinfile to template
-:PROPERTIES:
-:ID:       43ed1009-31df-4eae-81b2-133261f7e6b4
-:END:
 :LOGBOOK:
 - State "SOMEDAY"    from "TODO"       [2017-11-22 Mi 10:59]
 :END:
@@ -847,9 +702,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 
 #+END_SRC
 ***** Install essential packages
-:PROPERTIES:
-:ID:       aa6d9c2d-f052-4ca2-a55e-b31fe04b11e1
-:END:
  #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: apt | install basic packages
   apt:
@@ -879,9 +731,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 
  #+END_SRC
 ***** Install additional packages (user defined)
-:PROPERTIES:
-:ID:       8b0832b1-0d61-4329-942d-b3bb3e6ada0a
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml
 - name: apt | install extra packages
   apt:
@@ -891,9 +740,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 
 #+END_SRC
 ***** create directories
-:PROPERTIES:
-:ID:       0b1784e5-6573-4377-903d-6501604eedf8
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_directories.yml :exports none :mkdirp yes
 - name: ensure /etc/yavdr exists
   file:
@@ -916,9 +762,6 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
   with_dict: '{{ media_dirs }}'
 #+END_SRC
 ***** create sudoers drop-in for vdr
-:PROPERTIES:
-:ID:       ccb5824a-4436-4956-a02c-9538256129cf
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_sudoers.yml :exports none :mkdirp yes
 - name: create /etc/sudoers.d/yavdr from template
   template:
@@ -944,9 +787,6 @@ Stop vdr before entering suspend and unload dvb modules, reverse this operation 
 
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       48c1e3f9-5edf-409a-b826-629eac9ee4b4
-:END:
 #+BEGIN_SRC c :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment('c') }}
 // Recommends are as of now still abused in many packages
@@ -954,9 +794,6 @@ APT::Install-Recommends "0";
 APT::Install-Suggests "0";
 #+END_SRC
 **** yavdr sudoers drop-in
-:PROPERTIES:
-:ID:       8667f68e-9805-4f13-a0cc-28f3393d2687
-:END:
 Allow the vdr user to restart ~vdr.service~ and reboot the system
 #+BEGIN_SRC shell :tangle roles/yavdr-common/templates/yavdr.sudoers.j2 :mkdirp yes :padline no
 {{ vdr.user }} ALL=NOPASSWD: /bin/systemctl --no-block restart vdr.service
@@ -1108,23 +945,11 @@ if __name__ == '__main__':
         parser.print_help()
 #+END_SRC
 ** collect facts about the system with custom modules
-:PROPERTIES:
-:ID:       6fb47bef-2511-4d82-b5ef-5cdfac62087f
-:END:
 *** variables
-:PROPERTIES:
-:ID:       348d726a-1030-4fa9-b791-ced571a71d36
-:END:
 #+BEGIN_SRC yaml :tangle roles/collect-facts/defaults/main.yml :mkdirp yes
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       0ca02941-519a-4ea0-8097-c93c5249980e
-:END:
 ***** main.yml
-:PROPERTIES:
-:ID:       7cbaa7cc-ce6e-4713-85ed-dd083bbb3895
-:END:
 #+BEGIN_SRC yaml :tangle roles/collect-facts/tasks/main.yml :mkdirp yes
 - name: get information about usb and pci hardware and loaded kernel modules
   hardware_facts:
@@ -1167,17 +992,8 @@ if __name__ == '__main__':
       - xine
 #+END_SRC
 ** vdr
-:PROPERTIES:
-:ID:       75c016f6-a5e1-4c27-af0a-6cdcfe3db877
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       b7a3bd2d-fa19-4c79-809c-acc8c92f2a43
-:END:
 **** install the basic vdr packages
-:PROPERTIES:
-:ID:       0531de50-21f9-41ea-a0b1-9e808e6d0e9f
-:END:
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/vdr/tasks/main.yml
@@ -1192,9 +1008,6 @@ if __name__ == '__main__':
     install_recommends: no
 #+END_SRC
 **** Add svdrp/svdrp-disc to /etc/services
-:PROPERTIES:
-:ID:       e44d3ba8-886a-4d97-a9dc-f141ecba2ccd
-:END:
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: add svdrp and svdrp-disc to /etc/services
   lineinfile:
@@ -1206,9 +1019,6 @@ if __name__ == '__main__':
     - "svdrp-disc       6419/udp"
 #+END_SRC
 **** Set up the recording directory for the vdr user
-:PROPERTIES:
-:ID:       7dd1b799-0a41-444f-834d-a368a5bc38f8
-:END:
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create vdr recdir
   file:
@@ -1240,9 +1050,6 @@ if __name__ == '__main__':
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
 #+END_SRC
 **** Install additional vdr plugins
-:PROPERTIES:
-:ID:       9d44b9ce-308b-4388-bc55-a93bbded261f
-:END:
 The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ in the group variables
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: apt | install additional vdr plugins
@@ -1253,9 +1060,6 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
   notify: [ 'Restart VDR' ]
 #+END_SRC
 **** create or copy vdr configuration files
-:PROPERTIES:
-:ID:       d89c1baa-2aff-495f-b74b-64431d9fa4ba
-:END:
 Because some files are changed by the vdr at runtime, we won't overwrite them if the task is marked with =force: no=.
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: ensure vdr is stopped
@@ -1381,9 +1185,6 @@ Set up IP resp. IP range based access for VDR plugins
 
 #+END_SRC
 **** start vdr after network-online.target
-:PROPERTIES:
-:ID:       e435efbc-0690-40cc-bf55-5516b23f4ccf
-:END:
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create directory for vdr.service systemd drop-in files
   file:
@@ -1434,9 +1235,6 @@ Set up IP resp. IP range based access for VDR plugins
 #+end_src
 
 *** templates
-:PROPERTIES:
-:ID:       0c5c2e3b-57af-46a9-b69e-3499e25fce59
-:END:
 **** Systemd Drop-in to start vdr.service after network-online.target
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
 {{ansible_managed | comment }}
@@ -1540,13 +1338,7 @@ This is a snippet
 {{ "Search for repeat with subtitle (same episode)" | translate }} : /usr/local/bin/vdr-recrepeat 1
 #+end_src
 *** files
-:PROPERTIES:
-:ID:       a784d230-8455-4414-a01c-fbc4acea82bc
-:END:
 **** remote.conf
-:PROPERTIES:
-:ID:       f0242473-e2e9-4c77-8f31-12ae39c5d1a9
-:END:
 #+BEGIN_SRC conf :tangle roles/vdr/files/remote.conf :mkdirp yes :padline no
 LIRC.Up KEY_UP
 LIRC.Down KEY_DOWN
@@ -1678,9 +1470,6 @@ XKeySym.Prev       XF86AudioPrev
 XKeySym.Next       XF86AudioNext
 #+END_SRC
 **** keymacros.conf
-:PROPERTIES:
-:ID:       376f7ba3-d58e-4a5f-a811-d6f82d070587
-:END:
 #+BEGIN_SRC conf :tangle roles/vdr/files/keymacros.conf :padline no
 # Remote control key macros for VDR
 #
@@ -1778,20 +1567,11 @@ EOM
 echo ". /tmp/cmd.sh; rm /tmp/cmd.sh" | at now
 #+end_src
 ** yavdr-network
-:PROPERTIES:
-:ID:       5cae8669-27f7-4fd5-844c-8b16daa4daf4
-:END:
 *** default variables
-:PROPERTIES:
-:ID:       e1c8c821-b1eb-4ee3-91fc-ff67286bc0ac
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/main.yml :mkdirp yes :padline no
 install_avahi: true
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       5a724dd4-6f39-4a42-a7d9-f2a69c3cfca1
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-network/tasks/main.yml :mkdirp yes :padline no
 ---
 # this playbook sets up network services for a yaVDR installation
@@ -1954,17 +1734,8 @@ description of the config file format.
 </menus>
 #+END_SRC
 ** nfs-server
-:PROPERTIES:
-:ID:       dc47cc3a-6f18-4c8f-8d07-845f18015ee7
-:END:
 *** TODO disable announcement for NFS avahi-services before stopping nfs-kernel-server, announce them again after a (re)start :noexport:
-:PROPERTIES:
-:ID:       3b548bca-9c10-41f8-bd0f-71fb4b8d76dc
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       c64ee510-ab40-4f99-9429-d8cdbc96268b
-:END:
 #+BEGIN_SRC yaml :tangle roles/nfs-server/tasks/main.yml :mkdirp yes :padline no
 ---
 
@@ -1989,13 +1760,7 @@ description of the config file format.
   with_dict: '{{ media_dirs }}'
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       824677ea-d908-49ea-90c3-26d0173df138
-:END:
 **** /etc/exports
-:PROPERTIES:
-:ID:       bd679410-847e-45cf-817c-7977436e1826
-:END:
 #+BEGIN_SRC conf :tangle roles/nfs-server/templates/nfs-exports.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 /srv *(rw,fsid=0,sync,no_subtree_check,all_squash,anongid={{ vdr.gid }},anonuid={{ vdr.uid }})
@@ -2004,9 +1769,6 @@ description of the config file format.
 {% endfor %}
 #+END_SRC
 **** avahi services
-:PROPERTIES:
-:ID:       6fc68020-23c2-4682-945a-396598c5b8e6
-:END:
 #+BEGIN_SRC xml :tangle roles/nfs-server/templates/avahi/service.j2 :mkdirp yes :padline no
 <?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
@@ -2022,21 +1784,12 @@ description of the config file format.
 </service-group>
 #+END_SRC
 ** yavdr-remote
-:PROPERTIES:
-:ID:       b36bb1c3-31df-4516-98a8-3887dfa911ec
-:END:
 The role ~yavdr-remote~ sets up the foundation for using eventlircd, lircd2uinput and the pre-configuration for remote receivers which can be detected by udev.
 *** default variables
-:PROPERTIES:
-:ID:       1a04ff42-42b5-4ab2-9edd-0d0bfaa1c8bb
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-remote/defaults/main.yml :mkdirp yes :padline no
 lircd0_socket: /var/run/lirc/lircd0
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       37697c78-5ad9-4557-b42a-adc344b419fa
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-remote/tasks/main.yml :mkdirp yes :padline no
 ---
 # This role is used to set up the yaVDR remote control configuration.
@@ -2104,13 +1857,7 @@ lircd0_socket: /var/run/lirc/lircd0
     - config
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       63c9e331-4c32-4fca-9138-b8515071e996
-:END:
 **** Systemd Drop-in to start vdr with lirc support
-:PROPERTIES:
-:ID:       fbd69a95-17a2-4e25-a04c-a5ddb89dbe08
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-remote/templates/03-vdr-lirc.conf.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 {% if frontend != 'kodi' %}
@@ -2119,9 +1866,6 @@ lircd0_socket: /var/run/lirc/lircd0
 {% endif %}
 #+END_SRC
 **** Systemd Drop-in to start lircd2uinput with lircd
-:PROPERTIES:
-:ID:       513cef8c-ad4f-458b-84be-e16cdb55132c
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-remote/templates/lircd.service.d/lircd2uinput.conf.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 [Service]
@@ -2129,9 +1873,6 @@ ExecStartPost=/usr/bin/lircd2uinput-add /var/run/lirc/lircd0
 ExecStopPost=/usr/bin/lircd2uinput-remove /var/run/lirc/lircd0
 #+END_SRC
 **** create /etc/rc_maps.cfg
-:PROPERTIES:
-:ID:       ce211e33-f7ed-445b-a730-b063b8974c52
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-remote/templates/rc_maps.cfg.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 #
@@ -2318,12 +2059,9 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 #+END_SRC
 ** pulseaudio
 :PROPERTIES:
-:ID:       af6190ba-085f-44f4-96ad-31e33d318ce7
+:CUSTOM_ID:      pulseaudio 
 :END:
 *** tasks
-:PROPERTIES:
-:ID:       39d79be1-828b-4add-8d2a-3107c12ee57e
-:END:
 #+BEGIN_SRC yaml :tangle roles/pulseaudio/tasks/main.yml :mkdirp yes :padline no
 ---
 
@@ -2342,9 +2080,6 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
     dest: /etc/asound.conf
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       18320c8b-9382-4622-9ace-c922141a4f7b
-:END:
 #+BEGIN_SRC conf :tangle roles/pulseaudio/templates/alsa/asound.conf.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 # Use PulseAudio by default
@@ -2386,9 +2121,6 @@ The autostart script then enables all services to be pulled in by yavdr-desktop.
 
 In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a dependency of the systemd unit instance ~user@666.service~ and all processes within the session must be shutdown properly when stopping ~xlogin@vdr.service~.  If systemd units are used within the user session, they must stop their process(es) successfully (you should set them up to accept expected exit codes appropriately).  The window manager /openbox/ is started using the =~/.xinitrc= and stopped using the systemd unit ~exit-wm.service~ (which runs on stopping the jobs pulled in by the ~default.target~ of the session).
 *** STARTED automatic X-server configuration                     :noexport:
-:PROPERTIES:
-:ID:       8d3876e1-2cbb-4f82-9e8d-fe66dae2e1b2
-:END:
 :LOGBOOK:
 - State "STARTED"    from "DONE"       [2019-03-27 Mi 15:23]
 - State "DONE"       from "TODO"       [2019-03-27 Mi 15:23]
@@ -2405,9 +2137,6 @@ Missing steps:
 - [ ] load edids by setting kernel boot arguments
 
 **** DONE Nvidia-GPUs:read  EDID:
-:PROPERTIES:
-:ID:       a25ee66a-e37c-497e-ae0e-99d579785e6b
-:END:
 :LOGBOOK:
 - State "DONE"       from "HOLD"       [2019-03-27 Mi 15:22]
 :END:
@@ -2484,9 +2213,6 @@ EndSection
 
 #+END_SRC
 **** DONE Start X-server with debug-output                      :noexport:
-:PROPERTIES:
-:ID:       92c5d2d8-6297-4991-94e7-9d9a018351cb
-:END:
 #+BEGIN_SRC conf
 # /etc/systemd/system/x-debug@.service
 [Unit]
@@ -2526,13 +2252,7 @@ EndSection
 #+END_SRC
 
 **** DONE python-script for parsing xrandr --verbose output
-:PROPERTIES:
-:ID:       47bf38ed-69ef-48fc-80d6-3c73c5e97a50
-:END:
 ***** Example output
-:PROPERTIES:
-:ID:       d1837356-d6fe-4216-bde5-3202bf375a50
-:END:
 # ION-330-I
 #+BEGIN_SRC shell :tangle library/xrandr_output.1
 $ xrandr --verbose
@@ -2788,9 +2508,6 @@ HDMI-0 connected 1280x1024+0+0 (0x1c9) normal (normal left inverted right x axis
 
 #+END_SRC
 ***** parse hex-strings
-:PROPERTIES:
-:ID:       96a9168e-9acb-4c9b-bd12-df5f24a619e4
-:END:
 #+BEGIN_SRC python
 >>> import binascii
 >>> s = "deadbeef"
@@ -2838,9 +2555,6 @@ intel_set_boot_edid: false
 :CUSTOM_ID: yavdr-xorg-tasks
 :END:
 **** main.yml
-:PROPERTIES:
-:ID:       cc8a3d2d-4676-45fa-a416-762c5c52cb4a
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
@@ -2850,9 +2564,6 @@ intel_set_boot_edid: false
   tags: [xorg.detect,install]
 #+END_SRC
 **** setup-xorg.yml
-:PROPERTIES:
-:ID:       4719a732-4972-471d-b9d3-57e42ac15fdc
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/setup-xorg.yml
@@ -2967,9 +2678,6 @@ intel_set_boot_edid: false
     state: present
 #+END_SRC
 **** detect-xorg.yml
-:PROPERTIES:
-:ID:       7fb28921-58b1-4c7d-867e-4ea301fd4c33
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/detect-xorg.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
@@ -3169,9 +2877,6 @@ intel_set_boot_edid: false
     dest: /etc/X11/xorg.conf.d/10-serverflags.conf
 #+END_SRC
 **** intel.yml
-:PROPERTIES:
-:ID:       0b27229f-3cb1-4b30-bd91-b173c40e7d0c
-:END:
 KMS drivers (like for intel (i915) and amd (radeon)) require additional configuration besides a customized ~xorg.conf~ - for a "static" output configuration (which works if the TV or AV receiver is not turned on) we need to force loading the display(s) EDID early during the boot process.
 
 This task therefore performs the following actions after the xrandr detection has been executed:
@@ -3257,10 +2962,6 @@ KillMode=mixed
 #+END_SRC
 
 ***** Drop-in snippet for vdr.service
-:PROPERTIES:
-:ID:       44d62722-3e6b-4180-9e38-8936b4470112
-:END:
-
 #+CAPTION: roles/yavdr-xorg/templates/vdr-xorg.conf
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/vdr-xorg.conf :mkdirp yes :padline no
 {{ ansible_managed | comment }}
@@ -3270,9 +2971,6 @@ Wants=x@vt7.service
 #BindsTo=x@vt7.service
 #+END_SRC
 ***** xorg.conf snippets
-:PROPERTIES:
-:ID:       6da4a70b-96c0-4635-9b82-c89fc45a39c5
-:END:
 
 #+CAPTION: roles/yavdr-xorg/templates/vdr-ignore-eventlircd.conf.j2
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/xorg-ignore-eventlircd.conf.j2
@@ -3289,9 +2987,6 @@ EndSection
 #+CAPTION: roles/yavdr-xorg/templates/20-intel.conf.j2
 #+INCLUDE: "roles/yavdr-xorg/templates/20-intel.conf.j2" src jinja2
 ***** xorg.conf
-:PROPERTIES:
-:ID:       d7064700-5a05-478a-a20d-10a5fe472661
-:END:
 
 #+CAPTION: roles/yavdr-xorg/templates/xorg-verbose.conf.j2
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
@@ -3627,9 +3322,6 @@ Section "ServerFlags"
 EndSection
 #+END_SRC
 **** vdr
-:PROPERTIES:
-:ID:       748ef799-1673-4028-b52e-234328dc793b
-:END:
 Set environment variables for system locale and user session on startup
 #+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
 [Service]
@@ -3638,9 +3330,6 @@ Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 **** initramfs EDID hook
-:PROPERTIES:
-:ID:       41434b9a-1580-4214-ba40-0e11e00ca82a
-:END:
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2
 #!/bin/bash
 {{ ansible_managed | comment }}
@@ -3659,17 +3348,8 @@ manual_add_modules i915 radeon
 exit 0
 #+END_SRC
 ** yavdr-desktop
-:PROPERTIES:
-:ID:       8cb30c4c-39df-4d93-8ae1-652cf4c5b027
-:END:
 *** Tasks
-:PROPERTIES:
-:ID:       aeb5167d-d3cb-4a0a-9851-9899b5239547
-:END:
 **** main.yml
-:PROPERTIES:
-:ID:       ff552cae-e390-49e0-80cf-399896839688
-:END:
 #+BEGIN_SRC yaml :tangle roles/yavdr-desktop/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/yavdr-desktop/tasks/main.yml
@@ -3864,17 +3544,8 @@ exit 0
     dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
 #+END_SRC
 *** Templates
-:PROPERTIES:
-:ID:       0bbfaf8b-c242-4f0a-9ea0-ea4bfbb438ca
-:END:
 **** xorg configuration
-:PROPERTIES:
-:ID:       074c7a42-44a9-4456-843e-f58e66f3b5fc
-:END:
 ***** .Xresources
-:PROPERTIES:
-:ID:       ca7cce7d-bb28-4063-acd4-7831ea74eb10
-:END:
 
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.Xresources.j2 :mkdirp yes :padline no
 xterm*background: Black
@@ -3895,22 +3566,13 @@ XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
 #+END_SRC
 ***** .xinitrc
-:PROPERTIES:
-:ID:       22f69dea-f6f6-407e-b9d5-7edc38f88093
-:END:
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
 #!/bin/bash
 {{ ansible_managed | comment }}
 exec openbox-session
 #+END_SRC
 **** openbox
-:PROPERTIES:
-:ID:       caaba2f6-165c-4bce-b897-fd68992e51c1
-:END:
 ***** autostart
-:PROPERTIES:
-:ID:       54bb62c1-99dd-42ea-b49f-269a9f8d4a68
-:END:
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/bin/bash
 # forward environment variables to an environment file and the systemd user session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
@@ -3944,9 +3606,6 @@ systemctl --user isolate yavdr-desktop.target
 udiskie &
 #+END_SRC
 ***** rc.xml
-:PROPERTIES:
-:ID:       8228f9e3-e6c6-4ecd-9157-f22533dba6d8
-:END:
 #+BEGIN_SRC xml :tangle roles/yavdr-desktop/templates/openbox/rc.xml.j2 :mkdirp yes :padline no
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc" xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -4790,9 +4449,6 @@ udiskie &
 
 #+END_SRC
 ***** rc2.xml
-:PROPERTIES:
-:ID:       64b5a3ba-0f2d-4f92-93d0-4c4fc312ed5d
-:END:
 #+BEGIN_SRC xml :tangle roles/yavdr-desktop/templates/openbox/rc2.xml.j2 :mkdirp yes :padline no
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc" xmlns:xi="http://www.w3.org/2001/XInclude">
@@ -5700,13 +5356,7 @@ esac
 #+END_SRC
 
 **** Systemd User Session
-:PROPERTIES:
-:ID:       71f6c6b1-567d-4337-af6f-873777351f30
-:END:
 ***** yavdr-desktop.target
-:PROPERTIES:
-:ID:       250ebcbf-647c-4d11-a310-60f9c50cb79f
-:END:
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/systemd/user/yavdr-desktop.target.j2 :mkdirp yes :padline no
 [Unit]
 Description=yaVDR Desktop
@@ -5716,9 +5366,6 @@ Wants=dbus.service pulseaudio.service
 AllowIsolate=yes
 #+END_SRC
 ***** detect-second-display
-:PROPERTIES:
-:ID:       e46166b1-0550-41c6-a7ec-d7a2622f87db
-:END:
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no
 #!/bin/bash
 source <(systemctl --user show-environment)
@@ -5743,9 +5390,6 @@ ExecStart=%h/bin/detect-second-display
 WantedBy=yavdr-desktop.target
 #+END_SRC
 ***** switch-displays
-:PROPERTIES:
-:ID:       67d8bc4f-64c6-4433-98f7-d76430fb9f20
-:END:
 This script exchanges the primary and secondary screen. It needs access to the systemd user session.
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no
 #!/bin/bash
@@ -5759,9 +5403,6 @@ systemctl --user start osd2web
 frontend-dbus-send start
 #+END_SRC
 ***** openbox-second.service
-:PROPERTIES:
-:ID:       4473c272-7b60-4159-b2a9-8198cff98770
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/openbox-second.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=Start openbox on the second DISPLAY if it exists
@@ -5780,9 +5421,6 @@ ExecStartPost=/bin/bash %h/.fehbg
 WantedBy=yavdr-desktop.target
 #+END_SRC
 ***** osd2web.service
-:PROPERTIES:
-:ID:       85647bf2-f42b-4621-9e61-a0e07b7a24e9
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=Start a kiosk browser on the second DISPLAY if it exists
@@ -5802,9 +5440,6 @@ KillSignal=SIGINT
 WantedBy=yavdr-desktop.target
 #+END_SRC
 ***** tmux.service
-:PROPERTIES:
-:ID:       89ca260c-48b5-4b27-b43b-02f7b02be80c
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/tmux.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=Start tmux in detached session
@@ -5820,9 +5455,6 @@ Restart=always
 WantedBy=default.target
 #+END_SRC
 ***** wm-exit.service
-:PROPERTIES:
-:ID:       cec42c29-2b61-4b7a-8a94-f734b01519b1
-:END:
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/wm-exit.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=exit window manager gracefully
@@ -5836,9 +5468,6 @@ RemainAfterExit=True
 WantedBy=default.target
 #+END_SRC
 **** irexec
-:PROPERTIES:
-:ID:       ea17fdbd-334b-4b78-817f-52fed11be2f1
-:END:
 irexec.service starts irexec for the user session
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/systemd/user/irexec.service.j2 :mkdirp yes :padline no
 [Unit]
@@ -5860,13 +5489,7 @@ begin
 end
 #+END_SRC
 ** samba-install
-:PROPERTIES:
-:ID:       b51f567b-30cd-4cdf-8541-c07d9e423398
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       ac75cc29-c841-42d7-b7c7-b4a9fd38f19e
-:END:
 #+BEGIN_SRC yaml :tangle roles/samba-install/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/samba-install/tasks/main.yml
@@ -5883,13 +5506,7 @@ end
 
 #+END_SRC
 ** samba-config
-:PROPERTIES:
-:ID:       a5db25c9-5dd6-4432-9d9b-d81945c67711
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       c8f2d766-6c69-49e5-b14a-2f9d4dc25b63
-:END:
 #+BEGIN_SRC yaml :tangle roles/samba-config/tasks/main.yml :mkdirp yes :padline no
 ---
 # file: roles/samba-config/tasks/main.yml
@@ -5911,17 +5528,8 @@ end
   notify: [ 'Restart Samba' ]
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       334714ba-dd03-4e85-a1d8-c2e8707a3fa1
-:END:
 **** smb.conf
-:PROPERTIES:
-:ID:       9bb9f2b8-f364-4cf1-b7ab-1b3ae0f3ff32
-:END:
 ***** global settings
-:PROPERTIES:
-:ID:       48d03a2e-c6d6-4f60-b34b-604088352c24
-:END:
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 
@@ -6005,9 +5613,6 @@ end
 {% endif %}
 #+END_SRC
 ***** media directories
-:PROPERTIES:
-:ID:       19a7e6f8-5795-45ff-983e-9da37e7dce26
-:END:
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
 {% for name, path in media_dirs.items() | list %}
 [{{ name }}]
@@ -6026,21 +5631,12 @@ end
 {% endfor %}
 #+END_SRC
 ***** include custom samba exports
-:PROPERTIES:
-:ID:       65e56ad5-118f-491b-8e58-8e2c5f90b6a2
-:END:
 #+BEGIN_SRC yaml :tangle roles/samba-config/templates/smb.conf.j2 :mkdirp yes
 include = /etc/samba/smb.conf.custom
 #+END_SRC
 ** TODO autoinstall-drivers                                       :noexport:
-:PROPERTIES:
-:ID:       2802c8ea-614e-4b9b-8c3e-cd7efc0f4f0e
-:END:
 It would be nice to be able to detect if it is suitable to install those drivers:
 *** TODO sundtek for Sundtek devices (local or network connection)
-:PROPERTIES:
-:ID:       8b66ce8d-0095-4fbd-8868-8bc5c43d19fc
-:END:
 :LOGBOOK:
 - State "STARTED"    from "TODO"       [2019-06-11 Di 08:54]
 :END:
@@ -6054,27 +5650,15 @@ Vendor-IDs:
 - 2659:*      (neuere Sticks)
 
 **** planned packages
-:PROPERTIES:
-:ID:       f5970635-da3e-4929-a17c-3226b69497c5
-:END:
 - [X] python3-sundtek (Python C-extension for sundtek API)
 - [ ] yavdr-hardware-sundtek (basic configuration files and scripts, sundtek-avahi-mounter)
 - [ ] yavdr-backend-sundtek (WFE)
 *** TODO drivers for TT S2-6400 FF
-:PROPERTIES:
-:ID:       257ce3b7-ecfc-4e13-b394-f3b0707be30a
-:END:
 https://github.com/s-moch/linux-saa716x - how to build this as a dkms package?
 ** autoinstall-ubuntu-drivers
-:PROPERTIES:
-:ID:       a9c88346-c91c-4d02-8dac-19148795d4df
-:END:
 The tool ubuntu-drivers is used to install the matching driver version for nvidia graphics cards, virtualbox guest additions and Intel and AMD microcode updates.
 Please note that you need to disable this role if you are using nvidia drivers which are not in the official ubuntu package repositories.
 *** tasks
-:PROPERTIES:
-:ID:       bfe4d498-7d66-4e5f-85b1-d60e29cf309a
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-ubuntu-drivers/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-ubuntu-drivers/tasks/main.yml
@@ -6094,9 +5678,6 @@ Please note that you need to disable this role if you are using nvidia drivers w
         # also alternates between virtualbox-guest-dkms and virtualbox-guest-dkms-hwe on successive runs
 #+END_SRC
 ** autoinstall-virtualbox-guest
-:PROPERTIES:
-:ID:       f03f3758-9188-4e98-a26a-bbddf14d8194
-:END:
 This role installs the guest additions for virtualbox guests on Ubuntu 18.04
 
 #+BEGIN_SRC yaml :tangle roles/autoinstall-virtualbox-guest/tasks/main.yml :padline no
@@ -6143,13 +5724,7 @@ This role installs the guest additions for virtualbox guests on Ubuntu 18.04
     - ansible_virtualization_role == "guest"
 #+END_SRC
 ** autoinstall-atric-usb
-:PROPERTIES:
-:ID:       441a8ccf-4865-4999-8aa9-ec42925316c0
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       bd31f64a-a1d7-4f3e-81a8-f7bd3091a400
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-atric-usb/meta/main.yml :padline no
 ---
 dependencies:
@@ -6158,9 +5733,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       90c74869-6107-4fcc-b407-73311d0ed052
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-atric-usb/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-atric-usb/tasks/main.yml
@@ -6199,9 +5771,6 @@ dependencies:
   when: '"04d8:f844" in usb'
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       8aa2416a-1e9e-447a-9a46-0c51f420362d
-:END:
 #+BEGIN_SRC conf :tangle roles/autoinstall-atric-usb/templates/lirc_options.conf.j2 :padline no
 {{ ansible_managed | comment }}
 
@@ -6226,13 +5795,7 @@ uinput          = False
 nodaemon        = False
 #+END_SRC
 ** autoinstall-yausbir
-:PROPERTIES:
-:ID:       40f32214-150d-4d42-8020-6ff4b7014ec8
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       82eda971-87c9-4f37-a97b-b935a29abbe4
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-yausbir/meta/main.yml :padline no
 ---
 dependencies:
@@ -6240,9 +5803,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       f67c193a-1ebc-4bf9-8de3-7dd623efab83
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-yausbir/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-atric-usb/tasks/main.yml
@@ -6281,9 +5841,6 @@ dependencies:
   when: '"10c4:876c" in usb'
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       81390e92-fff1-477a-b73c-457c0871b006
-:END:
 #+BEGIN_SRC conf :tangle roles/autoinstall-yausbir/templates/lirc_options.conf.j2 :padline no
 {{ ansible_managed | comment }}
 
@@ -6307,14 +5864,8 @@ uinput          = False
 nodaemon        = False
 #+END_SRC
 ** autoinstall-satip
-:PROPERTIES:
-:ID:       feb9bdba-779b-4da9-bfb0-cf54965098ff
-:END:
 If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip is installed.
 *** tasks
-:PROPERTIES:
-:ID:       90b74afd-7633-42d3-9681-8c0c17371985
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-satip/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-satip/tasks/main.yml
@@ -6334,13 +5885,7 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-targavfd
-:PROPERTIES:
-:ID:       0902fe6d-ed20-49cb-b88b-04a427ee6d71
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       1d70ce53-7f40-4ca4-8ac0-ed37417fd720
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-targavfd/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-targavfd/tasks/main.yml
@@ -6352,14 +5897,8 @@ If a Sat>IP Server responds to a discovery request, the package vdr-plugin-satip
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-imonlcd
-:PROPERTIES:
-:ID:       53d26502-d69e-49e0-99b9-e21527c5577d
-:END:
 This role handles IMON LCDs with USB-IDs ~15c2:0038~ and ~15c2:ffdc~. According to http://www.vdr-wiki.de/wiki/index.php/Imonlcd-plugin#Beschreibung there is a IMON VFD with USB-ID ~15c2:ffdc~, which doesn't work with vdr-plugin-imonlcd. In this case please disable this role and adapt the role ~autoinstall-imonvfd.~
 *** tasks
-:PROPERTIES:
-:ID:       3d06c913-1130-44cd-b1d3-30ece9135bca
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-imonlcd/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-imonlcd/tasks/main.yml
@@ -6462,13 +6001,7 @@ Device=/dev/{{imon_vfd_device}}
 Size=16x2
 #+end_src
 ** autoinstall-libcecdaemon
-:PROPERTIES:
-:ID:       21e9641d-17e9-4aaf-aa03-fa593a3864d9
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       1edae36a-21b0-4398-9cbf-7a3fee8494b4
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-libcecdaemon/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-libcec-daemon/tasks/main.yml
@@ -6480,13 +6013,7 @@ Size=16x2
     - "2548:1002" in usb
 #+END_SRC
 ** autoinstall-pvr350
-:PROPERTIES:
-:ID:       25622792-622f-4fc1-a2df-e6c6865c5101
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       241b4d77-9255-43a7-b816-1fcdf7a3ca77
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-pvr350/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-pvr350/tasks/main.yml
@@ -6498,9 +6025,6 @@ Size=16x2
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hauppauge-pvr
-:PROPERTIES:
-:ID:       4d67e53f-f6ef-4db6-a090-27771b0a2c9e
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hauppauge-pvr/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-hauppauge-pvr/tasks/main.yml
@@ -6512,13 +6036,7 @@ Size=16x2
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-firmware
-:PROPERTIES:
-:ID:       9f0831c2-e713-40b4-af41-04f042067a94
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       46b8fcd9-bff1-454a-a80b-fcf11fdcaf79
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/meta/main.yml :padline no
 ---
 dependencies:
@@ -6526,9 +6044,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       c617b63f-52f6-4650-a6d0-7a56a9494cc8
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/tasks/main.yml :padline no
 ---
 
@@ -6565,13 +6080,7 @@ dependencies:
   notify: reboot required
 #+END_SRC
 ** autoinstall-dvbsky-firmware
-:PROPERTIES:
-:ID:       a50b25e3-46e8-4dea-b247-e1a68237d662
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       584a050c-d2b6-4443-a645-cf6505835555
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsky-firmware/meta/main.yml :padline no
 ---
 dependencies:
@@ -6579,24 +6088,12 @@ dependencies:
 
 #+END_SRC
 *** defaults
-:PROPERTIES:
-:ID:       d738074e-9794-49c4-b6ba-e290e1869a02
-:END:
 #+INCLUDE:  "roles/autoinstall-dvbsky-firmware/defaults/main.yml" src yaml
 *** tasks
-:PROPERTIES:
-:ID:       a40e0ad7-8338-4988-85c2-8fe9eca258e5
-:END:
 #+INCLUDE: "roles/autoinstall-dvbsky-firmware/tasks/main.yml" src yaml
 ** TODO autoinstall-dvbhddevice
-:PROPERTIES:
-:ID:       fbce5f86-5946-4f3e-aa9c-86fb0828c0d7
-:END:
 How to get a driver for the TT-6400 FF card? Needed firmware files are in the ~yavdr-firmware~ package.
 *** dependencies
-:PROPERTIES:
-:ID:       efd41dfd-bec6-46bc-b19f-2fcb6d626c82
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/meta/main.yml :padline no
 ---
 dependencies:
@@ -6604,9 +6101,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       f2e18070-8108-4ae0-bfaa-90e30171852e
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-dvbhddevice/tasks/main.yml
@@ -6620,13 +6114,7 @@ dependencies:
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** TODO autoinstall-dvbsddevice
-:PROPERTIES:
-:ID:       fb56a0eb-8586-4e05-8f0d-1154d73f7380
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       95ebb7f8-d195-4dfc-a8af-3acc2b447906
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/meta/main.yml :padline no
 ---
 dependencies:
@@ -6634,9 +6122,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       dbc2734a-f591-4c1a-9870-b1e091f39498
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-dvbsddevice/tasks/main.yml
@@ -6652,13 +6137,7 @@ dependencies:
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** autoinstall-hardware-irmp
-:PROPERTIES:
-:ID:       2115f9dc-5bc9-4d97-b568-d9c8c855b86e
-:END:
 *** dependencies
-:PROPERTIES:
-:ID:       e8f14ffb-012f-4e4a-b57c-7b99d49c43c4
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/meta/main.yml :padline no
 ---
 dependencies:
@@ -6666,9 +6145,6 @@ dependencies:
 
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       d9dbbd24-a324-4200-8d8e-a2d395921702
-:END:
 #+BEGIN_SRC yaml :tangle roles/autoinstall-hardware-irmp/tasks/main.yml :padline no
 ---
 # file roles/autoinstall-hardware-irmp/tasks/main.yml
@@ -6749,72 +6225,37 @@ install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe 
 {% endif %}
 #+END_SRC
 ** kodi
-:PROPERTIES:
-:ID:       a0f42636-e0ec-4904-a6f9-48f714a2052b
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       2c9ac888-09d3-4ab7-bba0-565f10d8277b
-:END:
 **** Install KODI
-:PROPERTIES:
-:ID:       01b0cb56-1733-41c0-90c5-ccae23abc530
-:END:
 ***** main.yml
 :PROPERTIES:
 :UNNUMBERED: t
-:ID:       1ff3267c-0036-471d-9f79-d1edda353789
 :END:
 #+INCLUDE: "roles/kodi/tasks/main.yml" src yaml
 ***** install-kodi.yml
-:PROPERTIES:
-:ID:       52ac7380-3ea8-4eaf-a4b6-7921d1277621
-:END:
 #+INCLUDE: "roles/kodi/tasks/install-kodi.yml" src yaml
 ***** configure-kodi.yml
-:PROPERTIES:
-:ID:       7ba78b23-6aa6-4d6c-a58a-ed5a8d9c5e62
-:END:
 #+INCLUDE: "roles/kodi/tasks/configure-kodi.yml" src yaml
 *** templates
-:PROPERTIES:
-:ID:       14d5d302-7dc3-4603-95ff-9d09bd147d18
-:END:
 **** kodi.service
-:PROPERTIES:
-:ID:       32046abe-8b1c-4858-ba01-79fa5bc0581f
-:END:
 This systemd unit for the user session starts (and stops) kodi.
 #+INCLUDE: "roles/kodi/templates/kodi.service.j2" src conf
 **** set-kodi-diplay
 This is a version-dependent script to force KODI to use the display set by the environment variable ~DISPLAY~. The following Version is intended for KODI 18.
 #+INCLUDE: "roles/kodi/templates/set-kodi-display.j2" src python
 *** files
-:PROPERTIES:
-:ID:       58c5c693-bd24-420a-bfed-79771e8e0d47
-:END:
 Those configuration files provide a preconfiguration for kodi which overrides the system wide configuration
 **** Lircmap.xml
-:PROPERTIES:
-:ID:       0696708c-2d66-41bb-9564-51692b9d343e
-:END:
 This file allows to map keys sent by remotes via eventlircd (which uses the name ~devinput~) to kodi key names.
 #+INCLUDE:  "roles/kodi/files/userdata/Lircmap.xml" src nxml
 **** remote.xml
 This file maps the keys defined in Lircmap.xml to actions within kodi.
 #+INCLUDE: "roles/kodi/files/userdata/keymaps/remote.xml" src xml
 ** dvd
-:PROPERTIES:
-:ID:       07af4201-bbf4-4c69-8ffa-7a7493e5f75d
-:END:
 *** tasks
-:PROPERTIES:
-:ID:       75a94df1-f19f-40d2-bca0-2fa3a0c6e8dc
-:END:
 **** install libdvd-pkg, allow programs to eject optical media
 :PROPERTIES:
 :UNNUMBERED: t
-:ID:       7e7f26cf-073d-4d1c-8f6e-cc69de259aaf
 :END:
 #+INCLUDE: "roles/dvd/tasks/main.yml" src yaml
 ** vdr-epg-daemon
@@ -6837,9 +6278,6 @@ to allow Database access from all hosts on network
 ~file: roles/epgd/templates/etc_epgd_epgd.conf.j2~
 #+include: roles/epgd/templates/etc_epgd_epgd.conf.j2 src jinja2
 ** install-sundtek
-:PROPERTIES:
-:ID:       de68c6d2-92c7-47c2-9d28-bfa6be00ec3e
-:END:
 This role checks for USB IDs ~2659:*~ and ~ab1a:5*~. If you want to force installation of sundtek packages (e.g. for accessing network tuners), set ~sundtek.force_install~ to ~True~.
 
 There are two ways to configure the VDR to use sundtek devices:
@@ -6876,9 +6314,6 @@ sundtek:
 #+END_SRC
 
 *** tasks
-:PROPERTIES:
-:ID:       f06b2ce3-e6c0-41d7-809a-12d869525a11
-:END:
 #+BEGIN_SRC yaml :tangle roles/install-sundtek/tasks/main.yml :padline no
 ---
 # file roles/install-sundtek/tasks/main.yml
@@ -6973,9 +6408,6 @@ sundtek:
 #    daemon-reload: yes
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       30011bae-7869-4928-b8ea-b66034badf9e
-:END:
 **** udev rule to force sundtek mediaclient to start the mediasrv using systemd
 #+BEGIN_SRC systemd :tangle roles/install-sundtek/templates/udev/80-mediasrv-sundtek.rules.j2 :mkdirp yes
 {{ ansible_managed | comment }}
@@ -7015,9 +6447,6 @@ Restart=on-failure
 WantedBy=multi-user.target
 #+END_SRC
 **** /etc/sundtek.conf
-:PROPERTIES:
-:ID:       73609a51-8209-47c2-82a0-48838f47b884
-:END:
 #+BEGIN_SRC jinja2
 {{ ansible_managed | comment }}
 # ----- GLOBAL SECTION -----
@@ -7207,7 +6636,6 @@ password={{ channelpedia_password }}
 ** template-test
 :PROPERTIES:
 :EXPORT: nil
-:ID:       d2bd49d0-734d-48ea-aa85-1885a6176cd3
 :END:
 #+BEGIN_SRC yaml :tangle roles/template-test/tasks/main.yml :padline no
 ---
@@ -7444,22 +6872,13 @@ system:
           - "1280x720_60"
 #+END_SRC
 ** wakeup
-:PROPERTIES:
-:ID:       7c91863a-167a-47da-bfdb-c93f3846aee6
-:END:
 *** defaults
-:PROPERTIES:
-:ID:       0cfc6c58-fbcd-47c9-ad44-7b6484e054a8
-:END:
 #+BEGIN_SRC yaml :tangle roles/wakeup/defaults/main.yml :padline no
 ---
 # file roles/wakeup/defaults/main.yml
 wakeup_method: "acpiwakeup"
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       213938be-87c0-46b2-bbea-081d49d0758c
-:END:
 #+BEGIN_SRC yaml :tangle roles/wakeup/tasks/main.yml :padline no
 ---
 # file roles/wakeup/tasks/main.yml
@@ -7487,9 +6906,6 @@ wakeup_method: "acpiwakeup"
 #    dest: /etc/vdr/vdr-addon-stm32irmp-wakeup.conf
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       1ef541bf-540c-468c-a236-9599f44f8cef
-:END:
 **** acpiwakeup
 #+BEGIN_SRC jinja2 :tangle roles/wakeup/templates/vdr-addon-acpiwakeup.conf.j2 :padline no
 {{ ansible_managed | comment }}
@@ -7532,13 +6948,7 @@ WAKEUP_START_AHEAD=5
 #+END_SRC
 
 ** grub-config
-:PROPERTIES:
-:ID:       20b99618-5cda-4bd2-94d8-ff401e3cdaa3
-:END:
 *** default variables
-:PROPERTIES:
-:ID:       c1046581-bb7d-438d-8074-8ed243c7ffe9
-:END:
 #+BEGIN_SRC yaml :tangle roles/grub-config/defaults/main.yml :mkdirp yes :padline no
 system:
   shutdown: poweroff
@@ -7548,9 +6958,6 @@ grub:
 intel_boot_options: ""
 #+END_SRC
 *** tasks
-:PROPERTIES:
-:ID:       a846c074-3267-4c42-a573-f5f435364929
-:END:
 #+BEGIN_SRC yaml :tangle roles/grub-config/tasks/main.yml :mkdirp yes :padline no
 ---
 
@@ -7590,9 +6997,6 @@ intel_boot_options: ""
   notify: [ 'Update GRUB' ]
 #+END_SRC
 *** templates
-:PROPERTIES:
-:ID:       b6b30fe9-27b4-4713-8a0d-56d4ef1919d4
-:END:
 #+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no
 #!/bin/sh
 {{ ansible_managed | comment }}
@@ -7612,9 +7016,6 @@ else
 fi
 #+END_SRC
 *** handlers
-:PROPERTIES:
-:ID:       3ca84eb3-cc43-4353-a6b3-3acda9d221fc
-:END:
 #+BEGIN_SRC yaml :tangle roles/grub-config/handlers/main.yml :mkdirp yes :padline no
 ---
 
@@ -7632,14 +7033,8 @@ fi
   # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
 #+END_SRC
 * Modules
-:PROPERTIES:
-:ID:       4d68c2cf-dfcb-4f42-820c-1f305afa17a7
-:END:
 This section contains custom modules for the yaVDR Playbooks. They are used to collect facts about the system and configure applications and daemons.
 ** hardware_facts.py
-:PROPERTIES:
-:ID:       e6ed071a-b2eb-4280-a78e-8986b3bf5c4a
-:END:
 #+BEGIN_SRC python :tangle library/hardware_facts.py :shebang "#!/usr/bin/env python"
 # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
 DOCUMENTATION = '''
@@ -7814,9 +7209,6 @@ if __name__ == '__main__':
     main()
 #+END_SRC
 ** pci_facts.py
-:PROPERTIES:
-:ID:       b878d43c-8111-4db0-9ce9-d495040fb564
-:END:
 #+BEGIN_SRC python :tangle library/pci_facts.py :shebang "#!/usr/bin/env python"
 
 # This module parses the output of lspci for detailed information about available (sub) devices.
@@ -7889,9 +7281,6 @@ if __name__ == '__main__':
     main()
 #+END_SRC
 ** satip_facts.py
-:PROPERTIES:
-:ID:       2dbd3ae5-4352-4fd7-9b91-337816559331
-:END:
 #+BEGIN_SRC python :tangle library/satip_facts.py :shebang #!/usr/bin/env python2
 DOCUMENTATION = '''
 ---
@@ -8012,18 +7401,12 @@ if __name__ == '__main__':
     main()
 #+END_SRC
 ** xrandr_facts.py
-:PROPERTIES:
-:ID:       fde80701-9abf-46ee-aa4c-d349a3a41463
-:END:
 - [ ] support multiple screens (-d :0.0 .. :0.n)
 
 #+INCLUDE: "library/xrandr_facts.py" src python
 ** rmmod.py
 #+INCLUDE: library/rmmod.py src python
 * Handlers
-:PROPERTIES:
-:ID:       e90af299-d84f-4924-803f-5644509c0a2f
-:END:
 #+BEGIN_SRC yaml :tangle handlers/main.yml :mkdirp yes
 - name: Reconfigure unattended upgrades with dpkg
   command: '/usr/sbin/dpkg-reconfigure --frontend noninteractive unattended-upgrades'
