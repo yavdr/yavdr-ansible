@@ -25,14 +25,15 @@
     mode: 0775
     dest: '{{ vdr.recdir }}'
 
+- name: set vdr charset override
+  template:
+    src: templates/conf.d/02-vdr-charset-override.conf.j2
+    dest: /etc/vdr/conf.d/02-vdr-charset-override.conf
+
 - name: set option to use hide-first-recording-level patch
-  blockinfile:
+  template:
+    src: templates/conf.d/04-vdr-hide-first-recordinglevel.conf.j2
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
-    create: true
-    state: "{{ 'present' if vdr.hide_first_recording_level else 'absent' }}"
-    block: |
-      [vdr]
-      --hide-first-recording-level
 
 - name: create local dir in recdir
   file:
