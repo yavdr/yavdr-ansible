@@ -172,3 +172,23 @@
   template:
     src: templates/command-hooks/commands.yavdr.conf.j2
     dest: /usr/share/vdr/command-hooks/commands.yavdr.conf
+- name: create helper scripts for reccmds
+  copy:
+    src: files/reccmds/{{ item }}.sh
+    dest: /usr/local/bin/{{ item }}
+    mode: 0755
+  loop:
+    - removeindex
+    - removemarks
+    - removeresume
+    - vdr-recrepeat
+- name: create snippet for yavdr reccmds to handle marks-, resume- and index-files
+  template:
+    src: files/reccmds.removemarks.conf.j2
+    dest: /usr/share/vdr/command-hooks/reccmds.removemarks.conf
+
+- name: create snippet for yavdr reccmds to search repeats using epgsearch
+  template:
+    src: files/reccmds.searchrepeats.conf.j2
+    dest: /usr/share/vdr/command-hooks/reccmds.searchrepeats.conf
+  when: '"vdr-plugin-epgsearch" in vdr_plugins'

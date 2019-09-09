@@ -1398,12 +1398,39 @@ Set up IP resp. IP range based access for VDR plugins
 
 #+END_SRC
 **** create commands.conf entries
-#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+#+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml
 - name: create snippet with yavdr commands
   template:
     src: templates/command-hooks/commands.yavdr.conf.j2
     dest: /usr/share/vdr/command-hooks/commands.yavdr.conf
 #+END_SRC
+
+**** create helper scripts
+#+begin_src yaml :tangle roles/vdr/tasks/main.yml
+- name: create helper scripts for reccmds
+  copy:
+    src: files/reccmds/{{ item }}.sh
+    dest: /usr/local/bin/{{ item }}
+    mode: 0755
+  loop:
+    - removeindex
+    - removemarks
+    - removeresume
+    - vdr-recrepeat
+#+end_src
+**** create reccmds snippets
+#+begin_src yaml :tangle roles/vdr/tasks/main.yml
+- name: create snippet for yavdr reccmds to handle marks-, resume- and index-files
+  template:
+    src: files/reccmds.removemarks.conf.j2
+    dest: /usr/share/vdr/command-hooks/reccmds.removemarks.conf
+
+- name: create snippet for yavdr reccmds to search repeats using epgsearch
+  template:
+    src: files/reccmds.searchrepeats.conf.j2
+    dest: /usr/share/vdr/command-hooks/reccmds.searchrepeats.conf
+  when: '"vdr-plugin-epgsearch" in vdr_plugins'
+#+end_src
 
 *** templates
 :PROPERTIES:
@@ -1491,10 +1518,25 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 **** command-hooks
 #+begin_src jinja2 :tangle roles/vdr/templates/command-hooks/commands.yavdr.conf.j2
 {{ ansible_managed | comment }}
-{{ "Update vdr recordings list" | translate }}    : echo "/usr/bin/svdrpsend updr" | at now
-{{ "Restart VDR" | translate }}                   : sudo /bin/systemctl --no-block restart vdr.service
-{{ "Reboot system" | translate }}               : sudo /bin/systemctl --no-block reboot
-{{ "Shutdown system" | translate }}               : echo "/usr/bin/lircd2uinput-send KEY_POWER2" | at now
+{{ "Update vdr recordings list" | translate }} : echo "/usr/bin/svdrpsend updr" | at now
+{{ "Restart VDR" | translate }} : sudo /bin/systemctl --no-block restart vdr.service
+{{ "Reboot system" | translate }} : sudo /bin/systemctl --no-block reboot
+{{ "Shutdown system" | translate }} : echo "/usr/bin/lircd2uinput-send KEY_POWER2" | at now
+#+end_src
+**** reccmds.removemarks.conf
+This is a snippet for the reccmds.conf. It adds some actions to remove marks, resume and index files.
+#+begin_src jinja2 :tangle roles/vdr/files/reccmds.removemarks.conf.j2
+{{ ansible_managed | comment }}
+{{ "Remove marks" | translate }} : /usr/local/bin/removemarks
+{{ "Remove Index-File" | translate }} : /usr/local/bin/removeindex
+{{ "Remove resume file" | translate }} : /usr/local/bin/removeresume
+{{ "Mark advertisements" | translate }} : /usr/local/bin/markad -O "$1" after
+#+end_src
+**** reccmds.searchrepeats.conf
+This is a snippet
+#+begin_src jinja2 :tangle roles/vdr/files/reccmds.searchrepeats.conf.j2
+{{ "Search for repeat" | translate }} : /usr/local/bin/vdr-recrepeat 0
+{{ "Search for repeat with subtitle (same episode)" | translate }} : /usr/local/bin/vdr-recrepeat 1
 #+end_src
 *** files
 :PROPERTIES:
@@ -1659,6 +1701,81 @@ User9     @softhddevice Blue 2 5 # toggle autocrop
 
 
 #+END_SRC
+**** VDR helper scripts
+***** removeresume
+This script deletes all =resume= and =resume.*= files of the given recording
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh
+#!/bin/dash
+find "$1" -maxdepth 1 -type f -name "resume" -o name "resume.*" -delete
+#+end_src
+***** removeindex
+This script deletes all =index= and =index.vdr= files of the given recording
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh
+#!/bin/dash
+find "$1" -maxdepth 1 -name "index" -o -name "index.vdr" -delete
+#+end_src
+***** removemarks
+This script deletes all =marks= and =marks.vdr= files of the given recording
+#+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh
+#!/bin/dash
+find "$1" -maxdepth 1 -name "marks" -o -name "marks.vdr" -delete
+#+end_src
+***** recrepeat
+This script allows to search for repeats of a recording using epgsearch
+#+begin_src shell :tangle roles/vdr/files/reccmds/vdr-recrepeat.sh
+#!/bin/bash
+#------------------------------------------------------------------------------
+# this script allows searching for a repeat of a recording using epgsearch
+# add the following lines to your reccmds.conf
+#
+# Search for repeat : /path_to_this_script/recrep.sh 0
+# Search for repeat with subtitle (same episode): /path_to_this_script/recrep.sh 1
+#
+# Author: Christian Wieninger (cwieninger@gmx.de)
+# Version: 1.1 - 2011-01-16
+#
+# changed for yavdr (steffenbpunkt@gmail.com)
+#
+# requirements: grep
+#------------------------------------------------------------------------------
+
+# adjust the following lines to your config
+
+# your plugins config dir
+PLUGINCONFDIR=/var/lib/vdr/plugins/epgsearch
+
+# do not edit below this line
+
+cat << EOM >/tmp/cmd.sh
+INFOFILE="$2/info";
+
+TITLE=\$(grep '^T ' \$INFOFILE);
+#cut leading 'T '
+TITLE=\${TITLE#*\$T };
+
+EPISODE=\$(grep '^S ' \$INFOFILE)
+#cut leading 'S '
+EPISODE=\${EPISODE#*\$S };
+
+SEARCHTERM=\$TITLE;
+
+if [ "$1" -eq "1" ]; then
+SEARCHTERM=\$TITLE~\$EPISODE;
+fi
+
+RCFILE=$PLUGINCONFDIR/.epgsearchrc
+echo Search=\$SEARCHTERM > \$RCFILE
+#search for this term as phrase
+echo SearchMode=0 >> \$RCFILE
+if [ "$1" -eq "0" ]; then
+    echo UseSubtitle=0 >> \$RCFILE;
+fi
+echo UseDescr=0 >> \$RCFILE
+vdr-dbus-send /Remote remote.CallPlugin string:'epgsearch'
+EOM
+
+echo ". /tmp/cmd.sh; rm /tmp/cmd.sh" | at now
+#+end_src
 ** yavdr-network
 :PROPERTIES:
 :ID:       5cae8669-27f7-4fd5-844c-8b16daa4daf4
