@@ -477,6 +477,9 @@ frontend: vdr
 # for standby use "/bin/systemctl suspend"
 vdr_shutdown_command: poweroff
 
+# to force quadradtic pixels set this variable to the dpi you want
+# nvidia_force_dpi: 96
+
 #system:
 #  shutdown: poweroff
 
@@ -2565,6 +2568,7 @@ preferred_refreshrates:
 
 intel_boot_options: ""
 intel_set_boot_edid: false
+nvidia_force_dpi: ""
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -3060,6 +3064,10 @@ Section "Device"
     BusID          "{{ xorg.primary.bus_id }}"
 {% else %}
     BoardName      "Unknown"
+{% endif %}
+{% if nvidia_force_dpi | int(0) > 0  %}
+    Option         "UseEdidDpi" "FALSE"
+    Option         "DPI" "{{ nvidia_force_dpi }} x {{ nvidia_force_dpi }}"
 {% endif %}
     Screen          0
     Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"

@@ -36,6 +36,10 @@ Section "Device"
 {% else %}
     BoardName      "Unknown"
 {% endif %}
+{% if nvidia_force_dpi | int(0) > 0  %}
+    Option         "UseEdidDpi" "FALSE"
+    Option         "DPI" "{{ nvidia_force_dpi }} x {{ nvidia_force_dpi }}"
+{% endif %}
     Screen          0
     Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"
     Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin{% if xorg.secondary is defined %};{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin{% endif %}"
