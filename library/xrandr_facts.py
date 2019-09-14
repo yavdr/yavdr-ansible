@@ -225,7 +225,7 @@ def parse_edid_data(edid):
                     print("no timing information")
                     continue
                 try:
-                    mode = Modeline_Data(line.split(None, 9))
+                    mode = Modeline_Data(*line.split(None, 9))
                 except (ValueError, TypeError):
                     print("invalid timing information")
                     continue
