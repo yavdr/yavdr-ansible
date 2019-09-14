@@ -111,14 +111,21 @@
     preferred_resolutions: '{{ preferred_resolutions }}'
     preferred_outputs: '{{ preferred_outputs }}'
 
-- debug:
+- name: show parsed xrandr data
+  debug:
+    var: xrandr
+
+- name: show primary display configuration
+  debug:
     var: xorg.primary
 
-- debug:
+- name: show secondary display configuration
+  debug:
     var: xorg.secondary
   when: xorg.secondary is defined
 
-- debug:
+- name: show drm data (emtpy for nvidia)
+  debug:
     var: drm
   when: drm is defined
 
