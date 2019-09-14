@@ -238,7 +238,7 @@ def parse_edid_data(edid):
                 modeline_name = '"{}x{}_{}{}"'.format(mode.hdisp, mode.vdisp,
                                                       refresh, "i" if interlaced else '')
                 modelines.append(" ".join(("Modeline", modeline_name,
-                                           mode)))
+                                           line)))
     return vendor, model, modelines
 
 
