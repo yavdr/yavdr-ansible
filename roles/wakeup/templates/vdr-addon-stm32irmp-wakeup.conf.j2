@@ -4,13 +4,20 @@
 WAKEUP_ENABLED="{% if wakeup_method == 'stm32wakeup' %}yes{% else %}no{% endif %}"
 
 # How many minutes should the machine wake up before the timer starts:
-WAKEUP_START_AHEAD=5
+WAKEUP_START_AHEAD={{ wakeup_start_ahead }}
 
 # If you want your VDR machine to wakeup in regular intervals (i.e. for
 # updating EPG data), specify the days of the week and the wakeup time.
 #
 # Days of the week for regular wakeup (not set=Disabled, 1=Monday...7=Sunday)
 # WAKEUP_REGULAR_DAYS="1 2 3 4 5 6 7"
+{% if wakeup_days %}
+WAKEUP_REGULAR_DAYS="{{ wakeup_days }}"
+{% endif %}
 
 # Wakeup time
-#WAKEUP_REGULAR_TIME=01:00  # HH:MM
+{% if wakeup_time %}
+WAKEUP_REGULAR_TIME="{{ wakeup_time }}"
+{% else %}
+#ACPI_REGULAR_TIME=01:00  # HH:MM
+{% endif %}
