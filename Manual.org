@@ -706,16 +706,12 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: disable release-upgrade notifications
   lineinfile:
-    dest: /etc/update-manager/release-upgrades
+    path: /etc/update-manager/release-upgrades
     backrefs: yes
     state: present
     regexp: '^(Prompt=).*$'
-    line: '\1never'
+    line: 'Prompt=never'
   ignore_errors: yes
-  with_first_found:
-    - files:
-      - /etc/update-manager/release-upgrades
-      errors: ignore
 
 #+END_SRC
 ***** Install essential packages
