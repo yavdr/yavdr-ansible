@@ -968,6 +968,7 @@ if __name__ == '__main__':
   hardware_facts:
     usb: True
     pci: True
+    serial: True
     modules: True
     gpus: True
     acpi_power_modes: True
@@ -980,6 +981,7 @@ if __name__ == '__main__':
   with_items:
     - usb
     - pci
+    - serial
     - gpus
     - modules
     - acpi_power_modes
@@ -7121,6 +7123,12 @@ DOCUMENTATION = '''
         description:
           - return a list of devices of the pci gpu class (0x030000)
 
+    serial:
+        required: False
+        default: True
+        description:
+          - return a list of serial connections which provide an address and an interrupt
+
     acpi_power_modes:
         required: False
         default: True
@@ -7137,6 +7145,7 @@ EXAMPLES = '''
   hardware_facts:
     usb: True
     pci: True
+    serial: True
     modules: True
     acpi_power_modes: True
 - debug:
@@ -7146,7 +7155,11 @@ EXAMPLES = '''
 - debug:
     var: modules
 - debug:
+    var: serial
+- debug:
     var: gpus
+- debug:
+    var: acpi_power_modes
 '''
 
 import glob
@@ -7194,6 +7207,29 @@ def format_gpu_device_list(iterator):
                        "VendorID": d.idVendor, "ProductID": d.idProduct}
     return [entry for entry in get_entries(iterator)]
 
+
+def get_serial_data(name):
+    """
+    get the I/O and IRQ numbers for the serial port
+    using the /sys/class/tty/ttyS<X>/ device nodes
+    """
+    with open(os.path.join(name, 'irq')) as f:
+        irq = int(f.read().rstrip())
+    with open(os.path.join(name, 'port')) as f:
+        port = int(f.read().rstrip(), base=16)
+    return port, irq
+
+def get_serial_devices():
+    devices = {}
+    p = '/sys/class/tty/'
+    for d in sorted(glob.glob(os.path.join(p, 'ttyS[0-9]*'))):
+        port, irq = get_serial_data(d)
+        if port and irq:
+            # TODO: check if a serial receiver is attached
+            devices[os.path.basename(d)] = {'port': '0x{:x}'.format(port), 'irq': irq}
+    return devices
+
+
 def list_acpi_power_modes():
     acpi_power_modes = []
     try:
@@ -7208,6 +7244,7 @@ arg_specs = {
     'pci': dict(default=True, type='bool', required=False),
     'modules': dict(default=True, type='bool', required=False),
     'gpus': dict(default=True, type='bool', required=False),
+    'serial': dict(default=True, type='bool', required=False),
     'acpi_power_modes': dict(default=True, type='bool', required=False),
     }
 
@@ -7218,6 +7255,7 @@ def main():
     collect_pci = module.params['pci']
     collect_modules = module.params['modules']
     collect_gpus = module.params['gpus']
+    collect_serial = module.params['serial']
     collect_acpi_power_modes = module.params['acpi_power_modes']
 
     usb_devices = []
@@ -7228,6 +7266,7 @@ def main():
     intel_detected = False
     amd_detected = False
     virtualbox_detected = False
+    serial_devices = []
     acpi_power_modes = []
 
     if collect_usb:
@@ -7247,13 +7286,23 @@ def main():
         amd_detected = any((True for gpu in gpus if gpu['VendorName'] == 'amd'))
         virtualbox_detected = any((True for gpu in gpus if gpu['VendorName'] == 'virtualbox'))
 
+    if collect_serial:
+        serial_devices = get_serial_devices()
+
     if collect_acpi_power_modes:
         acpi_power_modes = list_acpi_power_modes()
 
-    data = {'usb': usb_devices, 'pci': pci_devices, 'modules': modules, 'gpus': gpus,
-            'acpi_power_modes': acpi_power_modes, 'nvidia_detected': nvidia_detected,
-            'intel_detected': intel_detected, 'amd_detected': amd_detected,
-            'virtualbox_detected': virtualbox_detected}
+    data = {'usb': usb_devices,
+            'pci': pci_devices,
+            'modules': modules,
+            'gpus': gpus,
+            'serial': serial_devices,
+            'acpi_power_modes': acpi_power_modes,
+            'nvidia_detected': nvidia_detected,
+            'intel_detected': intel_detected,
+            'amd_detected': amd_detected,
+            'virtualbox_detected': virtualbox_detected,
+    }
     module.exit_json(changed=False, ansible_facts=data, msg=data)
 
 
