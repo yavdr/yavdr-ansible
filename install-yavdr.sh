@@ -11,7 +11,7 @@ apt -y install software-properties-common
 #add-apt-repository -y ppa:ansible/ansible-2.8
 
 # install required packages
-apt-get -y install --no-install-recommends ansible python-jmespath
+apt-get -y install --no-install-recommends ansible
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
