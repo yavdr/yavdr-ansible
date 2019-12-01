@@ -235,23 +235,36 @@ We use a callback to generate tags for all roles autmatically:
 ** Install scripts for local usage
 #+BEGIN_SRC shell :tangle install-yavdr.sh :shebang "#!/bin/bash"
 set -e
+
 if (( $EUID != 0 )); then
     echo "This script must be run using sudo -H or as root"
     exit
 fi
 
+venv_dir="/root/.ansible-venv"
+
 # update packages
 apt update
-apt -y install software-properties-common
-#add-apt-repository -y ppa:ansible/ansible-2.8
-
 # install required packages
-apt-get -y install --no-install-recommends ansible
+apt -y install software-properties-common python3-venv python3-wheel
+
+counter=0
+while ! . "${venv_dir}/bin/activate" 2> /dev/null
+do
+    [ "$counter" -eq 0 ] || {
+        echo "could not activate venv, please delete $venv_dir and try again"
+        exit 1
+    }
+	python3 -m venv "$venv_dir"
+    (( counter++ ))
+done
+
+"${venv_dir}/bin/pip" install -U pip ansible jmespath
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
 # TODO: run ansible on local host
-ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+"${venv_dir}/bin/ansible-playbook" yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle install-yavdr-headless.sh :shebang "#!/bin/bash"
@@ -261,18 +274,30 @@ if (( $EUID != 0 )); then
     exit
 fi
 
+venv_dir="/root/.ansible-venv"
+
 # update packages
 apt update
-apt -y install software-properties-common
-add-apt-repository -y ppa:ansible/ansible-2.7
-
 # install required packages
-apt-get -y install --no-install-recommends ansible python-jmespath
+apt -y install software-properties-common python3-venv python3-wheel
+
+counter=0
+while ! . "${venv_dir}/bin/activate" 2> /dev/null
+do
+    [ "$counter" -eq 0 ] || {
+        echo "could not activate venv, please delete $venv_dir and try again"
+        exit 1
+    }
+	python3 -m venv "$venv_dir"
+    (( counter++ ))
+done
+
+"${venv_dir}/bin/pip" install -U pip ansible jmespath
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
 # TODO: run ansible on local host
-ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+"${venv_dir}/bin/ansible-playbook" yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -727,7 +752,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
       - debconf-utils
       - linux-firmware
       - psmisc
-      - python-jmespath
+      - python3-jmespath
       - python-kmodpy
       - python-requests
       - python-usb

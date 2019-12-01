@@ -5,15 +5,27 @@ if (( $EUID != 0 )); then
     exit
 fi
 
+venv_dir="/root/.ansible-venv"
+
 # update packages
 apt update
-apt -y install software-properties-common
-add-apt-repository -y ppa:ansible/ansible-2.7
-
 # install required packages
-apt-get -y install --no-install-recommends ansible python-jmespath
+apt -y install software-properties-common python3-venv python3-wheel
+
+counter=0
+while ! . "${venv_dir}/bin/activate" 2> /dev/null
+do
+    [ "$counter" -eq 0 ] || {
+        echo "could not activate venv, please delete $venv_dir and try again"
+        exit 1
+    }
+	python3 -m venv "$venv_dir"
+    (( counter++ ))
+done
+
+"${venv_dir}/bin/pip" install -U pip ansible jmespath
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
 # TODO: run ansible on local host
-ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+"${venv_dir}/bin/ansible-playbook" yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
