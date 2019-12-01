@@ -18,7 +18,7 @@ set +e
 set -e
 source "${venv_dir}/bin/activate"
 
-"${venv_dir}/bin/pip" install -U pip ansible jmespath wheel kmodpy
+"${venv_dir}/bin/pip" install -U pip wheel kmodpy ansible jmespath 
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1

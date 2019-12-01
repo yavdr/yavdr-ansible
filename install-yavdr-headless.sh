@@ -15,7 +15,7 @@ apt -y install software-properties-common python3-venv python3-wheel build-essen
 [ ! -r  "${venv_dir}/bin/activate" ] && python3 -m venv "${venv_dir}"
 source "${venv_dir}/bin/activate"
 
-"${venv_dir}/bin/pip" install -U pip ansible jmespath wheel kmodpy
+"${venv_dir}/bin/pip" install -U pip wheel kmodpy ansible jmespath 
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
