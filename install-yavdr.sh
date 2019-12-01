@@ -16,7 +16,7 @@ apt -y install software-properties-common python3-venv python3-wheel
 counter=0
 while ! . "${venv_dir}/bin/activate" 2> /dev/null
 do
-    [ "$counter" -gt 1 ] || {
+    [ "$counter" -gt 1 ] && {
         echo "could not activate venv, please delete $venv_dir and try again"
         exit 1
     }
