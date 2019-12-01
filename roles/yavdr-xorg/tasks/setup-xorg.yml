@@ -4,7 +4,7 @@
   file:
     dest: '{{ item }}'
     state: directory
-  with_items:
+  loop:
     - "/etc/systemd/system/x@.service.d/"
     - "/etc/systemd/system/vdr.service.d/"
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
@@ -39,7 +39,7 @@
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
-  with_items:
+  loop:
       - '-D'
       - '-w alsa-driver-broken'
       # - '-a pulse' # do we need this with our existing asound.conf?

@@ -251,7 +251,7 @@ apt -y install software-properties-common python3-venv python3-wheel
 counter=0
 while ! . "${venv_dir}/bin/activate" 2> /dev/null
 do
-    [ "$counter" -eq 0 ] || {
+    [ "$counter" -gt 1 ] || {
         echo "could not activate venv, please delete $venv_dir and try again"
         exit 1
     }
@@ -284,7 +284,7 @@ apt -y install software-properties-common python3-venv python3-wheel
 counter=0
 while ! . "${venv_dir}/bin/activate" 2> /dev/null
 do
-    [ "$counter" -eq 0 ] || {
+    [ "$counter" -gt 1 ] || {
         echo "could not activate venv, please delete $venv_dir and try again"
         exit 1
     }
@@ -678,7 +678,7 @@ yavdr-common executes the following tasks:
       repo: '{{ item }}'
       state: present
       update_cache: no
-  with_items: '{{ repositories }}'
+  loop: "{{ repositories|flatten(levels=1) }}"
   tags:
     - ppa
 
@@ -797,7 +797,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     group: '{{ vdr.group }}'
     state: directory
     mode: '0777'
-  with_dict: '{{ media_dirs }}'
+  loop: '{{ media_dirs|dict2items }}'
 #+END_SRC
 ***** create sudoers drop-in for vdr
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_sudoers.yml :exports none :mkdirp yes
@@ -1003,7 +1003,7 @@ if __name__ == '__main__':
 - debug:
     var: '{{ item }}'
     verbosity: 1
-  with_items:
+  loop:
     - usb
     - pci
     - serial
@@ -1054,7 +1054,7 @@ if __name__ == '__main__':
     dest: /etc/services
     state: present
     line: "{{ item }}"
-  with_items:
+  loop:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
 #+END_SRC
@@ -1231,7 +1231,7 @@ Set up IP resp. IP range based access for VDR plugins
   file:
     dest: '{{ item }}'
     state: directory
-  with_items:
+  loop:
     - "/etc/systemd/system/vdr.service.d/"
 
 - name: systemd-drop-in | start vdr.service after network-online.target
@@ -1687,7 +1687,7 @@ install_avahi: true
     state: started
     enabled: yes
     masked: no
-  with_items:
+  loop:
     - vdr-net-monitor
     - vdr-update-monitor
     - prevent-umount-on-pause
@@ -1815,7 +1815,7 @@ description of the config file format.
   template:
     src: templates/avahi/service.j2
     dest: '/etc/avahi/services/yavdr-{{ item.key }}.service'
-  with_dict: '{{ media_dirs }}'
+  loop: '{{ media_dirs|dict2items }}'
 #+END_SRC
 *** templates
 **** /etc/exports
@@ -1880,7 +1880,7 @@ lircd0_socket: /var/run/lirc/lircd0
     enabled: no
     state: stopped
     masked: yes
-  with_items:
+  loop:
     - lircd.service
     - lircd.socket
     - lircmd.service
@@ -2630,7 +2630,7 @@ nvidia_force_dpi: 0
   file:
     dest: '{{ item }}'
     state: directory
-  with_items:
+  loop:
     - "/etc/systemd/system/x@.service.d/"
     - "/etc/systemd/system/vdr.service.d/"
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
@@ -2665,7 +2665,7 @@ nvidia_force_dpi: 0
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
-  with_items:
+  loop:
       - '-D'
       - '-w alsa-driver-broken'
       # - '-a pulse' # do we need this with our existing asound.conf?
@@ -3424,7 +3424,7 @@ exit 0
     mode: '0775'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-  with_items:
+  loop:
     - '{{ vdr.home }}/.config/systemd/user'
     - '{{ vdr.home }}/.config/openbox'
     - '{{ vdr.home }}/.config/pulse'
@@ -5775,7 +5775,7 @@ This role installs the guest additions for virtualbox guests on Ubuntu 18.04
           - xineliboutput-sxfe
         state: present
     - command: '{{ item }}'
-      with_items:
+      loop:
         - vdrctl disable softhddevice
         - vdrctl disable vaapidevice
         - vdrctl disable xine
@@ -5824,7 +5824,7 @@ dependencies:
         state: started
         masked: no
         daemon_reload: yes
-      with_items:
+      loop:
         - eventlircd.service
         - lircd2uinput.service
         - lircd.service
@@ -5894,7 +5894,7 @@ dependencies:
         state: started
         masked: no
         daemon_reload: yes
-      with_items:
+      loop:
         - eventlircd.service
         - lircd2uinput.service
         - lircd.service

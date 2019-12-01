@@ -14,7 +14,7 @@
     dest: /etc/services
     state: present
     line: "{{ item }}"
-  with_items:
+  loop:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
 - name: create vdr recdir
@@ -162,7 +162,7 @@
   file:
     dest: '{{ item }}'
     state: directory
-  with_items:
+  loop:
     - "/etc/systemd/system/vdr.service.d/"
 
 - name: systemd-drop-in | start vdr.service after network-online.target

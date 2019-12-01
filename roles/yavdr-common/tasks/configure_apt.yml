@@ -9,7 +9,7 @@
       repo: '{{ item }}'
       state: present
       update_cache: no
-  with_items: '{{ repositories }}'
+  loop: "{{ repositories|flatten(levels=1) }}"
   tags:
     - ppa
 
