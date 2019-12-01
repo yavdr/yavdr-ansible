@@ -13,8 +13,10 @@ apt update
 # install required packages
 apt -y install software-properties-common python3-venv python3-wheel build-essential
 
+set +e
 [ ! -r  "${venv_dir}/bin/activate" ] && python3 -m venv "${venv_dir}"
-source "${venv_dir}/bin/activate}"
+set -e
+source "${venv_dir}/bin/activate"
 
 "${venv_dir}/bin/pip" install -U pip ansible jmespath wheel kmodpy
 
