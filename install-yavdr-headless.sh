@@ -23,7 +23,7 @@ do
     (( counter++ ))
 done
 
-"${venv_dir}/bin/pip" install -U pip ansible jmespath wheel
+"${venv_dir}/bin/pip" install -U pip ansible jmespath wheel kmodpy
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
