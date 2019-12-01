@@ -38,7 +38,7 @@ ssdpRequest = "\r\n".join((
     "MAN: \"ssdp:discover\"",
     "MX: %d" % (SSDP_MX),
     "ST: %s" % (SSDP_ST),
-    "\r\n"))
+    "\r\n")).encode('utf-8')
 
 @contextmanager
 def socket_manager(*args, **kwargs):
