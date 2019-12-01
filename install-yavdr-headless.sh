@@ -10,12 +10,15 @@ venv_dir="/root/.ansible-venv"
 # update packages
 apt update
 # install required packages
-apt -y install software-properties-common python3-venv python3-wheel build-essential
+apt -y install software-properties-common python3-venv python3-wheel build-essential python-kmodpy
 
 [ ! -r  "${venv_dir}/bin/activate" ] && python3 -m venv "${venv_dir}"
 source "${venv_dir}/bin/activate"
 
-"${venv_dir}/bin/pip" install -U pip wheel kmodpy ansible jmespath 
+"${venv_dir}/bin/pip3" install -U pip
+"${venv_dir}/bin/pip3" install -U setuptools
+"${venv_dir}/bin/pip3" install -U wheel 
+"${venv_dir}/bin/pip3" install -U kmodpy ansible jmespath 
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
