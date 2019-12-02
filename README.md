@@ -3,7 +3,9 @@ ansible playbooks for yaVDR
 
 ## What can yavdr-ansible do for me?
 [Ansible](https://docs.ansible.com/ansible/latest/index.html) is an automation tool which can be used to configure systems and deploy software.
-yavdr-ansible uses Ansible to set up a yaVDR System on top of an Ubuntu 18.04 Server installation (see below for details) and allows the user to fully customize the installation - have a look at the Ansible documentation if you want to learn how it works.
+yavdr-ansible uses Ansible to set up a yaVDR System on top of an Ubuntu 20.04 Server installation (see below for details) and allows the user to fully customize the installation - have a look at the Ansible documentation if you want to learn how it works.
+
+Please note that Ubuntu 20.04 is still in early development and API- and version-changes may still occur. I would not recommend to use this if you want a "stable" experience.
 
 Please note that this is still work in progress and several features of yaVDR 0.6 haven't been implemented (yet).
 
@@ -12,13 +14,13 @@ Please note that this is still work in progress and several features of yaVDR 0.
 - 32 Bit Installations are untested, but should work
 - You need an IGP/GPU with support for VDPAU or VAAPI if you want to use software output plugins for VDR like softhddevice or vaapidevice
 - xineliboutput/vdr-sxfe works with software rendering, too
-- Can be used in a VirtualBox VM (VirtualBox 5.22 works better than Version 6.0.0)
+- Can be used in a VirtualBox VM
 
 ## Usage:
 
-Set up a Ubuntu Server 18.04.x Installation and install `openssh-server`.
+Set up a Ubuntu Server 20.04.x Installation and install `openssh-server`.
 
-NOTE: it is important to use the [alternative server installer](https://www.ubuntu.com/download/alternative-downloads#alternate-ubuntu-server-installer) or the [mini.iso](https://help.ubuntu.com/community/Installation/MinimalCD), otherwise the boot splash and Xorg won't work properly.
+NOTE: it is important to use the [alternative server installer](http://cdimage.ubuntu.com/ubuntu-server/daily-live/current/focal-live-server-amd64.iso)
 
 ### Download yavdr-ansible
 NOTE: It is recommended to use a SSH connection to run the playbook, especially if a nvidia card is used (in order to change from the nouveau to the nvidia driver the local console output needs to be disabled temporarily).
@@ -28,7 +30,7 @@ Run the following commands to download the current version of yavdr-ansible:
 sudo apt-get install git
 git clone https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
-git checkout bionic
+git checkout focal
 ```
 
 ### Customizing the Playbooks and Variables
