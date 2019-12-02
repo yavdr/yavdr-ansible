@@ -12,7 +12,7 @@ Please note that this is still work in progress and several features of yaVDR 0.
 - 32 Bit Installations are untested, but should work
 - You need an IGP/GPU with support for VDPAU or VAAPI if you want to use software output plugins for VDR like softhddevice or vaapidevice
 - xineliboutput/vdr-sxfe works with software rendering, too
-- Can be used in a VirtualBox VM (VirtualBox 5.22 works better than Version 6.0.0)
+- Can be used in a VirtualBox VM
 
 ## Usage:
 
