@@ -2636,6 +2636,13 @@ nvidia_force_dpi: 0
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
 
+- name: vdr-config | create softhddevice.conf if it doesn't exist yet
+  lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    create: yes
+    state: present
+    line: '[softhddevice]'
+
 - name: vdr-config | start softhddevice detached and set audio to pulseaudio
   lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
