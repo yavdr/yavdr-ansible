@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 DOCUMENTATION = '''
 ---
 module: hardware_facts
@@ -98,7 +98,7 @@ def main():
             sock.sendto(ssdpRequest, (SSDP_ADDR, SSDP_PORT))
             time.sleep(0.03)
         try:
-            response = sock.recv(1024)
+            response = sock.recv(1024).decode()
             if response and "SERVER:" in response:
                 for line in response.splitlines():
                     if "LOCATION" in line:
