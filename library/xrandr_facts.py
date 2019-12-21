@@ -205,7 +205,7 @@ def parse_edid_data(edid):
     modelines = []
     try:
         data = subprocess.check_output("parse-edid < {}".format(edid),
-                                       shell=True, universal_newlines=True)
+                                       shell=True, errors='replace', universal_newlines=True)
     except subprocess.CalledProcessError:
         pass
     else:
