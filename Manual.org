@@ -3680,7 +3680,7 @@ exec openbox-session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 
-feh --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
+feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 enabled_services=(
     "tmux.service" "detect-second-display.service"
@@ -5517,7 +5517,7 @@ ConditionFileNotEmpty=%h/.second_display
 EnvironmentFile=%h/.second_display
 ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc2.xml
 ExecStartPost=/usr/bin/xset -dpms s off -display $DISPLAY
-ExecStartPost=/bin/bash %h/.fehbg
+ExecStartPost=/usr/bin/feh --no-fehbg --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 [Install]
 WantedBy=yavdr-desktop.target
@@ -7657,3 +7657,4 @@ if __name__ == '__main__':
   debug:
     msg: PLEASE REBOOT YOUR SYSTEM.
 #+END_SRC
+ 
