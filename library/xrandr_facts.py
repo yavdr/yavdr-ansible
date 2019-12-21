@@ -403,7 +403,7 @@ if __name__ == '__main__':
     module = AnsibleModule(argument_spec=ARG_SPECS, supports_check_mode=False,)
     try:
         d = subprocess.check_output(['xrandr', '-d', module.params['display'], '--verbose'],
-                                    universal_newlines=True).splitlines()
+                                    errors='replace', universal_newlines=True).splitlines()
     except subprocess.CalledProcessError:
         xorg_data = {}
     else:
