@@ -90,12 +90,14 @@ Section "Monitor"
 EndSection
 
 {% endif %}
-{% for connector, data in xrandr["Screen 0:"].items() | list %}
-{% if not data.is_connected or connector != xorg.primary.connector or (xorg.secondary is defined and connector != xorg.secondary.connector) %}
+{% for connector, data in xrandr["Screen 0:"].items() | list if not (
+    data.is_connected|bool or
+    connector == xorg.primary.connector or
+    (xorg.secondary is defined and connector == xorg.secondary.connector))
+ %}
 Section "Monitor"
   Identifier "{{ connector|replace("-","") }}"
   Option "Ignore" "true"
 EndSection
-{% endif %}
 
 {% endfor %}
