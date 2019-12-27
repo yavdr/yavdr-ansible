@@ -22,7 +22,7 @@ source "${venv_dir}/bin/activate"
 "${venv_dir}/bin/pip3" install -U testresources
 "${venv_dir}/bin/pip3" install -U setuptools
 "${venv_dir}/bin/pip3" install -U wheel
-"${venv_dir}/bin/pip3" install -U kmodpy ansible jmespath 
+"${venv_dir}/bin/pip3" install -U kmodpy ansible jmespath pymysql
 
 
 # speed up playbook execution
