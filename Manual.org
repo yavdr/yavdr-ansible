@@ -5856,6 +5856,11 @@ dependencies:
         - config
         - systemd
 
+    - name: run udevadm trigger to force udev rule to create symlinks
+      shell: udevadm trigger -c add -s tty -w /dev/ttyACM*
+      args:
+          warn: no
+
     - name: enable lircd, eventlircd, lircd2uinput
       systemd:
         name: '{{ item }}'
