@@ -208,7 +208,7 @@ def parse_xrandr_verbose(iterator):
                         if current:
                             xorg[screen][connector]["current"] = mode_name
                         modeline = (
-                            f'Modeline "{mode_name}" {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
+                            f'Modeline "{mode_name}"  {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
                         )
                         xorg[screen][connector]["modelines"][mode_name] = modeline
                         break
