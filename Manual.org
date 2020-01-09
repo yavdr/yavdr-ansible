@@ -13,7 +13,7 @@
 #+STARTUP: latexpreview
 #+LATEX_CLASS_OPTIONS: [english,a4paper,locale=DE,koma,palatino,DIV=15,BCOR=15mm]
 #+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
-#+LATEX_HEADER: \usepackage[ngerman]{babel}
+#+LATEX_HEADER: \usepackage{babel}
 #+LATEX_HEADER: \usepackage{palatino}
 #+LATEX_HEADER: \usepackage{inconsolata}
 # #+LATEX_HEADER: \renewcommand*\ttdefault{pcr}
@@ -22,21 +22,30 @@
 #+LATEX_HEADER: \usepackage{booktabs}
 #+LATEX_HEADER: \usepackage{titlesec}
 #+LATEX_HEADER: \usepackage{url}
-#+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
+#+LATEX_HEADER: \usepackage[locale=DE,separate-uncertainty,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
+#+LATEX_HEADER: \usepackage[breaklines]{minted}
 #+LATEX_HEADER: \usemintedstyle{lovelace}
-#+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
-#+LATEX_HEADER:         xleftmargin=17pt,
-#+LATEX_HEADER:         framexleftmargin=17pt,
-#+LATEX_HEADER:         framexrightmargin=5pt,
-#+LATEX_HEADER:         framexbottommargin=4pt,
-#+LATEX_HEADER:         breakatwhitespace=true,
-#+LATEX_HEADER: }
+##+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+##+LATEX_HEADER:         xleftmargin=17pt,
+##+LATEX_HEADER:         framexleftmargin=17pt,
+##+LATEX_HEADER:         framexrightmargin=5pt,
+##+LATEX_HEADER:         framexbottommargin=4pt,
+##+LATEX_HEADER:         breakatwhitespace=true,
+##+LATEX_HEADER: }
 #+LATEX: \defaultfontfeatures{Ligatures=TeX}
 #+LATEX_HEADER: \usepackage{parskip}
 #+LATEX_HEADER: \let\OldTexttt\texttt
 #+LATEX_HEADER: \renewcommand{\texttt}[1]{\OldTexttt{\path{#1}}}
 # #+LATEX_HEADER_EXTRA:
 #+BEGIN_SRC latex
+\lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+        xleftmargin=17pt,
+        framexleftmargin=17pt,
+        framexrightmargin=5pt,
+        framexbottommargin=4pt,
+        breakatwhitespace=true,
+}
+
 \newcommand*\justify{%
   \fontdimen2\font=0.4em% interword space
   \fontdimen3\font=0.2em% interword stretch
@@ -3075,10 +3084,10 @@ TODO: create ~clean-edids~ script/role/Playbook to undo kernel boot options for 
 :CUSTOM_ID: xorg-templates
 :END:
 ***** x-verbose@.service
-#+CAPTION: roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2
 :PROPERTIES:
 :CUSTOM_ID: x-verbose-service
 :END:
+#+CAPTION: roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2
 #+BEGIN_SRC jinja2 :tangle "roles/yavdr-xorg/templates/systemd/system/x-verbose@.service.j2" :padline no
 {{ ansible_managed | comment }}
 [Unit]
@@ -3145,7 +3154,7 @@ EndSection
 ***** xorg.conf
 
 #+CAPTION: roles/yavdr-xorg/templates/xorg-verbose.conf.j2
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
 {{ ansible_managed | comment }}
 
 Section "Device"
@@ -3162,7 +3171,7 @@ EndSection
 #+END_SRC
 
 #+CAPTION: roles/yavdr-xorg/templates/xorg.conf.j2
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/xorg.conf.j2
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/xorg.conf.j2
 {{ ansible_managed | comment }}
 
 Section "ServerLayout"
@@ -3275,7 +3284,7 @@ Section "Extensions"
 EndSection
 #+END_SRC
 
-#+BEGIN_SRC shell :tangle roles/template-test/templates/xorg.conf_test.j2
+#+BEGIN_SRC jinja2 :tangle roles/template-test/templates/xorg.conf_test.j2
 {{ ansible_managed | comment }}
 
 Section "ServerLayout"
@@ -3471,7 +3480,7 @@ EndSection
 {% endif %}
 #+END_SRC
 ***** snippet to disable screen blanking
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/10-serverflags.conf.j2
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/10-serverflags.conf.j2
 {{ ansible_managed | comment }}
 Section "ServerFlags"
     Option         "NoPM" "true"
