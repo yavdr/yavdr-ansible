@@ -1,0 +1,25 @@
+[Options]
+EnableNFS = {{ lifeguard_enable_nfs }}
+EnableSamba = {{ lifeguard_enable_samba }}
+EnableSSH = {{ lifeguard_enable_ssh }}
+[Hosts]
+# ping hostnames or IP addresses (which are faster than hostnames)
+# Caution: pinging hosts can be quite slow!
+{% for host in lifeguard_hosts %}
+{{ host }}
+{% endfor %}
+[Process]
+# one process name per line
+{% for process in lifeguard_processes %}
+{{ process }}
+{% endfor %}
+[User]
+# one user name per line
+{% for user in lifeguard_users %}
+{{ user }}
+{% endfor %}
+[TCP]
+# process name [:] <port> [<another port>]
+{% for connection in lifeguard_tcp %}
+{{ connection }}
+{% endfor %}
