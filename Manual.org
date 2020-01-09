@@ -1039,6 +1039,7 @@ lifeguard_tcp:
   template:
     src: templates/lifeguard.conf.j2
     dest: /etc/vdr/lifeguard.conf
+  notify: Restart vdr-addon-lifeguard-ng
 #+END_SRC
 *** templates
 #+begin_src jinja2 :tangle roles/lifeguardng/templates/lifeguard.conf.j2 :mkdirp yes
@@ -7641,6 +7642,13 @@ if __name__ == '__main__':
     enabled: yes
     #masked: no
   register: samba_reload
+
+- name: Restart vdr-addon-lifeguard-ng
+  systemd:
+    name: vdr-addon-lifeguard-ng.service
+    state: restarted
+    enabled: yes
+  register: lifeguard_reload
 
 - name: Restart NFS Kernel Server
   systemd:
