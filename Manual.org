@@ -80,6 +80,7 @@
   - [[#install-dependencies][install-dependencies]]
   - [[#nvidia-experimental-drivers][nvidia experimental drivers]]
   - [[#yavdr-common][yavdr-common]]
+  - [[#vdr-addon-lifeguardng][vdr-addon-lifeguardng]]
   - [[#collect-facts-about-the-system-with-custom-modules][collect facts about the system with custom modules]]
   - [[#vdr][vdr]]
   - [[#yavdr-network][yavdr-network]]
@@ -286,43 +287,44 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   hosts: all
   become: true
   roles:
-     - yavdr-common               # install and configure the basic system
-     - collect-facts              # query system facts
-     - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
-                                  # (e.g. nvidia, virtualbox)
-     # - nvidia-experimental       # install very recent nvidia dirver from ppa:graphics-drivers/ppa
-     - vdr                        # install vdr and related packages
-     - vdr-plugin-menuorg         # install vdr-plugin-menuorg and customize menuorg.xml
-     - autoinstall-virtualbox-guest
-     - yavdr-network              # enable network client capabilities
-     - samba-install              # install samba server
-     - samba-config               # configure samba server
-     - nfs-server                 # install nfs server
-     - pulseaudio                 # install pulseaudio
-     - yavdr-xorg                 # graphical session
-     - yavdr-remote               # remote configuration files, services and scripts
-     - yavdr-desktop              # openbox session with yavdr frontend script
-     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
-     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
-     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
-     - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
-     - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
-     - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
-     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
-     - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
-     - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
-     - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
-     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
-     - autoinstall-firmware       # download and install firmware files for dvb devices
-     #- install-sundtek            # install and configure sundtek drivers
-     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
-     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
-     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-     - kodi
-     - dvd                        # set up packages and a udev rule to allow kodi and other players
-                                  # to play and eject optical media
-     - wakeup                     # set up wakeup methods for rtc etc.
-     - grub-config                # configure grub
+    - yavdr-common               # install and configure the basic system
+    - collect-facts              # query system facts
+    - autoinstall-ubuntu-drivers # use ubuntu-drivers to install proprietary dirvers
+                                 # (e.g. nvidia, virtualbox)
+    # - nvidia-experimental       # install very recent nvidia dirver from ppa:graphics-drivers/ppa
+    - vdr                        # install vdr and related packages
+    - vdr-plugin-menuorg         # install vdr-plugin-menuorg and customize menuorg.xml
+    - autoinstall-virtualbox-guest
+    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
+    - yavdr-network              # enable network client capabilities
+    - samba-install              # install samba server
+    - samba-config               # configure samba server
+    - nfs-server                 # install nfs server
+    - pulseaudio                 # install pulseaudio
+    - yavdr-xorg                 # graphical session
+    - yavdr-remote               # remote configuration files, services and scripts
+    - yavdr-desktop              # openbox session with yavdr frontend script
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+    - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+    - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+    - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
+    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+    - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
+    - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
+    - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
+    - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+    - autoinstall-firmware       # download and install firmware files for dvb devices
+    #- install-sundtek            # install and configure sundtek drivers
+    #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
+    #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
+    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    - kodi
+    - dvd                        # set up packages and a udev rule to allow kodi and other players
+                                 # to play and eject optical media
+    - wakeup                     # set up wakeup methods for rtc etc.
+    - grub-config                # configure grub
 
   handlers:
     - import_tasks: handlers/main.yml
@@ -341,6 +343,7 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - yavdr-common
     - collect-facts              # query system facts
     - vdr
+    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
     - yavdr-network
     - samba-install
     - samba-config
@@ -466,7 +469,6 @@ extra_packages:
   - w-scan
   - t2scan
   - plymouth-theme-yavdr-logo
-  - vdr-addon-lifeguard-ng
   - vdrpbd
 #+END_SRC
 ** System pre-configuration
@@ -957,6 +959,97 @@ if __name__ == '__main__':
     else:
         parser.print_help()
 #+END_SRC
+*** MOTD
+**** Header
+#+begin_src shell :tangle roles/yavdr-common/templates/update-motd.d/00-header.j2 :mkdirp yes :padline no
+#!/bin/sh
+#
+#    00-header - create the header of the MOTD
+#    Copyright (C) 2009-2010 Canonical Ltd.
+#                  2019      Alexander Grothe
+#
+#    Authors: Dustin Kirkland <kirkland@canonical.com>
+#             Alexander Grothe <seahawk1986@gmx.de>
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License along
+#    with this program; if not, write to the Free Software Foundation, Inc.,
+#    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+toilet -S -f "smblock.tlf" --metal -t "yaVDR-ansible" 2>/dev/null || echo "yavdr-ansible"
+
+[ -r /etc/lsb-release ] && . /etc/lsb-release
+
+if [ -z "$DISTRIB_DESCRIPTION" ] && [ -x /usr/bin/lsb_release ]; then
+	# Fall back to using the very slow lsb_release utility
+	DISTRIB_DESCRIPTION=$(lsb_release -s -d)
+fi
+
+printf "%s (%s %s %s)\n" "$DISTRIB_DESCRIPTION" "$(uname -o)" "$(uname -r)" "$(uname -m)"
+#+end_src
+** vdr-addon-lifeguardng
+*** variables
+#+BEGIN_SRC yaml :tangle roles/lifeguardng/defaults/main.yml :mkdirp yes
+lifeguard_enable_nfs: True
+lifeguard_enable_samba: True
+lifeguard_enable_ssh: True
+lifeguard_hosts: []
+lifeguard_users: []
+lifeguard_processes: []
+lifeguard_tcp:
+  - vdr 3000
+#+END_SRC
+
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/lifeguardng/tasks/main.yml :mkdirp yes
+- name: apt | install vdr-addon-lifeguard-ng
+  apt:
+    name: vdr-addon-lifeguard-ng
+    state: present
+    
+- name: expand template for vdr-addon-lifeguard-ng configuration file
+  template:
+    src: templates/lifeguard.conf.j2
+    dest: /etc/vdr/lifeguard.conf
+#+END_SRC
+*** templates
+#+begin_src jinja2 :tangle roles/lifeguardng/templates/lifeguard.conf.j2 :mkdirp yes
+[Options]
+EnableNFS = {{ lifeguard_enable_nfs }}
+EnableSamba = {{ lifeguard_enable_samba }}
+EnableSSH = {{ lifeguard_enable_ssh }}
+[Hosts]
+# ping hostnames or IP addresses (which are faster than hostnames)
+# Caution: pinging hosts can be quite slow!
+{% for host in lifeguard_hosts %}
+{{ host }}
+{% endfor %}
+[Process]
+# one process name per line
+{% for process in lifeguard_processes %}
+{{ process }}
+{% endfor %}
+[User]
+# one user name per line
+{% for user in lifeguard_users %}
+{{ user }}
+{% endfor %}
+[TCP]
+# process name [:] <port> [<another port>]
+{% for connection in lifeguard_tcp %}
+{{ connection }}
+{% endfor %}
+#+end_src
+
 ** collect facts about the system with custom modules
 *** variables
 #+BEGIN_SRC yaml :tangle roles/collect-facts/defaults/main.yml :mkdirp yes
