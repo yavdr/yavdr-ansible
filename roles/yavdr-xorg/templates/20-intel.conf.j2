@@ -64,7 +64,9 @@ EndSection
 {% endif %}
 Section "Monitor"
   Identifier  "{{ primary_output }}"
-{% if xorg.primary.modelines %}
+{% if xrandr["Screen 0:"][xorg.primary.connector].modelines %}
+  {{ xrandr["Screen 0:"][xorg.primary.connector].modelines[xorg.primary.mode]|default("") }}
+{% elif xorg.primary.modelines %}
 {% for modeline in xorg.primary.modelines %}
   {{ modeline }}
 {% endfor %}

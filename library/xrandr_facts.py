@@ -143,20 +143,21 @@ def parse_xrandr_verbose(iterator):
     xorg = {}
     is_connected = False
     for line in iterator:
-        if line.startswith('Screen'):
+        if line.startswith("Screen"):
             screen = check_for_screen(line)
             xorg[screen] = {}
-        elif 'connected' in line:
+        elif "connected" in line:
             connector, is_connected = check_for_connection(line)
             xorg[screen][connector] = {
-                'is_connected': is_connected,
-                'EDID': '',
-                'modes': {},
-                'preferred': '',
-                'current': '',
-                'auto': '',
+                "is_connected": is_connected,
+                "EDID": "",
+                "modes": {},
+                "modelines": {},
+                "preferred": "",
+                "current": "",
+                "auto": "",
             }
-        elif is_connected and 'EDID:' in line:
+        elif is_connected and "EDID:" in line:
             edid_str = ""
             outer_indentation = get_indentation(line)
             while True:
@@ -165,29 +166,51 @@ def parse_xrandr_verbose(iterator):
                     edid_str += line.strip()
                 else:
                     break
-            xorg[screen][connector]['EDID'] = edid_str
+            xorg[screen][connector]["EDID"] = edid_str
         elif is_connected and "MHz" in line and "Interlace" not in line:
             match = re.match(MODE_REGEX, line)
             if match:
                 match = match.groupdict()
                 preferred = bool("+preferred" in line)
                 current = bool("*current" in line)
+                resolution, mode_num, pixel_clk, *flags = line.split()
+                pixel_clk = pixel_clk[:-3]
 
                 while True:
-                    line = next(iterator)
-                    if line.strip().startswith('v:'):
-                        refresh_rate = ast.literal_eval(line.split()[-1][:-2])
+                    line = next(iterator).strip()
+                    if line.startswith("h:"):
+                        _, _, h_width, _, h_start, _, h_end, _, h_total, _, h_skew, _, h_clock = (
+                            line.split()
+                        )
+                        h_clock = h_clock[:-3]
+
+                    if line.startswith("v:"):
+                        _, _, v_height, _, v_start, _, v_end, _, v_total, _, v_clock = (
+                            line.split()
+                        )
+                        refresh_rate = ast.literal_eval(v_clock[:-2])
                         rrate = int(round(refresh_rate))
-                        if xorg[screen][connector]['modes'].get(match['resolution']) is None:
-                            xorg[screen][connector]['modes'][match['resolution']] = []
-                        if rrate not in xorg[screen][connector]['modes'][match['resolution']]:
-                            xorg[screen][connector]['modes'][match['resolution']].append(rrate)
+                        if (
+                            xorg[screen][connector]["modes"].get(match["resolution"])
+                            is None
+                        ):
+                            xorg[screen][connector]["modes"][match["resolution"]] = []
+                        if (
+                            rrate
+                            not in xorg[screen][connector]["modes"][match["resolution"]]
+                        ):
+                            xorg[screen][connector]["modes"][
+                                match["resolution"]
+                            ].append(rrate)
+                        mode_name = f'{match["resolution"]}_{rrate}'
                         if preferred:
-                            xorg[screen][connector]['preferred'] = "{}_{}".format(
-                                match['resolution'], rrate)
+                            xorg[screen][connector]["preferred"] = mode_name
                         if current:
-                            xorg[screen][connector]['current'] = "{}_{}".format(
-                                match['resolution'], rrate)
+                            xorg[screen][connector]["current"] = mode_name
+                        modeline = (
+                            f'Modeline "{mode_name}"  {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
+                        )
+                        xorg[screen][connector]["modelines"][mode_name] = modeline
                         break
     return xorg
 
