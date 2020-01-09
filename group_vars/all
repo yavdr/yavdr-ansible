@@ -116,6 +116,25 @@ grub:
 # - you don't have local dvb devices (e.g. satip client)
 # - your dvb drivers have problems being unloaded
 standby_reload_dvb: true
+
+# settings for vdr-addon-lifeguard-ng
+# the following settings prevent the shutdown
+# if a nfs, samba or ssh connection to this machine is open
+lifeguard_enable_nfs: True
+lifeguard_enable_samba: True
+lifeguard_enable_ssh: True
+# list of ip addresses or hostnames which should prevent shutdown
+# if the can be pinged
+lifeguard_hosts: []
+# list of users which sould prevent shutdown if they are logged in
+# this is somewhat redudant because systemd check this, too
+lifeguard_users: []
+# check for local processes
+lifeguard_processes: []
+# check for active tcp connections of local processes
+# syntax: <processname> [:] <port>
+lifeguard_tcp:
+  - vdr 3000  # don't shutdown if there is an active streamdev connection
 # Serial device to configure for a homebrew receiver.
 # Choose either ttyS0 (COM1) or ttyS1 (COM2)
 # Also ensure that the role serial-ir is enabled in yavdr07.yml
