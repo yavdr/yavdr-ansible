@@ -684,7 +684,21 @@ yavdr-common executes the following tasks:
 ***** ensure cloud-init is not installed
 This should at least prevent black screen errors after a reboot, if the Ubuntu Cloud Server Image has been used for install.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
-- name: ensure package cloud-config is not installed
+- name: debconf | disable all cloud-init datasources
+  debconf:
+    name: cloud-init
+    question: cloud-init/datasources
+    value: ''
+    vtype: select
+  register: cloud-init-debconf
+
+- name: command | reconfigure cloud-init package
+  command: sudo dpkg-reconfigure -f noninteractive cloud-init
+  ignore_erros: yes
+  when:  cloud-init-debconf.changed
+  notify: ['rerun required']
+  
+- name: apt | ensure package cloud-init is not installed
   apt:
     name: cloud-init
     state: absent
@@ -7661,5 +7675,9 @@ if __name__ == '__main__':
 - name: reboot required
   debug:
     msg: PLEASE REBOOT YOUR SYSTEM.
+
+- name: rerun required
+  debug:
+    msg: PLEASE REBOOT YOUR SYSTEM AND RUN THIS PLAYBOOK AGAIN.
 #+END_SRC
  
