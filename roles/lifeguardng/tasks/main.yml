@@ -1,0 +1,10 @@
+- name: apt | install vdr-addon-lifeguard-ng
+  apt:
+    name: vdr-addon-lifeguard-ng
+    state: present
+    
+- name: expand template for vdr-addon-lifeguard-ng configuration file
+  template:
+    src: templates/lifeguard.conf.j2
+    dest: /etc/lifeguard.conf
+  notify: Restart vdr-addon-lifeguard-ng

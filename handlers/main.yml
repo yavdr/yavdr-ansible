@@ -12,6 +12,13 @@
     #masked: no
   register: samba_reload
 
+- name: Restart vdr-addon-lifeguard-ng
+  systemd:
+    name: vdr-addon-lifeguard-ng.service
+    state: restarted
+    enabled: yes
+  register: lifeguard_reload
+
 - name: Restart NFS Kernel Server
   systemd:
     name: nfs-server.service
