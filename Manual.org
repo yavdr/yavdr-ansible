@@ -1362,8 +1362,8 @@ Set up IP resp. IP range based access for VDR plugins
     - name: set streamdev-client.RemoteIP
       lineinfile:
         state: '{{ "present" if streamdev_client_remote_ip | default("") else "absent" }}'
-        owner: "{ vdr.user }"
-        group: "{ vdr.group}"
+        owner: "{{ vdr.user }}"
+        group: "{{ vdr.group }}"
         create: yes
         path : "{ vdr.home }/setup.conf"
         regexp: "^streamdev-client.RemoteIP"
@@ -1380,19 +1380,19 @@ Set up IP resp. IP range based access for VDR plugins
 
     - name: set streamdev-client.NumProvidedSystems
       lineinfile:
-        owner: "{ vdr.user }"
-        group: "{ vdr.group}"
+        owner: "{{  vdr.user  }}"
+        group: "{{  vdr.group }}"
         create: yes
-        path : "{ vdr.home }/setup.conf"
+        path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.NumProvidedSystems"
         line: "streamdev-client.NumProvidedSystems = {streamdev_client_num_provided_systems | default(1)}"
 
     - name: set streamdev-client.StartClient
       lineinfile:
-        owner: "{ vdr.user }"
-        group: "{ vdr.group}"
+        owner: "{{ vdr.user }}"
+        group: "{{ vdr.group }}"
         create: yes
-        path : "{ vdr.home }/setup.conf"
+        path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.StartClient"
         line: "streamdev-client.StartClient = {{ '1' if streamdev_client_remote_ip else '0' }}"
 #+end_src
