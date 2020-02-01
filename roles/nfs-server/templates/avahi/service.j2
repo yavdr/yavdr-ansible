@@ -6,7 +6,7 @@
 <service>
        <type>_nfs._tcp</type>
        <port>2049</port>
-       <txt-record>path={{ item.value }}</txt-record> ## path to shared Folder
+       <txt-record>path={{ item.value }}{{ "/local" if (item.key == "recordings" and vdr.hide_first_recording_level | bool) else "" }}</txt-record> ## path to shared Folder
        <txt-record>subtype={{ 'vdr' if item.key == 'recordings' else item.key }}</txt-record> ## subtype
 </service>
 </service-group>
