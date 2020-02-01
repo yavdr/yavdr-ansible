@@ -158,6 +158,48 @@
   vars:
     allowed_hosts: '{{ streamdev_server_allowed_hosts | default(vdr_allowed_hosts) }}'
     vdr_service: streamdev-server
+- name: install and configure streamdev-client
+  block:
+    - name: apt | install vdr-plugin-streamdev-client
+      apt:
+        state: '{{"present" if streamdev_client_remote_ip else "absent"}}'
+        name: "vdr-plugin-streamdev-client"
+    - name: set streamdev-client.RemoteIP
+      lineinfile:
+        state: '{{ "present" if streamdev_client_remote_ip | default('') else "absent" }}'
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.RemoteIP"
+        line: "streamdev-client.RemoteIP = {streamdev_client_remote_ip | default('')}"
+    
+    - name: set streamdev-client.RemotePort
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.RemotePort"
+        line: "streamdev-client.RemotePort = {streamdev_client_remote_port | default(2004)}"
+
+    - name: set streamdev-client.NumProvidedSystems
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.NumProvidedSystems"
+        line: "streamdev-client.NumProvidedSystems = {streamdev_client_num_provided_systems | default(1)}"
+
+    - name: set streamdev-client.StartClient
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.StartClient"
+        line: "streamdev-client.StartClient = {{ '1' if streamdev_client_remote_ip else '0' }}"
 - name: create directory for vdr.service systemd drop-in files
   file:
     dest: '{{ item }}'

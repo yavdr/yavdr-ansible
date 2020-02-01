@@ -1351,6 +1351,51 @@ Set up IP resp. IP range based access for VDR plugins
     vdr_service: streamdev-server
 
 #+END_SRC
+**** streamdev-client
+#+begin_src yaml :tangle roles/vdr/tasks/main.yml
+- name: install and configure streamdev-client
+  block:
+    - name: apt | install vdr-plugin-streamdev-client
+      apt:
+        state: '{{"present" if streamdev_client_remote_ip else "absent"}}'
+        name: "vdr-plugin-streamdev-client"
+    - name: set streamdev-client.RemoteIP
+      lineinfile:
+        state: '{{ "present" if streamdev_client_remote_ip | default('') else "absent" }}'
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.RemoteIP"
+        line: "streamdev-client.RemoteIP = {streamdev_client_remote_ip | default('')}"
+    
+    - name: set streamdev-client.RemotePort
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.RemotePort"
+        line: "streamdev-client.RemotePort = {streamdev_client_remote_port | default(2004)}"
+
+    - name: set streamdev-client.NumProvidedSystems
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.NumProvidedSystems"
+        line: "streamdev-client.NumProvidedSystems = {streamdev_client_num_provided_systems | default(1)}"
+
+    - name: set streamdev-client.StartClient
+      lineinfile:
+        owner: "{ vdr.user }"
+        group: "{ vdr.group}"
+        create: yes
+        path : "{ vdr.home }/setup.conf"
+        regexp: "^streamdev-client.StartClient"
+        line: "streamdev-client.StartClient = {{ '1' if streamdev_client_remote_ip else '0' }}"
+#+end_src
 **** start vdr after network-online.target
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create directory for vdr.service systemd drop-in files
