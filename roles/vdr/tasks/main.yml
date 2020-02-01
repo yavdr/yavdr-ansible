@@ -166,13 +166,13 @@
         name: "vdr-plugin-streamdev-client"
     - name: set streamdev-client.RemoteIP
       lineinfile:
-        state: '{{ "present" if streamdev_client_remote_ip | default("") else "absent" }}'
+        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
         create: yes
         path : "{ vdr.home }/setup.conf"
         regexp: "^streamdev-client.RemoteIP"
-        line: "streamdev-client.RemoteIP = {{streamdev_client_remote_ip | default('')}}"
+        line: "streamdev-client.RemoteIP = {{ streamdev_client_remote_ip }}"
     
     - name: set streamdev-client.RemotePort
       lineinfile:

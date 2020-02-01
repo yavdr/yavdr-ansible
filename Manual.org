@@ -1158,6 +1158,9 @@ EnableSSH = {{ lifeguard_enable_ssh }}
       - xine
 #+END_SRC
 ** vdr
+#+begin_src yaml :tangle roles/vdr/defaults/main.yml
+streamdev_client_remote_ip: ''
+#+end_src
 *** tasks
 **** install the basic vdr packages
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes :padline no
@@ -1351,7 +1354,7 @@ Set up IP resp. IP range based access for VDR plugins
     vdr_service: streamdev-server
 
 #+END_SRC
-**** streamdev-client
+***** streamdev-client
 #+begin_src yaml :tangle roles/vdr/tasks/main.yml
 - name: install and configure streamdev-client
   block:
@@ -1361,13 +1364,13 @@ Set up IP resp. IP range based access for VDR plugins
         name: "vdr-plugin-streamdev-client"
     - name: set streamdev-client.RemoteIP
       lineinfile:
-        state: '{{ "present" if streamdev_client_remote_ip | default("") else "absent" }}'
+        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
         create: yes
         path : "{ vdr.home }/setup.conf"
         regexp: "^streamdev-client.RemoteIP"
-        line: "streamdev-client.RemoteIP = {{streamdev_client_remote_ip | default('')}}"
+        line: "streamdev-client.RemoteIP = {{ streamdev_client_remote_ip }}"
     
     - name: set streamdev-client.RemotePort
       lineinfile:
