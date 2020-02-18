@@ -2328,16 +2328,6 @@ This role prepares a basic systemd user session
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: enable tmux.service
-  systemd:
-    name: tmux.service
-    state: started
-    masked: no
-    enabled: yes
-    scope: user
-  become: yes
-  become_user: vdr
-    
 #+end_src
 *** templates
 **** tmux.service
@@ -2406,6 +2396,17 @@ dependencies:
     state: started
     enabled: true
     masked: no
+
+- name: enable tmux.service
+  systemd:
+    name: tmux.service
+    state: started
+    masked: no
+    enabled: yes
+    scope: user
+  become: yes
+  become_user: vdr
+    
 #+END_SRC
 *** templates
 **** Systemd Service
@@ -4013,6 +4014,17 @@ dependencies:
     name: 'yavdr-xorg'
     enabled: yes
     state: started
+
+- name: enable tmux.service
+  systemd:
+    name: tmux.service
+    state: started
+    masked: no
+    enabled: yes
+    scope: user
+  become: yes
+  become_user: vdr
+    
 #+END_SRC
 
 *** Templates
