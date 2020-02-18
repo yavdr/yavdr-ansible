@@ -1,0 +1,31 @@
+---
+- name: install required packages
+  apt:
+    name:
+      - tmux
+
+- name: create ~/.config/systemd/user
+  file:
+    path: "{{ vdr.home }}/.config/systemd/user"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.user }}"
+    mode: 0755
+
+- name: create tmux.service for the session
+  template:
+    src: 'templates/systemd/user/tmux.service.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: enable tmux.service
+  systemd:
+    name: tmux.service
+    state: started
+    masked: no
+    enabled: yes
+    scope: user
+  become: yes
+  become_user: vdr

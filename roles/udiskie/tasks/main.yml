@@ -7,11 +7,26 @@
   file:
     name: '{{ vdr.home }}/.config/udiskie'
     state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
 - name: expand template for udiskie's config.yml
   template:
     src: templates/config.yml.j2
     dest: '{{ vdr.home }}/.config/udiskie/config.yml'
+
+
+- name: create ~/.config/systemd/user
+  file:
+    name: '{{ vdr.home }}/.config/systemd/user'
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
+- name: expand template for udiskie's systemd unit
+  template:
+    src: templates/udiskie.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/udiskie.service'
 
 - name: expand template for mount helper script
   template:
