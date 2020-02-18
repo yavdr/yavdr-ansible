@@ -28,6 +28,13 @@
     src: templates/udiskie.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/udiskie.service'
 
+- name: create ~/bin
+  file:
+    name: '{{ vdr.home }}/bin'
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
 - name: expand template for mount helper script
   template:
     src: templates/udiskie_vdr_mount_helper.j2
