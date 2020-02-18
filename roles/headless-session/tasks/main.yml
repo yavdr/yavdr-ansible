@@ -26,9 +26,20 @@
     enabled: true
     masked: no
 
+# TODO: enable and disable services based on an array
 - name: enable tmux.service
   systemd:
     name: tmux.service
+    state: started
+    masked: no
+    enabled: yes
+    scope: user
+  become: yes
+  become_user: vdr
+    
+- name: enable and start udiskie.service
+  systemd:
+    name: 'udiskie.service'
     state: started
     masked: no
     enabled: yes
