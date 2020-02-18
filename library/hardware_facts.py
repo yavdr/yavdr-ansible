@@ -44,7 +44,7 @@ DOCUMENTATION = '''
         description:
           - return a list of supported acpi power saving modes
 notes:
-   - requres python-pyusb and python-kmodpy
+   - requires python3-pyusb and python3-kmodpy
 requirements: [ ]
 author: "Alexander Grothe <seahawk1986@gmx.de>"
 '''

@@ -244,57 +244,24 @@ if (( $EUID != 0 )); then
     exit
 fi
 
-venv_dir="/root/.ansible-venv"
+. scripts/install-packages.sh
 
-# update packages
-apt update
-# install required packages
-apt -y install software-properties-common python3-venv python3-wheel build-essential python-kmodpy
-
-set +e
-[ ! -r  "${venv_dir}/bin/activate" ] && python3 -m venv "${venv_dir}" --system-site-packages
-set -e
-source "${venv_dir}/bin/activate"
-
-"${venv_dir}/bin/pip3" install -U pip
-"${venv_dir}/bin/pip3" install -U testresources
-"${venv_dir}/bin/pip3" install -U setuptools
-"${venv_dir}/bin/pip3" install -U wheel
-"${venv_dir}/bin/pip3" install -U kmodpy ansible jmespath pymysql
-
-
-# speed up playbook execution
-export ANSIBLE_PIPELINING=1
-# TODO: run ansible on local host
 "${venv_dir}/bin/ansible-playbook" yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle install-yavdr-headless.sh :shebang "#!/bin/bash"
 set -e
+
 if (( $EUID != 0 )); then
     echo "This script must be run using sudo -H or as root"
     exit
 fi
 
-venv_dir="/root/.ansible-venv"
-
-# update packages
-apt update
-# install required packages
-apt -y install software-properties-common python3-venv python3-wheel build-essential python-kmodpy
-
-[ ! -r  "${venv_dir}/bin/activate" ] && python3 -m venv "${venv_dir}" --system-site-packages
-source "${venv_dir}/bin/activate"
-
-"${venv_dir}/bin/pip3" install -U pip
-"${venv_dir}/bin/pip3" install -U testresources
-"${venv_dir}/bin/pip3" install -U setuptools
-"${venv_dir}/bin/pip3" install -U wheel 
-"${venv_dir}/bin/pip3" install -U kmodpy ansible jmespath pymysql
+. scripts/install-packages.sh
 
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
-# TODO: run ansible on local host
+
 "${venv_dir}/bin/ansible-playbook" yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 * Playbooks
@@ -784,11 +751,8 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
       - linux-firmware
       - psmisc
       - python3-jmespath
-      - python-kmodpy
       - python3-kmodpy
-      - python-requests
       - python3-requests
-      - python-usb
       - python3-usb
       - software-properties-common
       - ssh
@@ -2343,10 +2307,30 @@ This configures a headless login session for the VDR user, so we can run service
 #+begin_src yaml :tangle roles/headless-session/defaults/main.yml :mkdirp yes :padline no
 enable_headless_session: true
 #+end_src
+
+*** dependencies
+:PROPERTIES:
+:CUSTOM_ID: yavdr-xorg-meta
+:END:
+
+#+CAPTION: roles/headless-session/meta/main.yml
+#+BEGIN_SRC yaml :tangle roles/headless-session/meta/main.yml :padline no
+---
+dependencies:
+    - role: udiskie
+#+END_SRC
 *** Tasks
 **** main.yml
 #+BEGIN_SRC yaml :tangle roles/headless-session/tasks/main.yml :mkdirp yes :padline no
 - name: create ~/.config
+  file:
+    path: "{{ vdr.home }}/.config"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.user }}"
+    mode: 0755
+
+- name: create ~/.config/systemd/user
   file:
     path: "{{ vdr.home }}/.config"
     state: directory
@@ -2373,6 +2357,15 @@ enable_headless_session: true
     state: started
     enabled: true
     masked: no
+
+- name: create tmux.service for the session
+  template:
+    src: 'templates/systemd/user/tmux.service.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
 
 - name: enable systemd services within the user session
   systemd:
@@ -2516,7 +2509,7 @@ esac
 #+END_SRC
 
 ***** udiskie snippet for commands.conf
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
 {{ ansible_managed | comment }}
 
 {{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
@@ -5772,7 +5765,8 @@ Description=Start tmux in detached session
 [Service]
 EnvironmentFile=-%h/.session-env
 Type=forking
-ExecStart=/usr/bin/tmux new-session -s use-session -d
+WorkingDirectory=%h
+ExecStart=/usr/bin/tmux new-session -s %u -d
 ExecStop=/usr/bin/tmux kill-session -t %u
 Restart=always
 
@@ -7427,7 +7421,7 @@ DOCUMENTATION = '''
         description:
           - return a list of supported acpi power saving modes
 notes:
-   - requres python-pyusb and python-kmodpy
+   - requires python3-pyusb and python3-kmodpy
 requirements: [ ]
 author: "Alexander Grothe <seahawk1986@gmx.de>"
 '''

@@ -6,6 +6,14 @@
     group: "{{ vdr.user }}"
     mode: 0755
 
+- name: create ~/.config/systemd/user
+  file:
+    path: "{{ vdr.home }}/.config"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.user }}"
+    mode: 0755
+
 - name: expand template for ~/.config/headless-session
   template:
     src: templates/config/headless-session.j2
@@ -25,6 +33,15 @@
     state: started
     enabled: true
     masked: no
+
+- name: create tmux.service for the session
+  template:
+    src: 'templates/systemd/user/tmux.service.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
+    mode: 0644
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+
 
 - name: enable systemd services within the user session
   systemd:

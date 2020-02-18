@@ -4,7 +4,8 @@ Description=Start tmux in detached session
 [Service]
 EnvironmentFile=-%h/.session-env
 Type=forking
-ExecStart=/usr/bin/tmux new-session -s use-session -d
+WorkingDirectory=%h
+ExecStart=/usr/bin/tmux new-session -s %u -d
 ExecStop=/usr/bin/tmux kill-session -t %u
 Restart=always
 
