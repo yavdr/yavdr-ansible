@@ -1,0 +1,14 @@
+[Unit]
+Description=headless login for user %i
+After=systemd-user-sessions.service
+Conflicts=getty@tty7.service
+
+[Service]
+User=%i
+WorkingDirectory=~
+TTYPath=/dev/tty7
+PAMName=login
+ExecStart=/bin/bash -l .config/headless-session
+
+[Install]
+WantedBy=graphical.target

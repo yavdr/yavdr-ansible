@@ -2366,10 +2366,10 @@ enable_headless_session: true
   template:
     src: templates/systemd/headless-session@.service.j2
     dest: /etc/systemd/system/headless-session@.service
-   
+ 
 - name: start headless-session@.service for vdr user
   systemd:
-    name: "headless-session@{{vdr.user}}.service"
+    name: "headless-session@{{ vdr.user }}.service"
     state: started
     enabled: true
     masked: no
@@ -2382,10 +2382,11 @@ enable_headless_session: true
     masked: no
     scope: user
   become_user: "{{ vdr.user }}"
+  become: yes
 #+END_SRC
 *** templates
 **** Systemd Service
-#+begin_src systemd :tangle roles/headless-session/systemd/headless-session@.service.j2 :mkdirp yes :padline no
+#+begin_src systemd :tangle roles/headless-session/templates/systemd/headless-session@.service.j2 :mkdirp yes :padline no
 [Unit]
 Description=headless login for user %i
 After=systemd-user-sessions.service
@@ -2402,7 +2403,7 @@ ExecStart=/bin/bash -l .config/headless-session
 WantedBy=graphical.target
 #+end_src
 **** Configuration file
-#+begin_src shell :tangle roles/headless-session/config/headless-session
+#+begin_src shell :tangle roles/headless-session/templates/config/headless-session.j2
 udiskie &
 #+end_src
 ** udiskie
