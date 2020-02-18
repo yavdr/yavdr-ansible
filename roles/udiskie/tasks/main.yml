@@ -1,0 +1,27 @@
+- name: install udiskie
+  apt:
+    name: udiskie
+    state: present
+
+- name: create ~/.config/udiskie
+  file:
+    name: '{{ vdr.home }}/.config/udiskie'
+    state: directory
+
+- name: expand template for udiskie's config.yml
+  template:
+    src: templates/config.yml.j2
+    dest: '{{ vdr.home }}/.config/udiskie/config.yml'
+
+- name: expand template for mount helper script
+  template:
+    src: templates/udiskie_vdr_mount_helper.j2
+    dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
+    mode: 0755
+    owner: vdr
+    group: vdr
+
+- name: expand template for udiskie vdr commands
+  template:
+    src: templates/umount_all.j2
+    dest: /usr/share/vdr/command-hooks/commands.udiskie.conf

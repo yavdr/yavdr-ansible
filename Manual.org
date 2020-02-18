@@ -88,6 +88,8 @@
   - [[#nfs-server][nfs-server]]
   - [[#yavdr-remote][yavdr-remote]]
   - [[#pulseaudio][pulseaudio]]
+  - [[#headless-session][headless-session]]
+  - [[#udiskie][udiskie]]
   - [[#yavdr-xorg][yavdr-xorg]]
   - [[#yavdr-desktop][yavdr-desktop]]
   - [[#samba-install][samba-install]]
@@ -2334,6 +2336,190 @@ ctl.!default {
   fallback "sysdefault"
 }
 #+END_SRC
+** headless-session
+*** About the headless session 
+This configures a headless login session for the VDR user, so we can run services like udiskie in the context of a systemd user session.
+*** default variables
+#+begin_src yaml :tangle roles/headless-session/defaults/main.yml :mkdirp yes :padline no
+enable_headless_session: true
+#+end_src
+*** Tasks
+**** main.yml
+#+BEGIN_SRC yaml :tangle roles/headless-session/tasks/main.yml :mkdirp yes :padline no
+- name: create ~/.config
+  file:
+    path: "{{ vdr.home }}/.config"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.user }}"
+    mode: 0755
+
+- name: expand template for ~/.config/headless-session
+  template:
+    src: templates/config/headless-session.j2
+    dest: "{{ vdr.home }}/.config/headless-session"
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: 0755
+
+- name: expand template for headless-session@.service
+  template:
+    src: templates/systemd/headless-session@.service.j2
+    dest: /etc/systemd/system/headless-session@.service
+   
+- name: start headless-session@.service for vdr user
+  systemd:
+    name: "headless-session@{{vdr.user}}.service"
+    state: started
+    enabled: true
+    masked: no
+
+- name: enable systemd services within the user session
+  systemd:
+    name: tmux.service
+    state: started
+    enabled: true
+    masked: no
+    scope: user
+  become_user: "{{ vdr.user }}"
+#+END_SRC
+*** templates
+**** Systemd Service
+#+begin_src systemd :tangle roles/headless-session/systemd/headless-session@.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=headless login for user %i
+After=systemd-user-sessions.service
+Conflicts=getty@tty7.service
+
+[Service]
+User=%i
+WorkingDirectory=~
+TTYPath=/dev/tty7
+PAMName=login
+ExecStart=/bin/bash -l .config/headless-session
+
+[Install]
+WantedBy=graphical.target
+#+end_src
+**** Configuration file
+#+begin_src shell :tangle roles/headless-session/config/headless-session
+udiskie &
+#+end_src
+** udiskie
+This role installs and preconfigures udiskie
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/udiskie/tasks/main.yml :mkdirp yes :padline no
+- name: install udiskie
+  apt:
+    name: udiskie
+    state: present
+
+- name: create ~/.config/udiskie
+  file:
+    name: '{{ vdr.home }}/.config/udiskie'
+    state: directory
+
+- name: expand template for udiskie's config.yml
+  template:
+    src: templates/config.yml.j2
+    dest: '{{ vdr.home }}/.config/udiskie/config.yml'
+
+- name: expand template for mount helper script
+  template:
+    src: templates/udiskie_vdr_mount_helper.j2
+    dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
+    mode: 0755
+    owner: vdr
+    group: vdr
+
+- name: expand template for udiskie vdr commands
+  template:
+    src: templates/umount_all.j2
+    dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
+#+END_SRC
+*** templates
+***** config.yml
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
+{{ ansible_managed | comment }}
+
+program_options:
+  tray:             false    # [bool] Enable the tray icon. "auto"
+  menu:             flat    # ["flat" | "nested"] Set the
+  automount:        true   # [bool] Enable automatic mounting.
+  notify:           true    # [bool] Enable notifications.
+  password_cache:   false      # [int] Password cache in minutes. Caching is
+
+  file_manager:     ""
+  notify_command: "{{ vdr.home }}/bin/udiskie_vdr_mount_helper '{event}' '{device_presentation}' '{mount_path}'"
+
+device_config:
+  - is_loop: true
+    ignore: true
+
+  - is_external: false
+    ignore: true
+
+notifications:
+  device_mounted:   5       # mount notification
+  device_unmounted: true   # unmount notification
+  device_added:     true   # device has appeared
+  device_removed:   true   # device has disappeared
+#+END_SRC
+***** mount helper script
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
+{{ ansible_managed | comment }}
+
+videodir="{{ vdr.recdir }}"
+event="$1"
+device_node="$2"
+mount_path="$3"
+
+
+logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
+case "$event" in
+    'device_mounted')
+        target="${videodir}/$(basename "${mount_path}")"
+        ln -s -T "$mount_path" "$target" ||
+            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
+        # check if we got a vdr recording on the mountpoint
+        if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
+        then
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path mounted (with recordings)"
+            svdrpsend updr
+        else
+            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path' mounted"
+        fi
+        ;;
+    'device_unmounted')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        logger -t "device umounted" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node umounted"
+        svdrpsend updr
+        ;;
+    'device_removed')
+        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
+        [ -z "$device_node" ] && exit
+        logger -t "device removed" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
+        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node removed"
+        svdrpsend updr
+        ;;
+    'job_failed')
+        if [ -n "$mount_path" ]
+        then
+            logger -t "umount failed" "could not unmount $mount_path"
+        else
+            logger -t "operation failed" 'could not mount(?) '"$device_node"
+        fi
+        ;;
+esac
+#+END_SRC
+
+***** udiskie snippet for commands.conf
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+{{ ansible_managed | comment }}
+
+{{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
+#+END_SRC
 ** yavdr-xorg
 :PROPERTIES:
 :CUSTOM_ID: yavdr-xorg
@@ -2761,7 +2947,6 @@ b'\xde\xad\xbe\xef'
 ---
 dependencies:
     - { role: collect-facts }
-
 #+END_SRC
 *** default variables
 :PROPERTIES:
@@ -3597,6 +3782,13 @@ manual_add_modules i915 radeon
 exit 0
 #+END_SRC
 ** yavdr-desktop
+*** Dependencies
+#+begin_src yaml :tangle roles/yavdr-desktop/meta/main.yml :mkdirp yes
+---
+dependencies:
+  - role: udiskie
+#+end_src
+
 *** Tasks
 **** main.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-desktop/tasks/main.yml :mkdirp yes :padline no
@@ -3745,9 +3937,6 @@ exit 0
         group: '{{ vdr.group }}'
         force: no
 
-- name: set up udiskie
-  include_tasks: udiskie.yml
-
 - name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
   file:
     src: /usr/bin/start-desktop
@@ -3762,36 +3951,6 @@ exit 0
     state: started
 #+END_SRC
 
-**** udiskie.yml
-#+BEGIN_SRC yaml :tangle roles/yavdr-desktop/tasks/udiskie.yml :mkdirp yes :padline no
-- name: install udiskie
-  apt:
-    name:
-      - udiskie
-
-- name: create ~/.config/udiskie
-  file:
-    name: '{{ vdr.home }}/.config/udiskie'
-    state: directory
-
-- name: expand template for udiskie's config.yml
-  template:
-    src: templates/udiskie/config.yml.j2
-    dest: '{{ vdr.home }}/.config/udiskie/config.yml'
-
-- name: expand template for mount helper script
-  template:
-    src: templates/udiskie/udiskie_vdr_mount_helper.j2
-    dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
-    mode: 0755
-    owner: vdr
-    group: vdr
-
-- name: expand template for udiskie vdr commands
-  template:
-    src: templates/udiskie/umount_all.j2
-    dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
-#+END_SRC
 *** Templates
 **** xorg configuration
 ***** .Xresources
@@ -5518,90 +5677,6 @@ udiskie &
   </applications>
 </openbox_config>
 
-#+END_SRC
-**** udiskie
-***** config.yml
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
-{{ ansible_managed | comment }}
-
-program_options:
-  tray:             false    # [bool] Enable the tray icon. "auto"
-  menu:             flat    # ["flat" | "nested"] Set the
-  automount:        true   # [bool] Enable automatic mounting.
-  notify:           true    # [bool] Enable notifications.
-  password_cache:   false      # [int] Password cache in minutes. Caching is
-
-  file_manager:     ""
-  notify_command: "{{ vdr.home }}/bin/udiskie_vdr_mount_helper '{event}' '{device_presentation}' '{mount_path}'"
-
-device_config:
-  - is_loop: true
-    ignore: true
-
-  - is_external: false
-    ignore: true
-
-notifications:
-  device_mounted:   5       # mount notification
-  device_unmounted: true   # unmount notification
-  device_added:     true   # device has appeared
-  device_removed:   true   # device has disappeared
-#+END_SRC
-
-***** mount helper script
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
-{{ ansible_managed | comment }}
-
-videodir="{{ vdr.recdir }}"
-event="$1"
-device_node="$2"
-mount_path="$3"
-
-
-logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
-case "$event" in
-    'device_mounted')
-        target="${videodir}/$(basename "${mount_path}")"
-        ln -s -T "$mount_path" "$target" ||
-            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
-        # check if we got a vdr recording on the mountpoint
-        if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
-        then
-            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path mounted (with recordings)"
-            svdrpsend updr
-        else
-            vdr-dbus-send /Skin skin.QueueMessage string:"$mount_path' mounted"
-        fi
-        ;;
-    'device_unmounted')
-        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
-        logger -t "device umounted" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
-        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node umounted"
-        svdrpsend updr
-        ;;
-    'device_removed')
-        removed_symlinks=($(find "$videodir" -xtype l -delete -print))
-        [ -z "$device_node" ] && exit
-        logger -t "device removed" "remove unneeded symlinks: $(paste -d " " <<< "${removed_symlinks[@]}")"
-        vdr-dbus-send /Skin skin.QueueMessage string:"$device_node removed"
-        svdrpsend updr
-        ;;
-    'job_failed')
-        if [ -n "$mount_path" ]
-        then
-            logger -t "umount failed" "could not unmount $mount_path"
-        else
-            logger -t "operation failed" 'could not mount(?) '"$device_node"
-        fi
-        ;;
-esac
-#+END_SRC
-
-***** udiskie snippet for commands.conf
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/udiskie/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
-{{ ansible_managed | comment }}
-
-{{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
 #+END_SRC
 
 **** Systemd User Session
