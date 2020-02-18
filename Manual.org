@@ -2466,6 +2466,16 @@ This role installs and preconfigures udiskie
     src: templates/udiskie.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/udiskie.service'
 
+- name: enable and stadt udiskie.service
+  systemd:
+    name: 'udiskie.service'
+    state: started
+    masked: no
+    enabled: yes
+    scope: user
+  become: yes
+  become_user: vdr
+
 - name: create ~/bin
   file:
     name: '{{ vdr.home }}/bin'
@@ -4065,7 +4075,6 @@ fi
 
 # start systemd units for the yavdr user session
 systemctl --user isolate yavdr-desktop.target
-udiskie &
 #+END_SRC
 ***** rc.xml
 #+BEGIN_SRC xml :tangle roles/yavdr-desktop/templates/openbox/rc.xml.j2 :mkdirp yes :padline no
