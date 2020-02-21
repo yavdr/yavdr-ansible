@@ -174,6 +174,7 @@ def parse_xrandr_verbose(iterator):
                 preferred = bool("+preferred" in line)
                 current = bool("*current" in line)
                 resolution, mode_num, pixel_clk, *flags = line.split()
+                flags = [flag for flag in flags if flag not in ("*current", "+preferred")]
                 pixel_clk = pixel_clk[:-3]
 
                 while True:
