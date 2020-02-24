@@ -8,4 +8,4 @@ fi
 
 . scripts/install-packages.sh
 
-ansible-playbook" yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
