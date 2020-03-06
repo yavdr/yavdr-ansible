@@ -130,6 +130,12 @@
     mode: 0644
   vars:
     allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+
+- name: "disable/enable wait-for-dvb@.service for configured devices"
+  systemd:
+    state: '{{ "enabled" if item in wait_for_dvb_devices|default([]) else "disabled" }}'
+    name: 'wait-for-dvb@{{ item }}.service'
+  loop: "{{ range(max_num_dvb_devices|default(16))|list }}"
 - name: ensure directory '/etc/vdr/plugins/vnsiserver' exists
   file:
     state: directory
