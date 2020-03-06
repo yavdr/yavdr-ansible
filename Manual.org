@@ -1306,7 +1306,7 @@ Set up IP resp. IP range based access for VDR plugins
 
 - name: "disable/enable wait-for-dvb@.service for configured devices"
   systemd:
-    state: '{{ "enabled" if item in wait_for_dvb_devices|default([]) else "disabled" }}'
+    enabled: '{{ "yes" if item in wait_for_dvb_devices|default([]) else "no" }}'
     name: 'wait-for-dvb@{{ item }}.service'
   loop: "{{ range(max_num_dvb_devices|default(16))|list }}"
 #+END_SRC
