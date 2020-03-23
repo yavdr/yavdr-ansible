@@ -6562,14 +6562,14 @@ dependencies:
         src: '{{ item.src }}'
         dest: '/var/cache/firmware/{{ item.name }}'
         checksum: '{{ item.checksum }}'
-      loop: "{{ dvbhddevice_firmware|dict2items }}"
+      loop: "{{ dvbhddevice_firmware }}"
 
     - name: extract firmware files
       unarchive:
         src: '/var/cache/firmware/{{ item.name }}'
         dest: '/lib/firmware/'
         remote_src: yes
-      loop: "{{ dvbhddevice_firmware|dict2items }}"
+      loop: "{{ dvbhddevice_firmware }}"
       notify: [ 'reboot required' ]
         
   when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool' 
@@ -6601,7 +6601,7 @@ dependencies:
         url: '{{ item.src }}'
         dest: '/lib/firmware/{{ item.name }}'
         checksum: '{{ item.checksum }}'
-      loop: "{{ dvbsddevice_firmware|dict2items }}"
+      loop: "{{ dvbsddevice_firmware }}"
       notify: ['reboot required']
 
     - name: apt | install vdr-plugin-dvbsddevice if module is loaded
