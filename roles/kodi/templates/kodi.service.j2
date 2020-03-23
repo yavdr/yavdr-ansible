@@ -6,7 +6,7 @@ Type=simple
 PassEnvironment=DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 ExecStartPre=-/usr/bin/set-kodi-display
 ExecStart=/usr/bin/kodi -l /run/lirc/lircd
-ExecStop=/bin/bash -c "/usr/bin/kodi-send --action=QUIT; while ps -p $MAINPID -o comm=; do sleep .25; done"
+ExecStop=/bin/bash -c "[ -n \"$MAINPID\"  ] || exit 0; /usr/bin/kodi-send --action=QUIT; while ps -p $MAINPID -o comm=; do sleep .25; done"
 TimeoutStopSec=10
 SuccessExitStatus=0 127 SIGKILL
 Restart=on-failure
