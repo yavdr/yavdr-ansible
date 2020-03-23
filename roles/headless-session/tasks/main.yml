@@ -26,23 +26,33 @@
     enabled: true
     masked: no
 
-# TODO: enable and disable services based on an array
-- name: enable tmux.service
+- name: enable services for the user session
   systemd:
-    name: tmux.service
+    name: {{ item }}
     state: started
     masked: no
     enabled: yes
     scope: user
   become: yes
   become_user: vdr
-    
-- name: enable and start udiskie.service
+  loop:
+    - tmux.service
+    - udiskie.service
+
+- name: disable services for the user session
   systemd:
-    name: 'udiskie.service'
+    name: {{ item }}
     state: started
     masked: no
     enabled: yes
     scope: user
   become: yes
   become_user: vdr
+  loop:
+    - detect-second-display.service
+    - openbox-second.service
+    - osd2web.service
+    - pulseaudio.socket
+    - pulseaudio.service
+    - yavdr-frontend.service
+    - wm-exit.service
