@@ -130,6 +130,12 @@
     mode: 0644
   vars:
     allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
+
+- name: "disable/enable wait-for-dvb@.service for configured devices"
+  systemd:
+    enabled: '{{ "yes" if item in wait_for_dvb_devices|default([]) else "no" }}'
+    name: 'wait-for-dvb@{{ item }}.service'
+  loop: "{{ range(max_num_dvb_devices|default(16))|list }}"
 - name: ensure directory '/etc/vdr/plugins/vnsiserver' exists
   file:
     state: directory
@@ -170,7 +176,7 @@
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
         create: yes
-        path : "{ vdr.home }/setup.conf"
+        path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemoteIp"
         line: "streamdev-client.RemoteIp = {{ streamdev_client_remote_ip }}"
     

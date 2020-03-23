@@ -247,7 +247,7 @@ fi
 
 . scripts/install-packages.sh
 
-"${venv_dir}/bin/ansible-playbook" yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+ansible-playbook yavdr07.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle install-yavdr-headless.sh :shebang "#!/bin/bash"
@@ -263,7 +263,7 @@ fi
 # speed up playbook execution
 export ANSIBLE_PIPELINING=1
 
-"${venv_dir}/bin/ansible-playbook" yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 * Playbooks
 ** yavdr07.yml
@@ -374,7 +374,7 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-main'
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
-  #- '{{ ppa_owner }}/{{branch}}-yavdr'
+
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -393,6 +393,16 @@ vdr:
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: ""  # set the desired charset, e.g. "ISO-8859-9"
 
+# wait for dvb devices by adapter number
+# NOTE: This only works for devices that are discoverable by udev, not userspace drivers like sundtek tuners!
+# e.g. wait_for_dvb_devices: [0, 1] to wait for /dev/dvb/adapter0 and /dev/dvb/adapter1
+wait_for_dvb_devices: []
+
+# this allows to set up streamdev-client - set the server, port and number of devices
+# streamdev_client_remote_ip: "192.168.0.104"
+# streamdev_client_remote_port: 2004
+# streamdev_ciient_num_provided_systems: 1
+
 # copy channels.conf from a local file
 # vdr_channels_conf: /path/to/channels.conf
 
@@ -408,22 +418,23 @@ vdr_plugins:
 # IP (range) filter for vdr and plugins (this must be an array):
 # vdr_allowed_hosts:
 #   - 192.168.0.0/24
-#
+
 # hosts and subnets for svdrphosts.conf (overrides vdr_allowed_hosts):
 # vdr_svdrphosts:
 #   - 192.168.0.0/24
-#
+
 # hosts and subnets for allowed_hosts.conf of xineliboutput (overrides vdr_allowed_hosts):
 # xineliboutput_allowed_hosts:
 #   - 192.168.0.0/24
-#
+
 # hosts and subnets for allowed_hosts.conf of vnsiserver (overrides vdr_allowed_hosts):
 # vnsiserver_allowed_hosts:
 #   - 192.168.0.0/24
-#
+
 # hosts and subnets for streamdevhosts.conf (overrides vdr_allowed_hosts):
 # streamdev_server_allowed_hosts:
 #   - 192.168.0.0/24
+
 #+END_SRC
 ** Media directories
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -435,17 +446,20 @@ media_dirs:
   files: /srv/files
   backups: /srv/backups
   recordings: '{{ vdr.recdir }}'
+
 #+END_SRC
 ** NFS
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
+
 #+END_SRC
 ** Samba
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 samba:
   workgroup: YAVDR
   windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
+
 #+END_SRC
 ** Additional packages
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -460,6 +474,7 @@ extra_packages:
   - t2scan
   - plymouth-theme-yavdr-logo
   - vdrpbd
+
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
@@ -477,13 +492,16 @@ vdr_shutdown_command: poweroff
 
 # choose one of acpiwakeup, stm32wakeup
 wakeup_method: acpiwakeup
+
 # start given number of minutes earlier than the wakeuptime set by vdr
 wakeup_start_ahead: 5
+
 # set days of the week for automatic wakeup (1=Monday...7=Sunday),
 # set empty string to disable wakeup
 # eg. to wake up on Monday and Friday:
 # wakeup_days: "1 5"
 wakeup_days: ""
+
 # set wakeup time for automatic wakeup
 # set empty string to disable
 # e.g. for wakeup at midnight:
@@ -522,6 +540,7 @@ lifeguard_tcp:
 #+END_SRC
 ** Serial IR
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # Serial device to configure for a homebrew receiver.
 # Choose either ttyS0 (COM1) or ttyS1 (COM2)
 # Also ensure that the role serial-ir is enabled in yavdr07.yml
@@ -1285,6 +1304,11 @@ Set up IP resp. IP range based access for VDR plugins
   vars:
     allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
 
+- name: "disable/enable wait-for-dvb@.service for configured devices"
+  systemd:
+    enabled: '{{ "yes" if item in wait_for_dvb_devices|default([]) else "no" }}'
+    name: 'wait-for-dvb@{{ item }}.service'
+  loop: "{{ range(max_num_dvb_devices|default(16))|list }}"
 #+END_SRC
 ***** vnsiserver
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
@@ -1336,7 +1360,7 @@ Set up IP resp. IP range based access for VDR plugins
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
         create: yes
-        path : "{ vdr.home }/setup.conf"
+        path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemoteIp"
         line: "streamdev-client.RemoteIp = {{ streamdev_client_remote_ip }}"
     
