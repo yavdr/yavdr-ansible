@@ -6549,8 +6549,10 @@ dependencies:
   block:
     - name: apt | install vdr-plugin-dvbhddevice
       apt:
-        name:
-          - vdr-plugin-dvbhddevice
+        name: vdr-plugin-dvbhddevice
+        state: present
+      notify: [ 'Restart VDR' ]
+
     - name: ensure /var/cache/firmware exists
       file:
         state: directory
@@ -6596,7 +6598,7 @@ dependencies:
   block:
     - name:
       get_url:
-        src: '{{ item.src }}'
+        url: '{{ item.src }}'
         dest: '/lib/firmware/{{ item.name }}'
         checksum: '{{ item.checksum }}'
       loop: "{{ dvbsddevice_firmware|dict2items }}"
@@ -6604,10 +6606,9 @@ dependencies:
 
     - name: apt | install vdr-plugin-dvbsddevice if module is loaded
       apt:
-        name:
-        - vdr-plugin-dvbsddevice
-  when: '"dvb_ttpci" in modules'
-  notify: [ 'Restart VDR' ]
+        name: vdr-plugin-dvbsddevice
+      notify: [ 'Restart VDR' ]
+  when: '"dvb_ttpci" in modules or force_dvbsddevice|default(False)|bool'
 #+END_SRC
 ** autoinstall-hardware-irmp
 *** dependencies

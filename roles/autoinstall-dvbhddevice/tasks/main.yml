@@ -5,8 +5,10 @@
   block:
     - name: apt | install vdr-plugin-dvbhddevice
       apt:
-        name:
-          - vdr-plugin-dvbhddevice
+        name: vdr-plugin-dvbhddevice
+        state: present
+      notify: [ 'Restart VDR' ]
+
     - name: ensure /var/cache/firmware exists
       file:
         state: directory
@@ -26,5 +28,4 @@
       loop: "{{ dvbhddevice_firmware|dict2items }}"
       notify: [ 'reboot required' ]
         
-  when: '"13c2:300a" in pci or "13c2:300b" in pci or {{ force_dvbhddevice|bool is True }}' 
-  notify: [ 'Restart VDR' ]
+  when: '"13c2:300a" in pci or "13c2:300b" in pci or {{ force_dvbhddevice|default(False)|bool }}'
