@@ -3,10 +3,19 @@
 
 # TODO: install firmware
 
-- name: apt | install vdr-plugin-dvbsddevice if module is loaded
-  apt:
-    name:
-      - vdr-plugin-dvbsddevice
-      - yavdr-firmware
+- name: Install firmware and output plugin for FF sd cards
+  block:
+    - name:
+      get_url:
+        src: '{{ item.src }}'
+        dest: '/lib/firmware/{{ item.name }}'
+        checksum: '{{ item.checksum }}'
+      loop: "{{ dvbsddevice_firmware|dict2items }}"
+      notify: ['reboot required']
+
+    - name: apt | install vdr-plugin-dvbsddevice if module is loaded
+      apt:
+        name:
+        - vdr-plugin-dvbsddevice
   when: '"dvb_ttpci" in modules'
   notify: [ 'Restart VDR' ]

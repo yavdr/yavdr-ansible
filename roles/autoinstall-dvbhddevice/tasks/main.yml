@@ -3,28 +3,28 @@
 
 - name: Download Firmware for TT-6400 FF and install vdr-plugin-dvbhddevice
   block:
-  - name: apt | install vdr-plugin-dvbhddevice
-    apt:
-      name:
-        - vdr-plugin-dvbhddevice
-  - name: ensure /var/cache/firmware exists
-    file:
-      state: directory
-      path: '/var/cache/firmware'
-  - name: download TT-6400 FF firmware files
-    get_url:
-      src: '{{ item.src }}'
-      dest: '/var/cache/firmware/{{ item.name }}'
-      checksum: '{{ item.checksum }}'
-    loop: "{{ dvbhddevice_firmware|dict2items }}"
+    - name: apt | install vdr-plugin-dvbhddevice
+      apt:
+        name:
+          - vdr-plugin-dvbhddevice
+    - name: ensure /var/cache/firmware exists
+      file:
+        state: directory
+        path: '/var/cache/firmware'
+    - name: download TT-6400 FF firmware files
+      get_url:
+        src: '{{ item.src }}'
+        dest: '/var/cache/firmware/{{ item.name }}'
+        checksum: '{{ item.checksum }}'
+      loop: "{{ dvbhddevice_firmware|dict2items }}"
 
-  - name: extract firmware files
-    unarchive:
-      src: '/var/cache/firmware/{{ item.name }}'
-      dest: '/lib/firmware/'
-      remote_src: yes
-    loop: "{{ dvbhddevice_firmware|dict2items }}"
-    notify: [ 'reboot required' ]
-      
+    - name: extract firmware files
+      unarchive:
+        src: '/var/cache/firmware/{{ item.name }}'
+        dest: '/lib/firmware/'
+        remote_src: yes
+      loop: "{{ dvbhddevice_firmware|dict2items }}"
+      notify: [ 'reboot required' ]
+        
   when: '"13c2:300a" in pci or "13c2:300b" in pci or {{ force_dvbhddevice|bool is True }}' 
   notify: [ 'Restart VDR' ]
