@@ -6493,6 +6493,13 @@ dependencies:
 #+INCLUDE: "roles/autoinstall-dvbsky-firmware/tasks/main.yml" src yaml
 ** TODO autoinstall-dvbhddevice
 How to get a driver for the TT-6400 FF card? Needed firmware files are in the ~yavdr-firmware~ package.
+*** defaults
+#+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/defaults/mainmeta/main.yml :padline no
+dvbhddevice_firmware:
+  - { src: 'http://www.aregel.de/file_download/26/dvb-ttpremium-fpga-01_v1_10.zip', 'checksum': 'sha256:d5f0ecd1c687549d71a21269c25791554895d8c03ff580a9694ef24041952f69', 'name': 'dvb-ttpremium-fpga-01_v1_10.zip' }
+  - { src: 'http://www.aregel.de/file_download/7/dvb-ttpremium-loader-01_v1_03.zip', 'checksum': 'sha256:99969d4740ca26332439590e6b6e86711c89be69cf94c3732267b8278c0da763', 'name': 'dvb-ttpremium-loader-01_v1_03.zip' }
+  - { src: 'http://aregel.de/file_download/28/dvb-ttpremium-st7109-01_v0_5_1.zip',  'checksum': 'sha256:cf336310fdd0c6998e6efa59d17b39d1fdb682daea51b60faee66444545986d4', 'name': 'dvb-ttpremium-st7109-01_v0_5_1.zip' }
+#+END_SRC
 *** dependencies
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbhddevice/meta/main.yml :padline no
 ---
@@ -6505,12 +6512,32 @@ dependencies:
 ---
 # file roles/autoinstall-dvbhddevice/tasks/main.yml
 
-- name: apt | install vdr-plugin-dvbhddevice if connected
-  apt:
-    name:
-      - vdr-plugin-dvbhddevice
-      - yavdr-firmware
-  when: '"13c2:300a" in pci or "13c2:300b" in pci'
+- name: Download Firmware for TT-6400 FF and install vdr-plugin-dvbhddevice
+  block:
+  - name: apt | install vdr-plugin-dvbhddevice
+    apt:
+      name:
+        - vdr-plugin-dvbhddevice
+  - name: ensure /var/cache/firmware exists
+    file:
+      state: directory
+      path: '/var/cache/firmware'
+  - name: download TT-6400 FF firmware files
+    get_url:
+      src: '{{ item.src }}'
+      dest: '/var/cache/firmware/{{ item.name }}'
+      checksum: '{{ item.checksum }}'
+    loop: "{{ dvbhddevice_firmware|dict2items }}"
+
+  - name: extract firmware files
+    unarchive:
+      src: '/var/cache/firmware/{{ item.name }}'
+      dest: '/lib/firmware/'
+      remote_src: yes
+    loop: "{{ dvbhddevice_firmware|dict2items }}"
+    notify: [ 'reboot required' ]
+      
+  when: '"13c2:300a" in pci or "13c2:300b" in pci or {{ force_dvbhddevice|bool is True }}' 
   notify: [ 'Restart VDR' ]
 #+END_SRC
 ** TODO autoinstall-dvbsddevice
