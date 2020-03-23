@@ -6570,14 +6570,13 @@ dependencies:
       loop: "{{ dvbhddevice_firmware|dict2items }}"
       notify: [ 'reboot required' ]
         
-  when: '"13c2:300a" in pci or "13c2:300b" in pci or {{ force_dvbhddevice|bool is True }}' 
-  notify: [ 'Restart VDR' ]
+  when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool' 
 #+END_SRC
 ** autoinstall-dvbsddevice
 *** defaults
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/defaults/main.yml :padline no
 dvbsddevice_firmware:
-  - { src: 'https://linuxtv.org/downloads/firmware/dvb-ttpci-01.fw-2622', 'checksum': '482e49f8aac3fa5ea464230ea3f0cf27e298b62680c33636cb1bf442ad6fb067', 'name': 'dvb-ttpci-01.fw' }
+  - { src: 'https://linuxtv.org/downloads/firmware/dvb-ttpci-01.fw-2622', 'checksum': 'sha256:482e49f8aac3fa5ea464230ea3f0cf27e298b62680c33636cb1bf442ad6fb067', 'name': 'dvb-ttpci-01.fw' }
 #+END_SRC
 *** dependencies
 #+BEGIN_SRC yaml :tangle roles/autoinstall-dvbsddevice/meta/main.yml :padline no
