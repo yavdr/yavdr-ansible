@@ -42,9 +42,9 @@
 - name: disable services for the user session
   systemd:
     name: "{{ item }}"
-    state: started
-    masked: no
-    enabled: yes
+    state: stopped
+    masked: yes
+    enabled: no
     scope: user
   become: yes
   become_user: vdr
@@ -56,3 +56,4 @@
     - pulseaudio.service
     - yavdr-frontend.service
     - wm-exit.service
+  ignore_errors: yes
