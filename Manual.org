@@ -2364,7 +2364,7 @@ dependencies:
 
 - name: enable services for the user session
   systemd:
-    name: {{ item }}
+    name: "{{ item }}"
     state: started
     masked: no
     enabled: yes
@@ -2377,10 +2377,10 @@ dependencies:
 
 - name: disable services for the user session
   systemd:
-    name: {{ item }}
-    state: started
-    masked: no
-    enabled: yes
+    name: "{{ item }}"
+    state: stopped
+    masked: yes
+    enabled: no
     scope: user
   become: yes
   become_user: vdr
@@ -2392,6 +2392,7 @@ dependencies:
     - pulseaudio.service
     - yavdr-frontend.service
     - wm-exit.service
+  ignore_errors: yes
 #+END_SRC
 *** templates
 **** Systemd Service
