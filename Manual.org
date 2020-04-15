@@ -116,6 +116,7 @@
   - [[#dvd][dvd]]
   - [[#vdr-epg-daemon][vdr-epg-daemon]]
   - [[#install-sundtek][install-sundtek]]
+  - [[#channel-logos][channel logos]]
   - [[#channelpedia-upload][channelpedia upload]]
   - [[#template-test][template-test]]
   - [[#wakeup][wakeup]]
@@ -7027,6 +7028,72 @@ disable_analogtv=1                                      #disable initialization 
 {% endif %}
 {% endfor %}
 {% endif %}
+#+END_SRC
+
+** channel logos
+This role loads the channel logos from https://github.com/Jasmeet181/mediaportal-de-logos and links them to ~/var/lib/vdr/channellogos~. Please note, that all files in this directory will be replaced by this role.
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/channellogos/tasks/main.yml :padline no
+- name: apt | install dependencies
+  apt:
+    name:
+      - git
+      - python3-lxml
+    state: present
+
+- name: copy channel_linker script
+  template:
+    src: roles/channellogos/files/channel_linker.py.j2
+    dest: /usr/local/bin/channel_linker
+    mode: 0755
+
+- name: get current mediaportal channel logos
+  git:
+    repo: https://github.com/Jasmeet181/mediaportal-de-logos.git
+    dest: /usr/local/lib/mediaportal-de-logos
+    clone: yes
+    depth: 1
+    update: yes
+
+- name: update channel logo links
+  command: /usr/local/bin/channel_linker
+#+END_SRC
+
+*** templaces
+#+BEGIN_SRC python :tangle roles/channellogos/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
+{{ ansible_managed | comment }}
+import shutil
+from collections import defaultdict
+from pathlib import Path
+from lxml import etree
+
+
+origin = Path("/usr/local/lib/mediaportal-de-logos")
+target = Path("/var/lib/vdr/channellogos")
+shutil.rmtree(target)
+target.mkdir(parents=True, exist_ok=True)
+
+tree = etree.parse(str(origin / "LogoMapping.xml"))
+channels = defaultdict(set)                                                                                                                                  
+for t in ("TV", "Radio"):
+    base_path = Path(origin) / Path(t) / "Dark"
+    for channel in tree.xpath(f'{t}/Channel'):
+        for channel_item in channel.findall("Item"):
+            channel_name = channel_item.get("Name")
+            channel_file = base_path / Path(channel.find("File").text)
+            suffix = channel_file.suffix
+            channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
+
+for channel_logo, channel_names in channels.items():
+    for channel_name in channel_names:
+        try:
+            channel_name.parent.mkdir(parents=True, exist_ok=True)
+            channel_name.symlink_to(channel_logo)
+        except IOError as err:
+            if err.errno == 17:
+                pass
+            else:
+                print(err)
 #+END_SRC
 ** channelpedia upload
 This role requires three variables to be set (otherwise it won't do anything):

@@ -1,0 +1,23 @@
+- name: apt | install dependencies
+  apt:
+    name:
+      - git
+      - python3-lxml
+    state: present
+
+- name: copy channel_linker script
+  template:
+    src: roles/channellogos/files/channel_linker.py.j2
+    dest: /usr/local/bin/channel_linker
+    mode: 0755
+
+- name: get current mediaportal channel logos
+  git:
+    repo: https://github.com/Jasmeet181/mediaportal-de-logos.git
+    dest: /usr/local/lib/mediaportal-de-logos
+    clone: yes
+    depth: 1
+    update: yes
+
+- name: update channel logo links
+  command: /usr/local/bin/channel_linker
