@@ -9,3 +9,19 @@ required_packages=(
 )
 apt update
 apt -y install "${required_packages[@]}"
+
+MITOGEN_DIR='/usr/local/lib/mitogen'
+
+if [ ! -e "$MITOGEN_DIR" ]; then
+        git clone 'https://github.com/dw/mitogen.git' "$MITOGEN_DIR"
+else
+        {
+                cd "$MITOGEN_DIR"
+                git pull
+        }
+fi
+
+if [ -e "${MITOGEN_DIR}/ansible_mitogen/plugins/strategy" ]; then
+        export ANSIBLE_STRATEGY_PLUGINS="${MITOGEN_DIR}/ansible_mitogen/plugins/strategy"
+        export ANSIBLE_STRATEGY=mitogen_linear
+fi
