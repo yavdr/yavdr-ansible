@@ -15,9 +15,7 @@ MITOGEN_DIR='/usr/local/lib/mitogen'
 if [ ! -e "$MITOGEN_DIR" ]; then
     git clone 'https://github.com/dw/mitogen.git' "$MITOGEN_DIR"
 else
-    pushd "$MITOGEN_DIR"
-    git pull
-    popd
+    git -C "$MITOGEN_DIR" pull
 fi
 
 if [ -e "${MITOGEN_DIR}/ansible_mitogen/plugins/strategy" ]; then
