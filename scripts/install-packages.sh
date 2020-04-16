@@ -13,12 +13,11 @@ apt -y install "${required_packages[@]}"
 MITOGEN_DIR='/usr/local/lib/mitogen'
 
 if [ ! -e "$MITOGEN_DIR" ]; then
-        git clone 'https://github.com/dw/mitogen.git' "$MITOGEN_DIR"
+    git clone 'https://github.com/dw/mitogen.git' "$MITOGEN_DIR"
 else
-        {
-                cd "$MITOGEN_DIR"
-                git pull
-        }
+    pushd "$MITOGEN_DIR"
+    git pull
+    popd
 fi
 
 if [ -e "${MITOGEN_DIR}/ansible_mitogen/plugins/strategy" ]; then
