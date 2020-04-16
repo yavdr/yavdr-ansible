@@ -252,7 +252,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    #- channellogos-de            # use channellogos provided by https://github.com/Jasmeet181/mediaportal-de-logos 
+    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos - set the variable channellogos_languages approopriately
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
     - kodi
     - dvd                        # set up packages and a udev rule to allow kodi and other players
@@ -7006,8 +7006,7 @@ channellogo_languages: []
   loop: "{{ channellogo_languages }}"
 
 - name: update channel logo links
-  command: /usr/local/bin/channel_linker
-    argv: "{{ channellogo_languages }}"
+  command: /usr/local/bin/channel_linker "{{ channellogo_languages | map('quote') | join(' ') }}"
 #+END_SRC
 
 *** templaces
@@ -7058,7 +7057,10 @@ for language in languages:
         for channel in tree.xpath(f'{t}/Channel'):
             for channel_item in channel.findall("Item"):
                 channel_name = channel_item.get("Name")
-                channel_file = base_path / Path(channel.find("File").text)
+                channel_file_node = channel.find("File")
+                if channel_file_node is None:
+                    continue
+                channel_file = base_path / Path(channel_file_node.text)
                 suffix = channel_file.suffix
                 channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
 

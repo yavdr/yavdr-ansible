@@ -45,7 +45,10 @@ for language in languages:
         for channel in tree.xpath(f'{t}/Channel'):
             for channel_item in channel.findall("Item"):
                 channel_name = channel_item.get("Name")
-                channel_file = base_path / Path(channel.find("File").text)
+                channel_file_node = channel.find("File")
+                if channel_file_node is None:
+                    continue
+                channel_file = base_path / Path(channel_file_node.text)
                 suffix = channel_file.suffix
                 channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
 
