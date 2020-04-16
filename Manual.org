@@ -14,6 +14,7 @@
   - [[#nfs][NFS]]
   - [[#samba][Samba]]
   - [[#additional-packages][Additional packages]]
+  - [[#channellogos][Channellogos]]
   - [[#system-pre-configuration][System pre-configuration]]
   - [[#serial-ir][Serial IR]]
 - [[#roles][Roles]]
@@ -252,7 +253,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos - set the variable channellogos_languages approopriately
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos 
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
     - kodi
     - dvd                        # set up packages and a udev rule to allow kodi and other players
@@ -419,6 +421,27 @@ extra_packages:
   - plymouth-theme-yavdr-logo
   - vdrpbd
 
+#+END_SRC
+** Channellogos
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+# choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
+# currently suported langugages/regions are: au, be, cz, de, es, fi, ie, il, it, nordic, nz, ru, uk, us
+#
+#channellogo_languages:
+#  - au
+#  - be
+#  - cz
+#  - de
+#  - es
+#  - fi
+#  - ie
+#  - il
+#  - it
+#  - nordic
+#  - nz
+#  - ru
+#  - uk
+#  - us
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
