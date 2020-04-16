@@ -252,7 +252,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-de-logos 
+    #- channellogos-de            # use channellogos provided by https://github.com/Jasmeet181/mediaportal-de-logos 
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
     - kodi
     - dvd                        # set up packages and a udev rule to allow kodi and other players
@@ -6975,7 +6975,7 @@ disable_analogtv=1                                      #disable initialization 
 ** channel logos
 This role loads the channel logos from https://github.com/Jasmeet181/mediaportal-de-logos and links them to ~/var/lib/vdr/channellogos~. Please note, that all files in this directory will be replaced by this role.
 *** tasks
-#+BEGIN_SRC yaml :tangle roles/channellogos/tasks/main.yml :padline no
+#+BEGIN_SRC yaml :tangle roles/channellogos-de/tasks/main.yml :padline no
 - name: apt | install dependencies
   apt:
     name:
@@ -7002,7 +7002,7 @@ This role loads the channel logos from https://github.com/Jasmeet181/mediaportal
 #+END_SRC
 
 *** templaces
-#+BEGIN_SRC python :tangle roles/channellogos/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
+#+BEGIN_SRC python :tangle roles/channellogos-de/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
 {{ ansible_managed | comment }}
 import shutil
 from collections import defaultdict
