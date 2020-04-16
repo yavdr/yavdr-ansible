@@ -7061,15 +7061,16 @@ logo_dir = {
     "us": "Simple200",
 }
 
-shutil.rmtree(target, ignore_errors=True)
-target.mkdir(parents=True, exist_ok=True)
-
 languages = []
 for lang in sys.argv[1:]:
     if lang in logo_dir:
         languages.append(lang)
     else:
         print(f"language {lang} is not supported")
+
+if languages:
+    shutil.rmtree(target, ignore_errors=True)
+    target.mkdir(parents=True, exist_ok=True)
 
 for language in languages:
     origin = Path(f"/usr/local/lib/mediaportal-{language}-logos")
