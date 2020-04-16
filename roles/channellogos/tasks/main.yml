@@ -13,11 +13,13 @@
 
 - name: get current mediaportal channel logos
   git:
-    repo: https://github.com/Jasmeet181/mediaportal-de-logos.git
-    dest: /usr/local/lib/mediaportal-de-logos
+    repo: "https://github.com/Jasmeet181/mediaportal-{{ item }}-logos.git"
+    dest: "/usr/local/lib/mediaportal-{{ item }}-logos"
     clone: yes
     depth: 1
     update: yes
+  loop: "{{ channellogo_languages }}"
 
 - name: update channel logo links
   command: /usr/local/bin/channel_linker
+    argv: "{{ channellogo_languages }}"

@@ -6974,8 +6974,15 @@ disable_analogtv=1                                      #disable initialization 
 
 ** channel logos
 This role loads the channel logos from https://github.com/Jasmeet181/mediaportal-de-logos and links them to ~/var/lib/vdr/channellogos~. Please note, that all files in this directory will be replaced by this role.
+*** default
+#+BEGIN_SRC yaml :tangle roles/channellogos/defaults/main.yml
+---
+# file: roles/channellogos/defaults/main.yml
+
+channellogo_languages: []
+#+END_SRC
 *** tasks
-#+BEGIN_SRC yaml :tangle roles/channellogos-de/tasks/main.yml :padline no
+#+BEGIN_SRC yaml :tangle roles/channellogos/tasks/main.yml :padline no
 - name: apt | install dependencies
   apt:
     name:
@@ -6991,52 +6998,80 @@ This role loads the channel logos from https://github.com/Jasmeet181/mediaportal
 
 - name: get current mediaportal channel logos
   git:
-    repo: https://github.com/Jasmeet181/mediaportal-de-logos.git
-    dest: /usr/local/lib/mediaportal-de-logos
+    repo: "https://github.com/Jasmeet181/mediaportal-{{ item }}-logos.git"
+    dest: "/usr/local/lib/mediaportal-{{ item }}-logos"
     clone: yes
     depth: 1
     update: yes
+  loop: "{{ channellogo_languages }}"
 
 - name: update channel logo links
   command: /usr/local/bin/channel_linker
+    argv: "{{ channellogo_languages }}"
 #+END_SRC
 
 *** templaces
-#+BEGIN_SRC python :tangle roles/channellogos-de/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
+#+BEGIN_SRC python :tangle roles/channellogos/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
 {{ ansible_managed | comment }}
 import shutil
+import sys
 from collections import defaultdict
 from pathlib import Path
 from lxml import etree
 
 
-origin = Path("/usr/local/lib/mediaportal-de-logos")
 target = Path("/var/lib/vdr/channellogos")
+
+logo_dir = {
+    "au": "Simple200",
+    "be": "Simple200",
+    "cz": "Simple200",
+    "de": "Dark",
+    "es": "Simple200",
+    "fi": "Simple200",
+    "ie": "Simple200",
+    "il": "Simple200",
+    "it": "Simple200",
+    "nordic": "Dark",
+    "nz": "Simple200",
+    "ru": "Simple",
+    "uk": "Simple200",
+    "us": "Simple200",
+}
 
 shutil.rmtree(target, ignore_errors=True)
 target.mkdir(parents=True, exist_ok=True)
 
-tree = etree.parse(str(origin / "LogoMapping.xml"))
-channels = defaultdict(set)                                                                                                                                  
-for t in ("TV", "Radio"):
-    base_path = Path(origin) / Path(t) / "Dark"
-    for channel in tree.xpath(f'{t}/Channel'):
-        for channel_item in channel.findall("Item"):
-            channel_name = channel_item.get("Name")
-            channel_file = base_path / Path(channel.find("File").text)
-            suffix = channel_file.suffix
-            channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
+languages = []
+for lang in sys.argv[1:]:
+    if lang in logo_dir:
+        languages.append(lang)
+    else:
+        print(f"language {lang} is not supported")
 
-for channel_logo, channel_names in channels.items():
-    for channel_name in channel_names:
-        try:
-            channel_name.parent.mkdir(parents=True, exist_ok=True)
-            channel_name.symlink_to(channel_logo)
-        except IOError as err:
-            if err.errno == 17:
-                pass
-            else:
-                print(err)
+for language in languages:
+    origin = Path(f"/usr/local/lib/mediaportal-{language}-logos")
+    tree = etree.parse(str(origin / "LogoMapping.xml"))
+    channels = defaultdict(set)
+    for t in ("TV", "Radio"):
+        base_path = Path(origin) / Path(t) / logo_dir[language]
+        for channel in tree.xpath(f'{t}/Channel'):
+            for channel_item in channel.findall("Item"):
+                channel_name = channel_item.get("Name")
+                channel_file = base_path / Path(channel.find("File").text)
+                suffix = channel_file.suffix
+                channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
+
+    for channel_logo, channel_names in channels.items():
+        for channel_name in channel_names:
+            try:
+                channel_name.parent.mkdir(parents=True, exist_ok=True)
+                channel_name.symlink_to(channel_logo)
+            except IOError as err:
+                if err.errno == 17:
+                    pass
+                else:
+                    print(err)
 #+END_SRC
 ** channelpedia upload
 This role requires three variables to be set (otherwise it won't do anything):
