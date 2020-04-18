@@ -1,9 +1,5 @@
 {{ ansible_managed | comment }}
 
-{% if serial_ir_device == "ttyS0" %}
-#COM1 equivalent, /dev/ttyS0
-/dev/ttyS0 uart none
-{% elif serial_ir_device == "ttyS1" %}
-#COM2 equivalent, /dev/ttyS1
-/dev/ttyS1 uart none
+{% if serial_ir_device in serial_ir_data %}
+/dev/{{serial_ir_device}} uart none
 {% endif %}

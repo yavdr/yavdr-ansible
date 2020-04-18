@@ -325,6 +325,7 @@ repositories:
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # properties of the user vdr and vdr-related options
 # NOTE: user name, uid and confdir must match the values set by the vdr package
 vdr:
@@ -385,6 +386,7 @@ vdr_plugins:
 #+END_SRC
 ** Media directories
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
 media_dirs:
   audio: /srv/audio
@@ -397,6 +399,7 @@ media_dirs:
 #+END_SRC
 ** NFS
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
 
@@ -425,6 +428,7 @@ extra_packages:
 #+END_SRC
 ** Channellogos
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
 # currently suported langugages/regions are: au, be, cz, de, es, fi, ie, il, it, nordic, nz, ru, uk, us
 #
@@ -446,6 +450,7 @@ extra_packages:
 #+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 frontend: vdr
 
 # vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
@@ -510,8 +515,10 @@ lifeguard_tcp:
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 
 # Serial device to configure for a homebrew receiver.
-# Choose either ttyS0 (COM1) or ttyS1 (COM2)
-# Also ensure that the role serial-ir is enabled in yavdr07.yml
+# Choose one of the devices predefined in the variable serial_ir_data in roles/serial-ir/defaults/main.yml
+# ttyS0 (COM1), ttyS1 (COM2), ttyS2(COM3) or ttyS3 (COM4)
+# or customize the variable as needed
+#
 serial_ir_device: ttyS0
 #+END_SRC
 * Roles
@@ -6609,12 +6616,31 @@ As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps
 ---
 # file: roles/serial-ir/defaults/main.yml
 
-serial_ir_device: ttyS0
+serial_ir_device: ''
+
+serial_ir_data:
+  ttyS0:
+    irq: 4
+    io: '0x3f8'
+  ttyS1:
+    irq: 3
+    io: '0x2f8'
+  ttyS2:
+    irq: 3
+    io: '0x3e8'
+  ttyS3:
+    irq: 4
+    io: '0x2e8'
+
 #+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/serial-ir/tasks/main.yml
 ---
 # file: roles/serial-ir/tasks/main.yml
+- name: check if serial_ir_device is not empty and does not match devices defined in serial_ir_data
+  fail:
+    msg: "The serial device  {{ serial_ir_device }} is not defined in serial_ir_data"
+  when: serial_ir_device|length > 0 and serial_ir_device not in serial_ir_data
 
 - name: apt | install setserial
   apt:
@@ -6640,33 +6666,25 @@ serial_ir_device: ttyS0
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modules-load.d/serial_ir.conf.j2
 {{ ansible_managed | comment }}
 
+{% if serial_ir_device in serial_ir_data %}
 serial_ir
+{% endif %}
 #+END_SRC
 **** serial_ir module options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modprobe.d/serial_ir.conf.j2
 {{ ansible_managed | comment }}
 
-{% if serial_ir_device == "ttyS0" %}
-#COM1 equivalent, /dev/ttyS0
-options serial_ir irq=4 io=0x3f8
-{% elif serial_ir_device == "ttyS1" %}
-#COM2 equivalent, /dev/ttyS1
-options serial_ir irq=3 io=0x2f8
-{% endif %}
-{% if serial_ir_device in ("ttyS0", "ttyS1") %}
-install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe --ignore-install serial_ir
+{% if serial_ir_device in serial_ir_data %}
+options serial_ir irq={{ serial_ir_data[serial_ir_device].irq }} io={{ serial_ir_data[serial_ir_device].io }}
+install serial_ir setserial /dev/{{ serial_ir_device }} uart none; /sbin/modprobe --ignore-install serial_ir
 {% endif %}
 #+END_SRC
 **** setserial options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/serial.conf.j2
 {{ ansible_managed | comment }}
 
-{% if serial_ir_device == "ttyS0" %}
-#COM1 equivalent, /dev/ttyS0
-/dev/ttyS0 uart none
-{% elif serial_ir_device == "ttyS1" %}
-#COM2 equivalent, /dev/ttyS1
-/dev/ttyS1 uart none
+{% if serial_ir_device in serial_ir_data %}
+/dev/{{serial_ir_device}} uart none
 {% endif %}
 #+END_SRC
 ** kodi
