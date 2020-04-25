@@ -20,10 +20,12 @@ Please note that this is still work in progress and several features of yaVDR 0.
 
 Set up a Ubuntu Server 20.04.x Installation and install `openssh-server`.
 
-NOTE: it is recommended to use the [alternative server installer](http://cdimage.ubuntu.com/ubuntu-server/daily/current/focal-server-amd64.iso), otherwise plymouth and Xorg won't work properly until `cloud-init` has been disabled  - the playbook will try to do this automatically, but depending on the drivers used you might need to reboot the pc and run the playbook again so the xorg autodetection can function properly.
+NOTE: Since there is no alternative server installer for Ubuntu 20.04 anymore and the new ubiquity installer has to be used, the playbook needs to deconfigure and uninstall the `cloud-init` package - depending on the drivers used you might need to reboot the pc and run the playbook again so the xorg autodetection can function properly.
 
 ### Download yavdr-ansible
 NOTE: It is recommended to use a SSH connection to run the playbook, especially if a nvidia card is used (in order to change from the nouveau to the nvidia driver the local console output needs to be disabled temporarily).
+
+NOTE: The install script uses [mitogen for ansible]{https://networkgenomics.com/ansible/} to speed up the playbook execution. The playbook directory must be readable by all users on the system, so don't put it in a directory under `/root/` or other directories with access restrictions.
 
 Run the following commands to download the current version of yavdr-ansible:
 ```
