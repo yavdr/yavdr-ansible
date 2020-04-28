@@ -30,9 +30,8 @@ NOTE: The install script uses [mitogen for ansible]{https://networkgenomics.com/
 Run the following commands to download the current version of yavdr-ansible:
 ```
 sudo apt-get install git
-git clone https://github.com/yavdr/yavdr-ansible
+git clone -b focal https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
-git checkout focal
 ```
 
 ### Customizing the Playbooks and Variables
