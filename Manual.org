@@ -1428,7 +1428,7 @@ Set up IP resp. IP range based access for VDR plugins
 
 #+begin_src jinja2 :tangle roles/vdr/templates/conf.d/02-vdr-charset-override.conf.j2
 {{ ansible_managed | comment }}
-{% if vdr.override_vdr_charset | bool %}
+{% if vdr.override_vdr_charset | default("") | length > 0 %}
 [vdr]
 --chartab={{ vdr.override_vdr_charset }}
 {% endif %}
