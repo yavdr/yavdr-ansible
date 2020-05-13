@@ -11,7 +11,7 @@
 
 - name: apt | install kodi-send (team-xbmc PPA)
   apt:
-    name: "kodi-eventclients-xbmc-send" # team-xbmc uses "kodi-eventclients-xbmc-send for some reason
+    name: "kodi-eventclients-kodi"
     state: present
     install_recommends: no
   register: team_xbmc_ppa
@@ -19,7 +19,7 @@
 
 - name: apt | install kodi-send (Ubuntu package)
   apt:
-    name: "kodi-eventclients-kodi-send" # fallback to ubuntu package
+    name: "kodi-eventclients-xbmc-send" # fallback to old xbmc-send package
     state: present
     install_recommends: no
   when: team_xbmc_ppa.failed
