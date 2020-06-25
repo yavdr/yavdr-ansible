@@ -168,7 +168,7 @@
   block:
     - name: apt | install vdr-plugin-streamdev-client
       apt:
-        state: '{{"present" if streamdev_client_remote_ip else "absent"}}'
+        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         name: "vdr-plugin-streamdev-client"
     - name: set streamdev-client.RemoteIp
       lineinfile:
@@ -187,7 +187,7 @@
         create: yes
         path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemotePort"
-        line: "streamdev-client.RemotePort = {{streamdev_client_remote_port | default(2004)}}"
+        line: "streamdev-client.RemotePort = {{ streamdev_client_remote_port | default(2004) }}"
 
     - name: set streamdev-client.NumProvidedSystems
       lineinfile:
@@ -196,7 +196,7 @@
         create: yes
         path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.NumProvidedSystems"
-        line: "streamdev-client.NumProvidedSystems = {{streamdev_client_num_provided_systems | default(1)}}"
+        line: "streamdev-client.NumProvidedSystems = {{ streamdev_client_num_provided_systems | default(1) }}"
 
     - name: set streamdev-client.StartClient
       lineinfile:
@@ -217,6 +217,7 @@
   template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
+  notify: ["Reload Units"]
 - name: create snippet with yavdr commands
   template:
     src: templates/command-hooks/commands.yavdr.conf.j2

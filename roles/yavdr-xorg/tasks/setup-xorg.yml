@@ -14,26 +14,31 @@
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service after plymouth.service
   template:
     src: templates/x@service.d/plymouth.conf.j2
     dest: /etc/systemd/system/x@.service.d/plymouth.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
+  notify: ["Reload Units"]
 
 - name: vdr-config | create softhddevice.conf if it doesn't exist yet
   lineinfile:

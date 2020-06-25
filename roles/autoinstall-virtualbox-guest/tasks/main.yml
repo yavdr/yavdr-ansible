@@ -21,21 +21,31 @@
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
 
+# TODO: replace by a role to allow proper frontend selection
+
 - name: set xineliboutput as frontend
   block:
-    - apt:
+    - name: set xineliboutput as preferred frontend
+      set_fact:
+        preferred_frontend: "xineliboutput"
+    - name: install xinelibouput and vdr-sxfe
+      apt:
         name:
           - vdr-plugin-xineliboutput
           - xineliboutput-sxfe
         state: present
-    - command: '{{ item }}'
-      loop:
-        - vdrctl disable softhddevice
-        - vdrctl disable vaapidevice
-        - vdrctl disable xine
-        - vdrctl disable pvr350
-        - vdrctl enable xineliboutput
-      ignore_errors: yes
+    - name: set vdr_output_plugin variable
+      set_fact:
+        automatically_installed_output_plugin: vdr-plugin-xineliboutput
+    #- name: disable other output plugins
+    #  command: '{{ item }}'
+    #  loop:
+    #    - vdrctl disable softhddevice
+    #    - vdrctl disable vaapidevice
+    #    - vdrctl disable xine
+    #    - vdrctl disable pvr350
+    #    - vdrctl enable xineliboutput
+    #  ignore_errors: yes
   when:
     - ansible_virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
     - ansible_virtualization_role == "guest"

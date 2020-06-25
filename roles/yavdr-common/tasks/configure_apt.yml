@@ -12,6 +12,17 @@
   loop: "{{ repositories|flatten(levels=1) }}"
   tags:
     - ppa
+  when: ansible_architecture is match("x86_.*")
+
+- name: add PPAs for Raspberry Pi
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: no
+  loop: "{{ rpi_repositories|flatten(levels=1) }}"
+  tags:
+    - ppa
+  when: ansible_architecture == 'armv7l'
 
 - name: run apt-get dist-upgrade
   apt:

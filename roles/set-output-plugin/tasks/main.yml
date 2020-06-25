@@ -1,0 +1,85 @@
+- name: show vdr_output_plugin
+  debug:
+    var: vdr_output_plugin
+    verbosity: 1
+
+- name: show automatically_installed_output_plugin
+  debug:
+    var: automatically_installed_output_plugin
+    verbosity: 1
+
+- name: apt | install the output plugin
+  apt:
+    state: present
+    name: '{{ vdr_output_plugin | default(automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice")) }}'
+
+- name: show selected_frontend
+  debug:
+    var: selected_frontend
+    verbosity: 1
+
+- name: show preferred_frontend
+  debug:
+    var: preferred_frontend
+
+- name: show active_output_plugin
+  debug:
+    msg: 'active_output_plugin is: {{ selected_frontend | default(preferred_frontend) | default("") }}'
+    verbosity: 1
+
+
+- name: set active output plugin
+  set_fact:
+    active_output_plugin: '{{ selected_frontend | default(preferred_frontend) | default("") }}'
+
+- name: set disabled output plugins
+  set_fact:
+    disabled_output_plugins: '{{ known_output_plugins | difference([active_output_plugin]) | list }}'
+  when: active_output_plugin | length > 0
+
+- name: show disabled_output_plugins
+  debug:
+    var: q('list', disabled_output_plugins)
+    verbosity: 1
+
+- name: disable unused output plugins
+  command: "vdrctl disable {{ item }}"
+  loop: '{{ disabled_output_plugins }}'
+  #ignore_errors: yes
+  register: vdrctl
+  failed_when:
+    - vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
+  when: disabled_output_plugins is defined
+
+- name: enable chosen output plugin
+  command: vdrctl enable {{ active_output_plugin }}
+  #ignore_errors: yes
+  register: vdrctl
+  failed_when:
+    - vdrctl.rc != 0 and 'is already linked to' not in vdrctl.stderr
+  when: active_output_plugin | length > 0
+
+#known_frontends:
+#  xineliboutput_sxfe:
+#    plugin_name: xineliboutput
+#    plugin_options: ""
+#    packages:
+#      - vdr-plugin-xineliboutput
+#      - xineliboutput-sxfe
+#  softhddevice_cuvid:
+#    plugin_name: softhddevice
+#    plugin_options: |
+#      -D
+#      -a pulse 
+#      -w alsa-driver-broken
+#      -v cuvid
+#    packages:
+#      - vdr-plugin-softhddevice-cuvid
+#  softhddevice:
+#    plugin_name: softhddevice
+#    plugin_options: |
+#      -D
+#      -a pulse
+#      -w alsa-driver-broken
+#    packages:
+#      - vdr-plugin-softhddevice

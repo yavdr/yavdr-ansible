@@ -16,10 +16,16 @@
   apt:
     name: cloud-init
     state: absent
+- name: check if bash is the default sh shell
+  stat:
+    path: /usr/bin/sh
+  register: default_shell
+
 - name: use bash instead of dash
   shell: |
     echo "set dash/sh false" | debconf-communicate
     dpkg-reconfigure -f noninteractive dash
+  when: default_shell.stat.lnk_target == '/usr/bin/bash'
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
@@ -73,3 +79,8 @@
     name: '{{ extra_packages }}'
     state: present
     install_recommends: no
+
+- name: apt | install plymouth-theme-yavdr-logo on x86 architectures
+  apt:
+    name: plymouth-theme-yavdr-logo
+  when: ansible_architecture is match("x86_.*")

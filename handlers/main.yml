@@ -4,6 +4,10 @@
 - name: Trigger Udev
   command: 'udevadm trigger '
 
+- name: Reload Units
+  systemd:
+    daemon_reload: yes
+
 - name: Restart Samba
   systemd:
     name: smbd.service
@@ -39,6 +43,7 @@
     name: vdr.service
     state: restarted
     enabled: yes
+    daemon_reload: yes
   register: vdr_restart
 
 - name: Stop VDR
@@ -53,6 +58,7 @@
     name: vdr.service
     state: started
     enabled: yes
+    daemon_reload: yes
   register: vdr_start
 
 - name: Start yavdr-xorg

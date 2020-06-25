@@ -5,7 +5,16 @@
   block:
     - name: add firmware files for DVBSky if a card has been detected
       set_fact:
-        dvbsky_firmware_files: ['dvb-demod-m88ds3103.fw', 'dvb-demod-m88rs6000.fw', 'dvb-tuner-si2158-a20-01.fw', 'dvb-demod-si2168-a20-01.fw', 'dvb-demod-si2168-a30-01.fw', 'dvb-demod-si2168-b40-01.fw', 'dvb-fe-ds300x.fw', 'dvb-fe-ds3103.fw', 'dvb-fe-rs6000.fw']
+        dvbsky_firmware_files:
+           - 'dvb-demod-m88ds3103.fw'
+           - 'dvb-demod-m88rs6000.fw'
+           - 'dvb-tuner-si2158-a20-01.fw'
+           - 'dvb-demod-si2168-a20-01.fw'
+           - 'dvb-demod-si2168-a30-01.fw'
+           - 'dvb-demod-si2168-b40-01.fw'
+           - 'dvb-fe-ds300x.fw'
+           - 'dvb-fe-ds3103.fw'
+           - 'dvb-fe-rs6000.fw'
       when:
         - '"1ade:3038" in pci'
   when:
@@ -13,24 +22,24 @@
 
 - name: Download firmware for DVBSky cards and copy required files to /lib/firmware
   block:
-    # download and extract firmware
-    - unarchive:
+    - name: download and extract firmware
+      unarchive:
         src: http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
         dest: /tmp/
         remote_src: yes
 
-    # copy firmware file
-    - copy:
-        src: "/tmp/dvbsky-firmware/{{ item }}"
-        dest: /lib/firmware/
-        owner: root
-        group: root
-        mode: 0644
+    - name: copy firmware file
+      copy:
+         src: "/tmp/dvbsky-firmware/{{ item }}"
+         dest: /lib/firmware/
+         owner: root
+         group: root
+         mode: 0644
       with_items: '{{ dvbsky_firmware_files }}'
       notify: ['Trigger Udev']
 
-    # Remove temporary files
-    - file:
+    - name: Remove temporary files
+      file:
         path: /tmp/dvbsky-firmware
         state: absent
   when:

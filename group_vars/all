@@ -39,11 +39,19 @@ wait_for_dvb_devices: []
 # download channels.conf from a given url (supports HTTP(S) and FTP)
 # vdr_channels_conf_url: http://example.com/vdr/channels.conf
 
+# choose the vdr output plugin (defaults to vdr-plugin-softhddevice resp. vdr-plugin-rpihddevice)
+# vdr_output_plugin: vdr-plugin-softhddevice
+
 # add the vdr plugins you want to install
 vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad
-  - vdr-plugin-softhddevice
+
+# set the name of the output plugin (as used by vdrctl) - this defaults to softhddevice on x64 platforms and rpihddevice on Raspberry Pi 2 and 3
+# selected_frontend: softhddevice
+
+# set the package name of the output plugin - this defaults to vdr-plugin-softhddevice on x64 platforms and vdr-plugin-rpihddevice on Raspberry Pi 2 and 3
+# vdr_output_plugin: vdr-plugin-softhddevice-cuvid
 
 # IP (range) filter for vdr and plugins (this must be an array):
 # vdr_allowed_hosts:
@@ -86,7 +94,6 @@ extra_packages:
   - vim
   - w-scan
   - t2scan
-  - plymouth-theme-yavdr-logo
   - vdrpbd
 # choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
 # currently suported langugages/regions are: au, be, cz, de, es, ie, il, it, nordic, nz, ru, uk, us
@@ -170,3 +177,18 @@ lifeguard_tcp:
 # or customize the variable as needed
 #
 serial_ir_device: ttyS0
+# Key for the MPEG2-Decoder
+#rpi_decode_mpg2: 0xdeadbeef
+
+# Key for the wvc1-Decoder
+#rpi_decode_wvc1: 0xdeadbeef
+
+# Pin for the GPIO remote receiver
+# rpi_ir_gpio_pin: 24
+
+# Pin for the GPIO remote sender (needs additional lirc configuration,
+# which is at the moment beyond the scope of this playbook)
+# rpi_ir_gpio_pin_tx: 13
+
+# Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
+# rpi_gpu_mem = 256

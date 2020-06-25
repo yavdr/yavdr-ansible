@@ -1,0 +1,16 @@
+{{ansible_managed | comment }}
+# Place "config.txt" changes (dtparam, dtoverlay, disable_overscan, etc.) in
+# this file. Please refer to the README file for a description of the various
+# configuration files on the boot partition.
+{% if rpi_decode_mpg2 is defined %}
+decode_MPG2={{ rpi_decode_mpg2 }}
+{% endif %}
+{% if rpi_decode_wvc1 is defined %}
+decode_WVC1={{ rpi_decode_wvc1 }}
+{% endif %}
+{% if rpi_ir_gpio_pin is defined %}
+dtoverlay=gpio-ir-recv,gpio_pin={{ rpi_ir_gpio_pin }}
+{% endif %}
+{% if rpi_ir_gpio_pin_tx is defined %}
+dtoverlay=gpio-ir-recv-tx,gpio_pin={{ rpi_ir_gpio_pin_tx }}
+{% endif %}
