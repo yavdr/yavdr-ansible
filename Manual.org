@@ -286,21 +286,67 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - samba-config
     - nfs-server
     - grub-config
-    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
-    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
-    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     #- epgd                      # install vdr-epg-daemon
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos 
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
     - wakeup
   tags:
     - always
   handlers:
     - import_tasks: handlers/main.yml
 #+END_SRC
+** yavdr07-rpi.yml
+VDR-only setup for Raspberry Pi 2 and 3. At least 1 GB of RAM is recommended.
+Please note that kodi is not available at the moment.
+#+begin_src yaml :tangle yavdr07-rpi.yml
+---
+# file: yavdr07-rpi.yml
+# this playbook set up a yaVDR 0.7 installation on a Raspberry Pi 2 or 3
+# please note that kodi is not available at the moment
+
+- name: set up a headless yaVDR server
+  hosts: all
+  become: true
+  roles:
+    - yavdr-common
+    - collect-facts              # query system facts
+    - vdr
+    - rpi                        # install rpihddevice and let vdr run on tty7
+    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
+    - headless-session           # set up a headless systemd user session, e.g. for udiskie
+    - yavdr-remote
+    - yavdr-network
+    #- samba-install
+    #- samba-config
+    #- nfs-server
+    - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
+    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+    - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+    - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+    - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+    - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+    - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
+    #- epgd                      # install vdr-epg-daemon
+    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    #- wakeup
+    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
+                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
+  tags:
+    - always
+  handlers:
+    - import_tasks: handlers/main.yml
+#+end_src
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
