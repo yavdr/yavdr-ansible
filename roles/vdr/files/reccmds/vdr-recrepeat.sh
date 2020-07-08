@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 #------------------------------------------------------------------------------
 # this script allows searching for a repeat of a recording using epgsearch
 # add the following lines to your reccmds.conf
