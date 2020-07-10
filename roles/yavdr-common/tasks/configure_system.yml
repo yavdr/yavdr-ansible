@@ -25,7 +25,7 @@
   shell: |
     echo "set dash/sh false" | debconf-communicate
     dpkg-reconfigure -f noninteractive dash
-  when: default_shell.stat.lnk_target == '/usr/bin/bash'
+  when: default_shell.stat.lnk_target != '/usr/bin/bash'
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
