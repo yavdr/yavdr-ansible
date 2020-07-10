@@ -808,7 +808,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
   shell: |
     echo "set dash/sh false" | debconf-communicate
     dpkg-reconfigure -f noninteractive dash
-  when: default_shell.stat.lnk_target == '/usr/bin/bash'
+  when: default_shell.stat.lnk_target != '/usr/bin/bash'
 #+END_SRC
 
 ***** create user vdr
@@ -1861,26 +1861,22 @@ User9     @softhddevice Blue 2 5 # toggle autocrop
 **** VDR helper scripts
 ***** removeresume
 This script deletes all =resume= and =resume.*= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -type f -name "resume" -o name "resume.*" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 -type f \( -name "resume" -o name "resume.*" \) -delete
 #+end_src
 ***** removeindex
 This script deletes all =index= and =index.vdr= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -name "index" -o -name "index.vdr" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 \( -name "index" -o -name "index.vdr" \) -delete
 #+end_src
 ***** removemarks
 This script deletes all =marks= and =marks.vdr= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -name "marks" -o -name "marks.vdr" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 \( -name "marks" -o -name "marks.vdr" \) -delete
 #+end_src
 ***** recrepeat
 This script allows to search for repeats of a recording using epgsearch
-#+begin_src shell :tangle roles/vdr/files/reccmds/vdr-recrepeat.sh
-#!/bin/bash
+#+begin_src shell :tangle roles/vdr/files/reccmds/vdr-recrepeat.sh :shebang #!/usr/bin/bash
 #------------------------------------------------------------------------------
 # this script allows searching for a repeat of a recording using epgsearch
 # add the following lines to your reccmds.conf
