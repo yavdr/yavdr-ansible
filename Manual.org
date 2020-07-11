@@ -212,7 +212,7 @@ export ANSIBLE_PIPELINING=1
 ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
-#+BEGIN_SRC shell :tangle install-yavdr-rpi.sh :shebang "#!/bin/bash"
+#+BEGIN_SRC shell :tangle install-yavdr-rpi.sh :shebang "#!/usr/bin/bash"
 set -e
 
 if (( $EUID != 0 )); then
@@ -950,7 +950,7 @@ Allow the vdr user to restart ~vdr.service~ and reboot the system
 #+END_SRC
 **** suspend hooks
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-common/templates/system-sleep_yavdr.j2 :mkdirp yes :padline no
-#!/bin/bash
+#!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 case $1 in
@@ -1094,8 +1094,7 @@ if __name__ == '__main__':
 #+END_SRC
 *** MOTD
 **** Header
-#+begin_src shell :tangle roles/yavdr-common/templates/update-motd.d/00-header.j2 :mkdirp yes :padline no
-#!/bin/sh
+#+begin_src shell :tangle roles/yavdr-common/templates/update-motd.d/00-header.j2 :mkdirp yes :padline no :shebang #!/bin/sh
 #
 #    00-header - create the header of the MOTD
 #    Copyright (C) 2009-2010 Canonical Ltd.
@@ -2676,7 +2675,7 @@ This role installs and preconfigures udiskie
 #+END_SRC
 *** templates
 **** config.yml
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/config.yml.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 program_options:
@@ -2703,7 +2702,7 @@ notifications:
   device_removed:   true   # device has disappeared
 #+END_SRC
 **** mount helper script
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 videodir="{{ vdr.recdir }}"
@@ -2751,7 +2750,7 @@ case "$event" in
 esac
 #+END_SRC
 **** udiskie snippet for commands.conf
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/umount_all.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 {{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
@@ -4019,8 +4018,7 @@ Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 **** initramfs EDID hook
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2
-#!/bin/bash
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2 :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 # This hook copies EDID files with the naming scheme "edid.${OUTPUT}.bin" to the initramfs.
 
@@ -4246,14 +4244,13 @@ XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
 #+END_SRC
 ***** .xinitrc
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no :shebang #!/usb/bin/bash
 {{ ansible_managed | comment }}
 exec openbox-session
 #+END_SRC
 **** openbox
 ***** autostart
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/usr/bin/bash
 # forward environment variables to an environment file and the systemd user session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
@@ -5961,8 +5958,7 @@ Wants=dbus.service pulseaudio.service
 AllowIsolate=yes
 #+END_SRC
 ***** detect-second-display
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no :shebang #!/usr/bin/bash
 source <(systemctl --user show-environment)
 SECOND_DISPLAY="${DISPLAY%\.[0-9]*}.1"
 if xrandr -d "$SECOND_DISPLAY" -q | grep -q "connected"; then
@@ -5986,8 +5982,7 @@ WantedBy=yavdr-desktop.target
 #+END_SRC
 ***** switch-displays
 This script exchanges the primary and secondary screen. It needs access to the systemd user session.
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no :shebang #!/usr/bin/bash
 source <(systemctl --user show-environment)
 [[ "$DISPLAY" =~ \.1$ ]] && DISPLAY="${DISPLAY%.1}.0" || DISPLAY="${DISPLAY%.0}.1"
 
@@ -7951,8 +7946,7 @@ intel_boot_options: ""
   notify: [ 'Update GRUB' ]
 #+END_SRC
 *** templates
-#+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no
-#!/bin/sh
+#+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no :shebang #!/usr/bin/sh
 {{ ansible_managed | comment }}
 
 exec tail -n +3 $0
