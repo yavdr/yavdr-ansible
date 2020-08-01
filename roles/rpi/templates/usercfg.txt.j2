@@ -12,5 +12,14 @@ decode_WVC1={{ rpi_decode_wvc1 }}
 dtoverlay=gpio-ir,gpio_pin={{ rpi_ir_gpio_pin }}
 {% endif %}
 {% if rpi_ir_gpio_pin_tx is defined %}
-dtoverlay=gpio-ir-recv-tx,gpio_pin={{ rpi_ir_gpio_pin_tx }}
+dtoverlay=gpio-ir-tx,gpio_pin={{ rpi_ir_gpio_pin_tx }}
+{% endif %}
+{% if rpi_ir_pwm_pin_tx is defined %}
+dtoverlay=pwm-ir-tx,gpio_pin={{ rpi_ir_pwm_pin_tx }}
+{% endif %}
+{# Allow for arbitrary entries #}
+{% if rpi_user_config_line is defined %}
+{% for item in rpi_user_config_line %}
+{{ item }}
+{% endfor %}
 {% endif %}
