@@ -58,6 +58,7 @@
   - [[#pulseaudio][pulseaudio]]
 - [[#yavdr-xorg][yavdr-xorg]]
   - [[#yavdr-desktop][yavdr-desktop]]
+  - [[#osd2web][osd2web]]
   - [[#samba-install][samba-install]]
   - [[#samba-config][samba-config]]
   - [[#autoinstall-ubuntu-drivers][autoinstall-ubuntu-drivers]]
@@ -272,6 +273,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     - yavdr-xorg                 # graphical session
     - yavdr-remote               # remote configuration files, services and scripts
     - yavdr-desktop              # openbox session with yavdr frontend script
+    - osd2web                     # set up osd2web and view it in a browser if a second display is detected
     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
@@ -1612,19 +1614,19 @@ User9     @softhddevice Blue 2 5 # toggle autocrop
 This script deletes all =resume= and =resume.*= files of the given recording
 #+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh
 #!/bin/dash
-find "$1" -maxdepth 1 -type f -name "resume" -o name "resume.*" -delete
+find "$1" -maxdepth 1 -type f \( -name "resume" -o name "resume.*" \) -delete
 #+end_src
 ***** removeindex
 This script deletes all =index= and =index.vdr= files of the given recording
 #+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh
 #!/bin/dash
-find "$1" -maxdepth 1 -name "index" -o -name "index.vdr" -delete
+find "$1" -maxdepth 1 \( -name "index" -o -name "index.vdr" \) -delete
 #+end_src
 ***** removemarks
 This script deletes all =marks= and =marks.vdr= files of the given recording
 #+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh
 #!/bin/dash
-find "$1" -maxdepth 1 -name "marks" -o -name "marks.vdr" -delete
+find "$1" -maxdepth 1 \( -name "marks" -o -name "marks.vdr" \) -delete
 #+end_src
 ***** recrepeat
 This script allows to search for repeats of a recording using epgsearch
@@ -2758,7 +2760,6 @@ nvidia_force_dpi: 0
       - python3-yavdrfrontend
       - tmux
       - vdr-plugin-desktop
-      - vdr-plugin-osd2web
       - feh
     state: present
 
@@ -3599,14 +3600,6 @@ exit 0
     mode: 0644
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-
-- name: create osd2web.service for the session
-  template:
-    src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0644
 
 - name: create irexec configuration for the session
   block:
@@ -5616,6 +5609,53 @@ begin
     button = KEY_HOME
     config = frontend-dbus-send switchbetween kodi vdr
 end
+#+END_SRC
+
+** osd2web
+This role installs and configures osd2web to be displayed on a second display (if one exists).
+*** meta
+#+BEGIN_SRC yaml :tangle roles/osd2web/meta/main.yml :mkdirp yes :padline no
+---
+dependencies:
+    - { role: yavdr-desktop}
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/osd2web/tasks/main.yml :mkdirp yes :padline no
+---
+- name: apt | install vdr-plugin-osd2web
+  apt:
+    name: vdr-plugin-osd2web
+    state: present
+
+- name: expand osd2web.service from template for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
+#+END_SRC
+
+*** templates
+#+BEGIN_SRC yaml :tangle roles/osd2web/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+Environment=browser="kiosk-browser"
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target
 #+END_SRC
 ** samba-install
 *** tasks

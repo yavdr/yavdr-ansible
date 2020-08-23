@@ -1,0 +1,13 @@
+---
+- name: apt | install vdr-plugin-osd2web
+  apt:
+    name: vdr-plugin-osd2web
+    state: present
+
+- name: expand osd2web.service from template for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
