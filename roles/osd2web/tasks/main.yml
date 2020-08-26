@@ -11,3 +11,13 @@
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
+
+- name: activate and start systemd unit osd2web.service
+  systemd:
+    name: osd2web.service
+    state: running
+    daemon_reload: yes
+    masked: no
+    enabled: yes
+  become: yes
+  become_user: {{ vdr.user }}
