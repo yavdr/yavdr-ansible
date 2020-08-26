@@ -3706,19 +3706,21 @@ feh --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 enabled_services=(
     "tmux.service" "detect-second-display.service"
-    "openbox-second.service" "osd2web.service"
+    "openbox-second.service" {% if "osd2web" in ansible_role_names %}"osd2web.service"{% endif %}
     "yavdr-frontend.service" "pulseaudio.socket"
     "pulseaudio.service" "wm-exit.service" "irexec.service")
-disabled_services=()
+disabled_services=(
+    {% if "osd2web" not in ansible_role_names %}"osd2web.service"{% endif %}
+)
 
 # enable configured services for the user session
 for service in "${enabled_services[@]}"; do
-  systemctl --user enable "$service"
+  systemctl --user enable "$service" ||:
 done
 
 # disable unwanted services for the user session
 for service in "${disabled_services[@]}"; do
-  systemctl --user disable "$service"
+  systemctl --user disable "$service" ||:
 done
 
 if which dbus-update-activation-environment >/dev/null 2>&1; then
@@ -5544,25 +5546,6 @@ ExecStartPost=/bin/bash %h/.fehbg
 [Install]
 WantedBy=yavdr-desktop.target
 #+END_SRC
-***** osd2web.service
-#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start a kiosk browser on the second DISPLAY if it exists
-After=detect-second-display.service openbox-second.service
-Wants=detect-second-display.service openbox-second.service
-ConditionFileNotEmpty=%h/.second_display
-
-[Service]
-EnvironmentFile=%h/.second_display
-Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
-Environment=browser="kiosk-browser"
-EnvironmentFile=-%h/.config/osd2web/config
-ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
-KillSignal=SIGINT
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
 ***** tmux.service
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/tmux.service.j2 :mkdirp yes :padline no
 [Unit]
@@ -5640,6 +5623,7 @@ dependencies:
 #+END_SRC
 
 *** templates
+***** osd2web.service
 #+BEGIN_SRC yaml :tangle roles/osd2web/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment }}
 [Unit]
