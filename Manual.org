@@ -36,6 +36,7 @@
   - [[#udiskie][udiskie]]
   - [[#yavdr-xorg][yavdr-xorg]]
   - [[#yavdr-desktop][yavdr-desktop]]
+  - [[#osd2web][osd2web]]
   - [[#samba-install][samba-install]]
   - [[#samba-config][samba-config]]
   - [[#autoinstall-ubuntu-drivers][autoinstall-ubuntu-drivers]]
@@ -256,6 +257,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     - yavdr-xorg                 # graphical session
     - yavdr-remote               # remote configuration files, services and scripts
     - yavdr-desktop              # openbox session with yavdr frontend script
+    - osd2web                    # configure osd2web to run on the second display if there is any
     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
@@ -4159,14 +4161,6 @@ dependencies:
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create osd2web.service for the session
-  template:
-    src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0644
-
 - name: create irexec configuration for the session
   block:
     - name: expand template for irexec.service
@@ -4258,7 +4252,7 @@ feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 enabled_services=(
     "detect-second-display.service"
-    "openbox-second.service" "osd2web.service"
+    "openbox-second.service"
     "yavdr-frontend.service" "pulseaudio.socket"
     "pulseaudio.service" "wm-exit.service" "irexec.service")
 disabled_services=()
@@ -6009,25 +6003,6 @@ ExecStartPost=/usr/bin/feh --no-fehbg --bg-center "/usr/share/yavdr/images/yavdr
 [Install]
 WantedBy=yavdr-desktop.target
 #+END_SRC
-***** osd2web.service
-#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start a kiosk browser on the second DISPLAY if it exists
-After=detect-second-display.service openbox-second.service
-Wants=detect-second-display.service openbox-second.service
-ConditionFileNotEmpty=%h/.second_display
-
-[Service]
-EnvironmentFile=%h/.second_display
-Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
-Environment=browser={{"kiosk-browser" if nvidia_detected | bool else "firefox --no-remote --kiosk --private-window"  }}
-EnvironmentFile=-%h/.config/osd2web/config
-ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
-KillSignal=SIGINT
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
 ***** wm-exit.service
 #+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/wm-exit.service.j2 :mkdirp yes :padline no
 [Unit]
@@ -6061,6 +6036,64 @@ begin
     button = KEY_HOME
     config = frontend-dbus-send switchbetween kodi vdr
 end
+#+END_SRC
+
+** osd2web
+This role installs and configures osd2web to be displayed on a second display (if one exists).
+*** meta
+#+BEGIN_SRC yaml :tangle roles/osd2web/meta/main.yml :mkdirp yes :padline no
+---
+dependencies:
+    - { role: yavdr-desktop}
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/osd2web/tasks/main.yml :mkdirp yes :padline no
+---
+- name: apt | install vdr-plugin-osd2web
+  apt:
+    name: vdr-plugin-osd2web
+    state: present
+
+- name: expand osd2web.service from template for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
+- name: activate and start systemd unit osd2web.service
+  systemd:
+    name: 'osd2web.service'
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    scope: user
+    state: started
+  become: yes
+  become_user: "{{ vdr.user }}"
+#+END_SRC
+
+*** templates
+***** osd2web.service
+#+BEGIN_SRC yaml :tangle roles/osd2web/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+Environment=browser={{"kiosk-browser" if nvidia_detected | bool else "firefox --no-remote --kiosk --private-window"  }}
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target
 #+END_SRC
 ** samba-install
 *** tasks
