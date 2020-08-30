@@ -810,7 +810,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
   shell: |
     echo "set dash/sh false" | debconf-communicate
     dpkg-reconfigure -f noninteractive dash
-  when: default_shell.stat.lnk_target != '/usr/bin/bash'
+  when: default_shell.stat.lnk_source | default("") != '/usr/bin/bash'
 #+END_SRC
 
 ***** create user vdr
