@@ -34,7 +34,7 @@ NOTE: Since there is no alternative server installer for Ubuntu 20.04 anymore an
 ### Download yavdr-ansible
 NOTE: It is recommended to use a SSH connection to run the playbook, especially if a nvidia card is used (in order to change from the nouveau to the nvidia driver the local console output needs to be disabled temporarily).
 
-NOTE: The install script uses [mitogen for ansible]{https://networkgenomics.com/ansible/} to speed up the playbook execution. The playbook directory must be readable by all users on the system, so don't put it in a directory under `/root/` or other directories with access restrictions.
+NOTE: The install script uses [mitogen for ansible](https://networkgenomics.com/ansible/) to speed up the playbook execution. The playbook directory must be readable by all users on the system, so don't put it in a directory under `/root/` or other directories with access restrictions.
 
 Run the following commands to download the current version of yavdr-ansible:
 ```
