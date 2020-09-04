@@ -2716,8 +2716,8 @@ mount_path="$3"
 logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
 case "$event" in
     'device_mounted')
-        [[ "$mount_path" =~ ^/media/vdr/ ]] || {
-            logger -t "skip mount event" "ignoring mounts outside /media/vdr/"
+        [[ "$mount_path" =~ ^/media/{{ vdr.user }}/ ]] || {
+            logger -t "skip mount event" "ignoring mounts outside /media/{{ vdr.user }}/"
             exit 0
         }
         target="${videodir}/$(basename "${mount_path}")"
