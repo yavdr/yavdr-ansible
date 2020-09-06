@@ -1565,11 +1565,13 @@ Set up IP resp. IP range based access for VDR plugins
 --chartab={{ vdr.override_vdr_charset }}
 {% endif %}
 #+end_src
-**** Systemd Drop-in to start vdr.service after network-online.target
+**** Systemd Drop-in to start vdr.service after network-online.target and network.target
+~After=network-online.target~ is neccessary to prevent problems with vdr-plugins which expect to connect to a server during startup.
+~After=network.target~ is necessary to prevent the network to be deconfigured during shutdown before the vdr process exits.
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
 {{ansible_managed | comment }}
 [Unit]
-After=network-online.target
+After=network-online.target network.target
 #+END_SRC
 **** /etc/default/vdr
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
