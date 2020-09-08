@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+# ------------------------------------
+# Configuration of SAT>IP Plugin
+# ------------------------------------
+
+# satip - SAT>IP Devices
+#
+#  -d <num>, --devices=<number>  set number of devices to be created
+#  -s <ipaddr>|<model>|<desc>, --server=<ipaddr1>|<model1>|<desc1>;<ipaddr2>|<model2>|<desc2>
+#                                define hard-coded SAT>IP server(s)
+#  -s 192.168.6.237|DVBS2-4|OctopusNet
+#  -s 192.168.6.237|DVBS2-2,DVBT2-2|OctopusNet
+[satip]
+{% if plugin_satip_devices is defined %}
+--devices={{ plugin_satip_devices }}
+{% endif %}

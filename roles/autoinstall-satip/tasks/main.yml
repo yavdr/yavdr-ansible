@@ -14,3 +14,13 @@
     state: present
   when: satip_devices | length > 0
   notify: [ 'Restart VDR' ]
+
+- name: copy file | satip.conf if a Sat>IP server has been detected
+  template:
+    src: templates/satip.conf.j2
+    dest: /etc/vdr/conf.avail/satip.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: satip_devices | length > 0
+  notify: [ 'Restart VDR' ]
