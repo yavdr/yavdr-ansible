@@ -2818,6 +2818,117 @@ Missing steps:
 - [ ] X-Server configuration for AMD graphics cards
 - [ ] load edids by setting kernel boot arguments
 
+**** TODO AMD-GPUs
+***** Beispiel-Konfiguration
+#+begin_src conf
+Section "ServerLayout"
+	Identifier     "X.org Configured"
+	Screen      0  "Screen0" 0 0
+	Screen      1  "Screen1" RightOf "Screen0"
+EndSection
+
+Section "Monitor"
+	Identifier   "Monitor0"
+	Modeline "1920x1080_60"  148.50 1920 2008 2052 2200 1080 1084 1089 1125 +hsync +vsync
+	Modeline "3840x2160_60"  533.25 3840 3888 3920 4000 2160 2163 2168 2222 +hsync -vsync
+	Modeline "1920x1080_60"  148.500 1920 2008 2052 2200 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1280x720_60"  74.250 1280 1390 1420 1650 720 725 730 750 +hsync +vsync
+	Modeline "720x480_60"  27.027 720 736 798 858 480 489 495 525 -hsync -vsync
+	Modeline "720x480_60"  27.027 720 736 798 858 480 489 495 525 -hsync -vsync
+	Modeline "1440x480_60"  54.054 1440 1472 1596 1716 480 489 495 525 -hsync -vsync
+	Modeline "1920x1080_50"  148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1920x1080_25"  74.250 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1920x1080_25"  74.250 1920 2448 2492 2640 1080 1082 1089 1125 +hsync +vsync interlace
+	Modeline "1280x720_50"  74.250 1280 1720 1760 1980 720 725 730 750 +hsync +vsync
+	Modeline "720x576_50"  27.000 720 732 796 864 576 581 586 625 -hsync -vsync
+	Modeline "1440x576_25"  27.000 1440 1464 1590 1728 576 578 581 625 -hsync -vsync interlace
+	Modeline "640x480_60"  25.200 640 656 752 800 480 490 492 525 -hsync -vsync
+	Modeline "2560x1440_60"  241.50 2560 2608 2640 2720 1440 1443 1448 1481 +hsync -vsync
+EndSection
+
+Section "Monitor"
+	Identifier   "Monitor1"
+	Option "Ignore" "true"
+EndSection
+
+Section "Device"
+        ### Available Driver options are:-
+        ### Values: <i>: integer, <f>: float, <bool>: "True"/"False",
+        ### <string>: "String", <freq>: "<f> Hz/kHz/MHz",
+        ### <percent>: "<f>%"
+        ### [arg]: arg optional
+        #Option     "Accel"              	# [<bool>]
+        #Option     "SWcursor"           	# [<bool>]
+        #Option     "EnablePageFlip"     	# [<bool>]
+        #Option     "SubPixelOrder"      	# [<str>]
+        #Option     "ZaphodHeads"        	# <str>
+        #Option     "AccelMethod"        	# <str>
+        #Option     "DRI3"               	# [<bool>]
+        #Option     "DRI"                	# <i>
+        #Option     "ShadowPrimary"      	# [<bool>]
+        #Option     "TearFree"           	# [<bool>]
+        #Option     "DeleteUnusedDP12Displays" 	# [<bool>]
+        #Option     "VariableRefresh"    	# [<bool>]
+	Identifier  "Card0"
+	Driver      "amdgpu"
+	Option	    "TearFree" "true"
+	Option      "DRI3" "true"
+	Option      "DRI" "3"
+	Option      "VariableRefresh" "true"
+	BusID       "PCI:10:0:0"
+EndSection
+
+Section "Device"
+        ### Available Driver options are:-
+        ### Values: <i>: integer, <f>: float, <bool>: "True"/"False",
+        ### <string>: "String", <freq>: "<f> Hz/kHz/MHz",
+        ### <percent>: "<f>%"
+        ### [arg]: arg optional
+        #Option     "Accel"              	# [<bool>]
+        #Option     "SWcursor"           	# [<bool>]
+        #Option     "EnablePageFlip"     	# [<bool>]
+        #Option     "SubPixelOrder"      	# [<str>]
+        #Option     "ZaphodHeads"        	# <str>
+        #Option     "AccelMethod"        	# <str>
+        #Option     "DRI3"               	# [<bool>]
+        #Option     "DRI"                	# <i>
+        #Option     "ShadowPrimary"      	# [<bool>]
+        #Option     "TearFree"           	# [<bool>]
+        #Option     "DeleteUnusedDP12Displays" 	# [<bool>]
+        #Option     "VariableRefresh"    	# [<bool>]
+	Identifier  "Card1"
+	Driver      "amdgpu"
+        Option      "TearFree" "true"
+	Option      "DRI3" "true"        
+	Option      "DRI" "3"
+        Option      "VariableRefresh" "true
+	BusID       "PCI:10:0:1"
+EndSection
+
+Section "Screen"
+	Identifier "Screen0"
+	Device     "Card0"
+	Monitor    "Monitor0"
+	SubSection "Display"
+		Viewport   0 0
+		Depth     24
+		Modes     "3840x2160_60"
+		#Modes     "1920x1080_60"
+	EndSubSection
+EndSection
+
+Section "Screen"
+	Identifier "Screen1"
+	Device     "Card1"
+	Monitor    "Monitor1"
+	SubSection "Display"
+		Viewport   0 0
+		Depth     24
+		#Modes     "3840x2160_60"
+	EndSubSection
+EndSection
+#+end_src
+
 **** DONE Nvidia-GPUs:read  EDID:
 :LOGBOOK:
 - State "DONE"       from "HOLD"       [2019-03-27 Mi 15:22]
@@ -3383,6 +3494,11 @@ nvidia_force_dpi: 0
     path: /etc/X11/xorg.conf.d/20-intel.conf
     state: absent
 
+- name: remove amd snippet
+  file:
+    path: /etc/X11/xorg.conf.d/20-amd.conf
+    state: absent
+
 - name: Stop VDR
   systemd:
     name: vdr.service
@@ -3565,6 +3681,13 @@ nvidia_force_dpi: 0
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
+- name: intel xorg config snippet
+  template:
+    src: templates/20-amd.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-amd.conf
+  when:
+    - amd_detected | bool and not nvidia_detected | bool
+
 - name: server flags config snippet to disable screen blanking
   template:
     src: templates/10-serverflags.conf.j2
@@ -3681,6 +3804,120 @@ EndSection
 ***** intel graphics xorg.conf snippet
 #+CAPTION: roles/yavdr-xorg/templates/20-intel.conf.j2
 #+INCLUDE: "roles/yavdr-xorg/templates/20-intel.conf.j2" src jinja2
+
+
+
+***** TODO AMD graphics xorg.conf snippet
+This seems pretty straight forward - but I need someone with an AMD GPU to test this...
+#+begin_src jinja2 :tangle roles/yavdr-xorg/templates/20-amd.conf.j2
+{{ ansible_managed | comment }}
+{% set primary_output = xorg.primary.connector|replace("-", "") %}
+{% if xorg.secondary is defined %}
+  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
+{% endif %}
+
+Section "Device"
+  Identifier  "Device0"
+  Driver      "amdgpu"
+  Option      "TearFree" "true"
+	Option      "VariableRefresh" "true"
+{% if xorg.secondary is defined %}
+  Option      "ZaphodHeads" "{{ primary_output }}"
+  Screen      0  
+{% endif %}
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Device"
+  Identifier  "Device1"
+  Driver      "amdgpu"
+  Option      "TearFree" "true"
+	Option      "VariableRefresh" "true"
+  Option      "ZaphodHeads" "{{ secondary_output }}"
+  Screen      1  
+EndSection
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+    Screen      1  "Screen1" RightOf "Screen0"
+EndSection
+{% endif %}
+
+Section "Screen"
+  Identifier  "Screen0"
+  Device      "Device0"
+  Monitor     "{{ primary_output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.primary.mode %}
+    Modes     "{{ xorg.primary.mode }}"
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Screen"
+  Identifier  "Screen1"
+  Device      "Device1"
+  Monitor     "{{ secondary_output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.secondary.mode %}
+    Modes     "{{ xorg.secondary.mode }}"
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+
+{% endif %}
+Section "Monitor"
+  Identifier  "{{ primary_output }}"
+{% if xrandr["Screen 0:"][xorg.primary.connector].modelines %}
+  {{ xrandr["Screen 0:"][xorg.primary.connector].modelines[xorg.primary.mode]|default("") }}
+{% elif xorg.primary.modelines %}
+{% for modeline in xorg.primary.modelines %}
+  {{ modeline }}
+{% endfor %}
+{% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+{% endif %}
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Monitor"
+  Identifier  "{{ secondary_output }}"
+{% if xorg.secondary.modelines %}
+{% for modeline in xorg.secondary.modelines %}
+  {{ modeline }}
+{% endfor %}
+{% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+{% endif %}
+EndSection
+
+{% endif %}
+{% for connector, data in xrandr["Screen 0:"].items() | list if not (
+    data.is_connected|bool or
+    connector == xorg.primary.connector or
+    (xorg.secondary is defined and connector == xorg.secondary.connector))
+ %}
+Section "Monitor"
+  Identifier "{{ connector|replace("-","") }}"
+  Option "Ignore" "true"
+EndSection
+
+{% endfor %}
+#+end_src
 ***** xorg.conf
 
 #+CAPTION: roles/yavdr-xorg/templates/xorg-verbose.conf.j2
