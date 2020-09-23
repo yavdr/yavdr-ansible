@@ -63,3 +63,16 @@
   notify: ['Trigger Udev']
   tags:
     - config
+
+
+- name: install dependencies for rc-core-learn.py
+  apt:
+    pkg:
+      - python3-evdev
+    state: present
+
+- name: expand template for rc-core-learn.py
+  template:
+    src:  templates/rc-core-learn.py.j2
+    dest: /usr/local/bin/rc-core-learn
+    mode: 0755
