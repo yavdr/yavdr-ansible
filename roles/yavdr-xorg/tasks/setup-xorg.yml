@@ -54,13 +54,8 @@
   loop:
       - '-D'
       - '-w alsa-driver-broken'
+      - '{{ "-v va-vapi" if (intel_detected and not nvidia_detected) else ("-v vdpau" if (nvidia_detected or amd_detected) else "# -v none") }}'
       # - '-a pulse' # do we need this with our existing asound.conf?
-
-- name: vdr-config | use vaapi for softhddevice if we got an intel IGP
-  lineinfile:
-    path: /etc/vdr/conf.avail/softhddevice.conf
-    line: '-v va-api'
-    state: '{{ "present" if (not nvidia_detected and intel_detected) else "absent" }}'
 
 - name: add a login shell for the user vdr
   user:
@@ -88,6 +83,25 @@
       - i965-va-driver-shaders
     state: present
   when: intel_detected | bool and not nvidia_detected | bool
+
+- name: add ppa:oibaf/graphics-drivers for up to date mesa drivers
+  apt_repository:
+    repo: ppa:oibaf/graphics-drivers
+  when: amd_detected | bool and not nvidia_detected | bool
+  register: oibaf_ppa
+
+- name: update package lists and all packages after adding ppa:oibaf/graphics-drivers
+  apt:
+    upgrade: dist
+    update_cache: yes
+  when: oibaf_ppa.changed
+
+- name: apt | install packages for AMD GPUs
+  apt:
+    name:
+      - mesa-vdpau-drivers
+    state: present
+  when: amd_detected | bool and not nvidia_detected | bool
 
 - name: Install yaVDR Media (e.g. Backgrounds)
   apt:
