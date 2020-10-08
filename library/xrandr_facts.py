@@ -257,8 +257,8 @@ def parse_edid_data(edid):
                 refresh = round(float(mode.pixelclock) * 1E6 /
                                 (float(mode.htotal) * float(mode.vtotal)))
                 interlaced = "i" if "Interlace" in mode.flags else ""
-                if interlaced:
-                    refresh /= 2
+                #if interlaced:
+                #    refresh /= 2
                 refresh = int(refresh)
                 modeline_name = f'"{mode.hdisp}x{mode.vdisp}_{refresh}{interlaced}"'
                 modelines.append(f'"Modeline" {modeline_name} {line}')
