@@ -238,7 +238,7 @@ def parse_edid_data(edid):
             line = line.strip()
             if line.startswith("Manufacturer:"):
                 _, _, vendor = line.partition(': ')
-            elif line.startswith("Model:"):
+            elif line.startswith("Display Product Name:"):
                 _, _, model = line.partition(': ')
             elif line.startswith("Modeline"):
                 # For the fields of a modeline see
@@ -257,8 +257,6 @@ def parse_edid_data(edid):
                 refresh = round(float(mode.pixelclock) * 1E6 /
                                 (float(mode.htotal) * float(mode.vtotal)))
                 interlaced = "i" if "Interlace" in mode.flags else ""
-                #if interlaced:
-                #    refresh /= 2
                 refresh = int(refresh)
                 modeline_name = f'"{mode.hdisp}x{mode.vdisp}_{refresh}{interlaced}"'
                 modelines.append(f'"Modeline" {modeline_name} {line}')
