@@ -237,9 +237,9 @@ def parse_edid_data(edid):
         for line in data.splitlines():
             line = line.strip()
             if line.startswith("Manufacturer:"):
-                vendor = line.split('"')[1]
+                _, _, vendor = line.partition(': ')
             elif line.startswith("Model:"):
-                model = line.split('"')[1]
+                _, _, model = line.partition(': ')
             elif line.startswith("Modeline"):
                 # For the fields of a modeline see
                 # https://en.wikipedia.org/wiki/XFree86_Modeline
