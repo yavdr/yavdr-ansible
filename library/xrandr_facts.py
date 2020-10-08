@@ -228,18 +228,19 @@ def parse_edid_data(edid):
     model = "Unknown"
     modelines = []
     try:
-        data = subprocess.check_output("parse-edid < {}".format(edid),
-                                       shell=True, errors='replace', universal_newlines=True)
+        data = subprocess.check_output(["edid-decode", "-LnpsX", edid],
+                                       errors='replace',
+                                       universal_newlines=True)
     except subprocess.CalledProcessError:
         pass
     else:
         for line in data.splitlines():
             line = line.strip()
-            if "VendorName" in line:
+            if line.startswith("Manufacturer:"):
                 vendor = line.split('"')[1]
-            elif "ModelName" in line:
+            elif line.startswith("Model:"):
                 model = line.split('"')[1]
-            elif "Modeline" in line:
+            elif line.startswith("Modeline"):
                 # For the fields of a modeline see
                 # https://en.wikipedia.org/wiki/XFree86_Modeline
                 print(line)
@@ -259,10 +260,8 @@ def parse_edid_data(edid):
                 if interlaced:
                     refresh /= 2
                 refresh = int(refresh)
-                modeline_name = '"{}x{}_{}{}"'.format(mode.hdisp, mode.vdisp,
-                                                      refresh, "i" if interlaced else '')
-                modelines.append(" ".join(("Modeline", modeline_name,
-                                           line)))
+                modeline_name = f'"{mode.hdisp}x{mode.vdisp}_{refresh}{"i" if interlaced else ""}"'
+                modelines.append(f'"Modeline" {modeline_name} {line}')
     return vendor, model, modelines
 
 
