@@ -45,7 +45,38 @@
   when:
     vdr.hide_first_recording_level
 
+
 # TODO: set recdir, user etc. in /etc/vdr/conf.d/
+
+- name: set vdr instance to "{{ vdr.instance }}"
+  template:
+    src: templates/conf.d/06-vdr-instance.conf.j2
+    dest: /etc/vdr/conf.d/06-vdr-instance.conf
+  when:
+    - vdr.instance is defined
+
+- name: configure dbus for vdr instance "{{ vdr.instance }}"
+  vars:
+    inst_value: "{{ '' if vdr.instance == 0 else vdr.instance }}"
+  replace:
+    path: /etc/dbus-1/system.d/de.tvdr.vdr.conf
+    regexp: 'de.tvdr.vdr\d?'
+    replace: 'de.tvdr.vdr{{ inst_value }}'
+  when:
+    - vdr.instance is defined
+
+- name: configure vdr-dbus-send.sh for vdr instance "{{ vdr.instance }}"
+  vars:
+    inst_value: "{{ '' if vdr.instance == 0 else vdr.instance }}"
+  replace:
+    path: /usr/share/vdr-plugin-dbus2vdr/vdr-dbus-send.sh
+    regexp: 'de.tvdr.vdr\d?'
+    replace: 'de.tvdr.vdr{{ inst_value }}'
+  when:
+    - vdr.instance is defined
+
+
+
 - name: apt | install additional vdr plugins
   apt:
     name: '{{ vdr_plugins | default([]) }}'
