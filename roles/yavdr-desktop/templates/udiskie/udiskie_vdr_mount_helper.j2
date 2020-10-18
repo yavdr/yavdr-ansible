@@ -10,9 +10,15 @@ mount_path="$3"
 logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
 case "$event" in
     'device_mounted')
+        [[ "$mount_path" =~ ^/media/{{ vdr.user }}/ ]] || {
+            logger -t "skip mount event" "ignoring mounts outside /media/{{ vdr.user }}/"
+            exit 0
+        }
         target="${videodir}/$(basename "${mount_path}")"
-        ln -s -T "$mount_path" "$target" ||
-            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
+        ln -s -T "$mount_path" "$target" || {
+            logger -t "vdr recordings found" "mountpoint already exists, aborting"
+            exit
+        }
         # check if we got a vdr recording on the mountpoint
         if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
         then
