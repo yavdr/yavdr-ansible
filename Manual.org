@@ -678,6 +678,18 @@ repositories:
 rpi_repositories:
   - 'ppa:yavdr/experimental-rpi'
 #+END_SRC
+
+**** Locales and Timezone
+#+begin_src yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
+timezone: 'Europe/Berlin'
+default_locale: 'de_DE.UTF-8'
+generate_locales:  # see entries in /etc/locale.gen
+  - 'de_DE.UTF-8 UTF-8'
+  - 'en_US.UTF-8 UTF-8'
+language_packs:
+  - language-pack-de
+  - language-pack-en
+#+end_src
 **** Drivers
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
@@ -721,6 +733,21 @@ vdr_allowed_hosts: []
 
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 standby_reload_dvb: true
+#+END_SRC
+
+*** handlers
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/handlers/main.yml :mkdirp yes :padline no
+- name: reconfigure_tzdata
+  command: >
+      dpkg-reconfigure --frontend noninteractive tzdata
+
+- name: reconfigure_locales
+  command: >
+      dpkg-reconfigure --frontend noninteractive locales
+
+- name: reconfigure_dash
+  command: >
+      dpkg-reconfigure -f noninteractive dash
 #+END_SRC
 *** tasks
 yavdr-common executes the following tasks:
@@ -798,19 +825,68 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     name: cloud-init
     state: absent
 #+END_SRC
+***** locales and timezone
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
+- name: apt | ensure packages for tzdata and locales are installed
+  apt:
+    state: present
+    name:
+      - tzdata
+      - locales
+
+- name: apt | install language packs
+  apt:
+    state: present
+    name: '{{ language_packs }}'
+
+- name: debconf | set timezone
+  block:
+    - name: set timezone area
+      debconf:
+        name: tzdata
+        question: tzdata/Areas
+        value: "{{ timezone | dirname }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+    - name: set timezone city
+      debconf:
+        name: tzdata
+        question: tzdata/Zones/Europe
+        value: "{{ timezone | basename }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+- name: debconf | set default locale
+  debconf:
+    name: locales
+    question: locales/default_environment_locale
+    value: '{{ default_locale }}'
+    vtype: select
+  notify: reconfigure_locales
+
+- name: debconf | set locales to be generated
+  debconf:
+    name: locales
+    question: locales/locales_to_be_generated
+    value: "{{ generate_locales | join(', ') }}"
+    vtype: multiselect
+  notify: reconfigure_locales
+
+#+END_SRC
 ***** Use bash instead of dash
 ~dash~ is more limited than bash (albeit faster) - since vdr packages and addons ship with a lot of scripts, we use ~bash~ as the default shell.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
-- name: check if bash is the default sh shell
-  stat:
-    path: /usr/bin/sh
-  register: default_shell
-
 - name: use bash instead of dash
-  shell: |
-    echo "set dash/sh false" | debconf-communicate
-    dpkg-reconfigure -f noninteractive dash
-  when: default_shell.stat.lnk_source | default("") != '/usr/bin/bash'
+  debconf:
+    name: dash
+    question: dash/sh
+    value: 'false'
+    vtype: select
+  notify: reconfigure_dash
+
+- name: flush all handlers
+  meta: flush_handlers
 #+END_SRC
 
 ***** create user vdr
