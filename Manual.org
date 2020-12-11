@@ -10,6 +10,7 @@
 - [[#hosts][Hosts]]
 - [[#group-variables][Group Variables]]
   - [[#ppas][PPAs]]
+  - [[#locales-and-timezone][Locales and Timezone]]
   - [[#vdr-user-directories-special-configuration-and-plugins][VDR user, directories, special configuration and plugins]]
   - [[#media-directories][Media directories]]
   - [[#nfs][NFS]]
@@ -392,6 +393,17 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
 
+#+END_SRC
+** Locales and Timezone
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+timezone: 'Europe/Berlin'
+default_locale: 'de_DE.UTF-8'
+generate_locales:  # see entries in /etc/locale.gen
+  - 'de_DE.UTF-8 UTF-8'
+  - 'en_US.UTF-8 UTF-8'
+language_packs:
+  - language-pack-de
+  - language-pack-en
 #+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
