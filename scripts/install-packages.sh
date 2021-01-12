@@ -11,8 +11,8 @@ apt update
 apt -y install "${required_packages[@]}"
 
 # set the LANG environment variable - we need this for the ansible translation filter
-LANG=$(ansible localhost -m debug -a var='default_locale' | awk '/LANG/{print $2}' | xargs echo)
-export "$LANG"
+ansible_lang=$(ansible localhost -m debug -a var='default_locale' | awk '/default_locale/{print $2}' | xargs echo)
+export LANG="$ansible_lang"
 #MITOGEN_DIR='/usr/local/lib/mitogen'
 #
 #if [ ! -e "$MITOGEN_DIR" ]; then
