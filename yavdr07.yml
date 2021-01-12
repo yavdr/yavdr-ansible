@@ -5,6 +5,8 @@
 - name: set up yaVDR
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts

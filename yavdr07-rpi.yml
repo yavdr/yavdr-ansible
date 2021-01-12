@@ -6,6 +6,8 @@
 - name: set up a headless yaVDR server
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common
     - collect-facts              # query system facts
