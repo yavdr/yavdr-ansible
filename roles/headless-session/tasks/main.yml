@@ -18,7 +18,7 @@
   template:
     src: templates/systemd/headless-session@.service.j2
     dest: /etc/systemd/system/headless-session@.service
- 
+
 - name: start headless-session@.service for vdr user
   systemd:
     name: "headless-session@{{ vdr.user }}.service"
@@ -28,7 +28,7 @@
 
 - name: enable services for the user session
   systemd:
-    name: {{ item }}
+    name: "{{ item }}"
     state: started
     masked: no
     enabled: yes
@@ -41,10 +41,10 @@
 
 - name: disable services for the user session
   systemd:
-    name: {{ item }}
-    state: started
-    masked: no
-    enabled: yes
+    name: "{{ item }}"
+    state: stopped
+    masked: yes
+    enabled: no
     scope: user
   become: yes
   become_user: vdr
@@ -56,3 +56,4 @@
     - pulseaudio.service
     - yavdr-frontend.service
     - wm-exit.service
+  ignore_errors: yes

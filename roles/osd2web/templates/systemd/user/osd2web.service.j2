@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+Environment=browser={{"kiosk-browser" if nvidia_detected | bool else "firefox --no-remote --kiosk --private-window"  }}
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target

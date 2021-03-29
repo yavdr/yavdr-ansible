@@ -5,6 +5,7 @@
   template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
+  notify: ["Reload Units"]
 
 - name: "expand template for xorg-verbose.conf"
   template:
@@ -14,6 +15,11 @@
 - name: "remove intel snippet"
   file:
     path: /etc/X11/xorg.conf.d/20-intel.conf
+    state: absent
+
+- name: remove amd snippet
+  file:
+    path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
 - name: Stop VDR
@@ -197,6 +203,13 @@
     dest: /etc/X11/xorg.conf.d/20-intel.conf
   when:
     - intel_detected | bool and not nvidia_detected | bool
+
+- name: amd xorg config snippet
+  template:
+    src: templates/20-amd.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-amd.conf
+  when:
+    - amd_detected | bool and not nvidia_detected | bool
 
 - name: server flags config snippet to disable screen blanking
   template:

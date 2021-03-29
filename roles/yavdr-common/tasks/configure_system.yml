@@ -11,15 +11,66 @@
   ignore_errors: yes
   when:  cloud_init_debconf.changed
   # notify: ['rerun required']
-  
+
 - name: "apt | ensure package cloud-init is not installed"
   apt:
     name: cloud-init
     state: absent
+- name: apt | ensure packages for tzdata and locales are installed
+  apt:
+    state: present
+    name:
+      - tzdata
+      - locales
+
+- name: apt | install language packs
+  apt:
+    state: present
+    name: '{{ language_packs }}'
+
+- name: debconf | set timezone
+  block:
+    - name: set timezone area
+      debconf:
+        name: tzdata
+        question: tzdata/Areas
+        value: "{{ timezone | dirname }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+    - name: set timezone city
+      debconf:
+        name: tzdata
+        question: tzdata/Zones/Europe
+        value: "{{ timezone | basename }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+- name: debconf | set default locale
+  debconf:
+    name: locales
+    question: locales/default_environment_locale
+    value: '{{ default_locale }}'
+    vtype: select
+  notify: reconfigure_locales
+
+- name: debconf | set locales to be generated
+  debconf:
+    name: locales
+    question: locales/locales_to_be_generated
+    value: "{{ generate_locales | join(', ') }}"
+    vtype: multiselect
+  notify: reconfigure_locales
 - name: use bash instead of dash
-  shell: |
-    echo "set dash/sh false" | debconf-communicate
-    dpkg-reconfigure -f noninteractive dash
+  debconf:
+    name: dash
+    question: dash/sh
+    value: 'false'
+    vtype: select
+  notify: reconfigure_dash
+
+- name: flush all handlers
+  meta: flush_handlers
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
@@ -53,6 +104,7 @@
       #- biosdevname  # caution: may change device names after a minimal installation!
       - debconf-utils
       - linux-firmware
+      - pciutils
       - psmisc
       - python3-jmespath
       - python3-kmodpy
@@ -73,3 +125,8 @@
     name: '{{ extra_packages }}'
     state: present
     install_recommends: no
+
+- name: apt | install plymouth-theme-yavdr-logo on x86 architectures
+  apt:
+    name: plymouth-theme-yavdr-logo
+  when: ansible_architecture is match("x86_.*")

@@ -22,7 +22,7 @@
     checksum: sha256:213d98ec2cd575eba15d82ee79fed7098e670de43792f8aa773a95cfb7c32060
     dest: /lib/firmware/ngene_18.fw
   when: '"ngene" in modules'
-  notify: reboot required
+  notify: ['reboot required']
 
 - name: Firmware drxk_a3.mc for drxk
   get_url:
@@ -30,4 +30,12 @@
      checksum: sha256:f8956ad6f92a4ce90a6ab94ed23e2f9a27e9317e936fd3e0119778dd28e7e294
      dest: /lib/firmware/drxk_a3.mc
   when: '"ngene" in modules or "drxk" in modules'
-  notify: reboot required
+  notify: ['reboot required']
+
+- name: Firmware for Hauppauge Win-TV HVR-4000 and NOVA-HD-S2
+  get_url:
+    url: https://github.com/OpenELEC/dvb-firmware/blob/master/firmware/dvb-fe-cx24116.fw?raw=true
+    checksum: sha256:8fa49be12cf332b4c9b0379ef997be9ab6e193ae03aae55b39e033ae31e35da0
+    dest: /lib/firmware/dvb-fe-cx24116.fw
+  when: '"14f1:8802" in pci'
+  notify: ['reboot required']

@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+{{ ansible_managed | comment }}
+import functools
+import contextlib
+import signal
+import sys
+import time
+from argparse import ArgumentParser
+from pathlib import Path
+from evdev import InputDevice, ecodes
+
+BUTTONS = [
+        "KEY_OK",
+        "KEY_MENU",
+        "KEY_ESC",
+        "KEY_UP",
+        "KEY_DOWN",
+        "KEY_LEFT",
+        "KEY_RIGHT",
+        "KEY_RED",
+        "KEY_GREEN",
+        "KEY_YELLOW",
+        "KEY_BLUE",
+        "KEY_0",
+        "KEY_1",
+        "KEY_2",
+        "KEY_3",
+        "KEY_4",
+        "KEY_5",
+        "KEY_6",
+        "KEY_7",
+        "KEY_8",
+        "KEY_9",
+        "KEY_INFO",
+        "KEY_PLAY",
+        "KEY_PAUSE",
+        "KEY_STOP",
+        "KEY_RECORD",
+        "KEY_FASTFORWARD",
+        "KEY_REWIND",
+        "KEY_NEXT",
+        "KEY_BACK",
+        "KEY_POWER2",
+        "KEY_CHANNELUP",
+        "KEY_CHANNELDOWN",
+        "KEY_PREVIOUS",
+        "KEY_VOLUMEUP",
+        "KEY_VOLUMEDOWN",
+        "KEY_MUTE",
+        "KEY_SUBTITLE",
+        "KEY_EPG",
+        "KEY_CHANNEL",
+        "KEY_FAVORITES",
+        "KEY_MODE",
+        "KEY_TIME",
+        "KEY_PVR",
+        "KEY_SETUP",
+        "KEY_TEXT",
+        "KEY_PROG1",
+        "KEY_PROG2",
+        "KEY_PROG3",
+        "KEY_PROG4",
+        "KEY_AUDIO",
+        "KEY_VIDEO",
+        "KEY_IMAGES",
+        "KEY_FN",
+        "KEY_SCREEN",
+        ]
+
+RC_SYS_DEVICES = Path('/sys/class/rc/')
+DEVPATH = Path('/dev')
+debug = functools.partial(print, file=sys.stderr)
+
+
+def print_keymap(keytable, protocol, keys, output):
+    print(f"\n# table: {keytable}, type: {protocol}", file=output)
+    for keyname, scancode in keys.items():
+        print(f"{scancode:#06x} {keyname}", file=output)
+
+
+def read_from_device(dev):
+    def btn_generator():
+        for btn in BUTTONS:
+            yield btn
+        while True:
+            yield None
+
+    btn_gen = btn_generator()
+
+    keymap = {}
+    last_scancode = None
+    last_ts = float('inf')
+
+    button = next(btn_gen)
+    first_btn = button
+    with contextlib.closing(InputDevice(dev)) as dev:
+        debug(f"Please press a button for {button}")
+
+        for ev in dev.read_loop():
+            advance_button = False
+            if ev.type == ecodes.EV_MSC:
+                ts = ev.timestamp()
+                if (
+                    ev.value == keymap.get(first_btn)
+                    and last_scancode == keymap.get(first_btn)
+                    and ts - last_ts > .5
+                ):
+
+                    # skip button because user pressed KEY_OK
+                    # and it's not an unwanted repeat
+                    advance_button = True
+                    debug(f"skipped learning button {button}")
+                elif last_scancode == ev.value:
+                    # repeated key
+                    pass
+                elif ev.value != keymap.get(first_btn):
+                    if ev.value < 0:
+                        ev.value &= 0xffffffff
+                    debug(f"Got scancode {ev.value:#06x} for {button}.")
+                    advance_button = True
+                    keymap[button] = ev.value
+                    last_scancode = ev.value
+
+                last_ts = ts
+                last_scancode = ev.value
+
+            if advance_button:
+                button = next(btn_gen)
+                if button:
+                    debug(f"Please press a button for {button} (press KEY_OK to skip)")
+                else:
+                    break
+        return keymap
+
+
+def list_devices():
+    devices = []
+    for rc_device in RC_SYS_DEVICES.glob('rc*'):
+        device = {}
+        device["path"] = rc_device
+        device["sys"] = rc_device.name
+
+        with open(next(rc_device.glob('input*/event*/uevent'))) as f:
+            # read DEVNAME attribute (and others)
+            for line in f:
+                key, value = line.rstrip().split('=')
+                device[key] = value
+
+        with open(rc_device.joinpath('uevent')) as f:
+            for line in f:
+                key, value = line.rstrip().split('=')
+                device[key] = value
+
+        with open(rc_device.joinpath('protocols')) as f:
+            protocols = f.read().rstrip().split()
+            active_protocols = [p[1:-1] for p in protocols if (
+                p.startswith('[') and p != "[lirc]")]
+            inactive_protocols = [p for p in protocols if not p.startswith('[')]
+            device["protocols"] = protocols
+            device["inactive_protocols"] = inactive_protocols
+            device["active_protocols"] = active_protocols
+            devices.append(device)
+    return devices
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description="create keymaps for rc-core devices")
+    parser.add_argument('-p', '--protocol', metavar='PROTOCOL',
+                        help='set ir-protocol')
+    parser.add_argument('-d', '--device', metavar='DEVICE', default=None,
+                        help='ir device (e.g. rc0)')
+    parser.add_argument('-o', '--output', metavar='KEYMAP', default=None,
+                        help='write the keymap to this file instead of printing to stdout')
+    args = parser.parse_args()
+
+    devices = list_devices()
+    if not devices:
+        sys.exit("No rc-core devices found. Exiting.")
+    elif len(devices) == 1:
+        print(f"Using device {devices[0]['NAME']}", file=sys.stderr)
+        dev = devices[0]['path']
+        input_dev = devices[0]['DEVNAME']
+        keytable = devices[0]['NAME']
+        protocol = ",".join(devices[0]['active_protocols'])
+    else:
+        if args.device:
+            for d in devices:
+                if (d['sys'] == args.device
+                        or d['path'] == RC_SYS_DEVICES.joinpath(args.device)):
+                    dev = RC_SYS_DEVICES.joinpath(args.device)
+                    input_dev = d['DEVNAME']
+                    keytable = d['NAME']
+                    protocol = ",".join(d['active_protocols'])
+        else:
+            for i, d in enumerate(devices, start=1):
+                if not args.protocol:
+                    print(f"{i}) {d['DEV_NAME']} ({','.join(d.get('active_protocols'))})")
+                else:
+                    print(f"{i}) {d['DEV_NAME']}")
+            try:
+                dev_num = int(input("\tUse device numer: "))
+                if dev_num < 0 or dev_num > len(devices):
+                    raise ValueError
+                d = devices[dev_num - 1]
+            except (ValueError, IndexError):
+                sys.exit("invalid device number")
+            input_dev = d['DEVNAME']
+            keytable = d['NAME']
+            protocol = ",".join(d['active_protocols'])
+            dev = d['path']
+
+    # set ir-protocol(s)
+    if args.protocol:
+        try:
+            with open(dev.joinpath('protocols'), 'w') as f:
+                f.write(args.protocol)
+        except PermissionError as e:
+            sys.exit(f"Error: insifficient permissions to change protocol - are you root?")
+        except IOError as e:
+            sys.exit(f"Error: could not set protocol(s) to {args.protocol}: {e}")
+        protocol = args.protocol
+
+    input_dev = DEVPATH.joinpath(input_dev)
+    debug("using device: ", input_dev)
+
+    def signal_handler(signum, frame):
+        sys.exit()
+
+    for signame in {'SIGINT', 'SIGTERM'}:
+        signal.signal(
+            getattr(signal, signame),
+            signal_handler)
+    try:
+        keymap = read_from_device(input_dev)
+    except PermissionError as e:
+        sys.exit(f"Error: can't open {input_dev} - are you root?")
+    else:
+        if args.output:
+            with open(args.output, 'w') as output:
+                print_keymap(keytable, protocol, keymap, output)
+        else:
+            print_keymap(keytable, protocol, keymap, None)

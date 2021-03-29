@@ -1,64 +1,4 @@
 # -*- mode: org; -*-
-* Settings for Export :noexport:
-:DOCUMENT_OPTIONS:
-#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
-#+OPTIONS: ^:nil
-#+LANGUAGE: en
-# Local Variables:
-# org-src-preserve-indentation: t
-# End:
-#+PROPERTY: header-args :mkdirp yes :padline no
-#+TITLE: Ansible Playbooks for yaVDR 0.7
-#+Author: Alexander Grothe <seahawk1986@gmx.de>
-#+STARTUP: latexpreview
-#+LATEX_CLASS_OPTIONS: [english,a4paper,locale=DE,koma,palatino,DIV=15,BCOR=15mm]
-#+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
-#+LATEX_HEADER: \usepackage[ngerman]{babel}
-#+LATEX_HEADER: \usepackage{palatino}
-#+LATEX_HEADER: \usepackage{inconsolata}
-# #+LATEX_HEADER: \renewcommand*\ttdefault{pcr}
-#+LATEX_HEADER: \usepackage{rotating}
-#+LATEX_HEADER: \usepackage{paralist}
-#+LATEX_HEADER: \usepackage{booktabs}
-#+LATEX_HEADER: \usepackage{titlesec}
-#+LATEX_HEADER: \usepackage{url}
-#+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
-#+LATEX_HEADER: \usemintedstyle{lovelace}
-#+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
-#+LATEX_HEADER:         xleftmargin=17pt,
-#+LATEX_HEADER:         framexleftmargin=17pt,
-#+LATEX_HEADER:         framexrightmargin=5pt,
-#+LATEX_HEADER:         framexbottommargin=4pt,
-#+LATEX_HEADER:         breakatwhitespace=true,
-#+LATEX_HEADER: }
-#+LATEX: \defaultfontfeatures{Ligatures=TeX}
-#+LATEX_HEADER: \usepackage{parskip}
-#+LATEX_HEADER: \let\OldTexttt\texttt
-#+LATEX_HEADER: \renewcommand{\texttt}[1]{\OldTexttt{\path{#1}}}
-# #+LATEX_HEADER_EXTRA:
-#+BEGIN_SRC latex
-\newcommand*\justify{%
-  \fontdimen2\font=0.4em% interword space
-  \fontdimen3\font=0.2em% interword stretch
-  \fontdimen4\font=0.1em% interword shrink
-  \fontdimen7\font=0.1em% extra space
-  \hyphenchar\font=`\-% allowing hyphenation
-}
-
-\renewcommand{\texttt}[1]{%
-  \begingroup
-  \ttfamily
-  \begingroup\lccode`~=`/\lowercase{\endgroup\def~}{/\discretionary{}{}{}}%
-  \begingroup\lccode`~=`[\lowercase{\endgroup\def~}{[\discretionary{}{}{}}%
-  \begingroup\lccode`~=`.\lowercase{\endgroup\def~}{.\discretionary{}{}{}}%
-  \catcode`/=\active\catcode`[=\active\catcode`.=\active
-  \justify\scantokens{#1\noexpand}%
-  \endgroup
-}
-#+END_SRC
-
-#+EXCLUDE_TAGS: noexport
-:END:
 * Table of Contents                                       :toc:noexport:
 - [[#introduction][Introduction]]
 - [[#installing-and-configuring-yavdr-with-ansible][Installing and configuring yaVDR with Ansible]]
@@ -66,16 +6,20 @@
 - [[#playbooks][Playbooks]]
   - [[#yavdr07yml][yavdr07.yml]]
   - [[#yavdr07-headlessyml][yavdr07-headless.yml]]
+  - [[#yavdr07-rpiyml][yavdr07-rpi.yml]]
 - [[#hosts][Hosts]]
 - [[#group-variables][Group Variables]]
   - [[#ppas][PPAs]]
+  - [[#locales-and-timezone][Locales and Timezone]]
   - [[#vdr-user-directories-special-configuration-and-plugins][VDR user, directories, special configuration and plugins]]
   - [[#media-directories][Media directories]]
   - [[#nfs][NFS]]
   - [[#samba][Samba]]
   - [[#additional-packages][Additional packages]]
+  - [[#channellogos][Channellogos]]
   - [[#system-pre-configuration][System pre-configuration]]
   - [[#serial-ir][Serial IR]]
+  - [[#rpi-specific-variables][RPI specific variables]]
 - [[#roles][Roles]]
   - [[#install-dependencies][install-dependencies]]
   - [[#nvidia-experimental-drivers][nvidia experimental drivers]]
@@ -93,10 +37,12 @@
   - [[#udiskie][udiskie]]
   - [[#yavdr-xorg][yavdr-xorg]]
   - [[#yavdr-desktop][yavdr-desktop]]
+  - [[#osd2web][osd2web]]
   - [[#samba-install][samba-install]]
   - [[#samba-config][samba-config]]
   - [[#autoinstall-ubuntu-drivers][autoinstall-ubuntu-drivers]]
   - [[#autoinstall-virtualbox-guest][autoinstall-virtualbox-guest]]
+  - [[#set-output-plugin][set-output-plugin]]
   - [[#autoinstall-atric-usb][autoinstall-atric-usb]]
   - [[#autoinstall-yausbir][autoinstall-yausbir]]
   - [[#autoinstall-satip][autoinstall-satip]]
@@ -116,6 +62,8 @@
   - [[#dvd][dvd]]
   - [[#vdr-epg-daemon][vdr-epg-daemon]]
   - [[#install-sundtek][install-sundtek]]
+  - [[#channel-logos][channel logos]]
+  - [[#rpi][rpi]]
   - [[#channelpedia-upload][channelpedia upload]]
   - [[#template-test][template-test]]
   - [[#wakeup][wakeup]]
@@ -265,6 +213,22 @@ export ANSIBLE_PIPELINING=1
 
 ansible-playbook yavdr07-headless.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
+
+#+BEGIN_SRC shell :tangle install-yavdr-rpi.sh :shebang "#!/usr/bin/bash"
+set -e
+
+if (( $EUID != 0 )); then
+    echo "This script must be run using sudo -H or as root"
+    exit
+fi
+
+. scripts/install-packages.sh
+
+# speed up playbook execution
+export ANSIBLE_PIPELINING=1
+
+ansible-playbook yavdr07-rpi.yml -b -i 'localhost_inventory' --connection=local --tags="all"
+#+END_SRC
 * Playbooks
 ** yavdr07.yml
 The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
@@ -276,6 +240,8 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
 - name: set up yaVDR
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts
@@ -293,6 +259,7 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     - yavdr-xorg                 # graphical session
     - yavdr-remote               # remote configuration files, services and scripts
     - yavdr-desktop              # openbox session with yavdr frontend script
+    - osd2web                    # configure osd2web to run on the second display if there is any
     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
@@ -310,11 +277,15 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
+                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
     - kodi
     - dvd                        # set up packages and a udev rule to allow kodi and other players
                                  # to play and eject optical media
     - wakeup                     # set up wakeup methods for rtc etc.
     - grub-config                # configure grub
+    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
 
   handlers:
     - import_tasks: handlers/main.yml
@@ -329,6 +300,8 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
 - name: set up a headless yaVDR server
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common
     - collect-facts              # query system facts
@@ -340,20 +313,70 @@ For a headless server installation ~yavdr07-headless.yml~ is a good choice
     - samba-config
     - nfs-server
     - grub-config
-    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
-    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
-    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     #- epgd                      # install vdr-epg-daemon
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
     - wakeup
   tags:
     - always
   handlers:
     - import_tasks: handlers/main.yml
 #+END_SRC
+** yavdr07-rpi.yml
+VDR-only setup for Raspberry Pi 2 and 3. At least 1 GB of RAM is recommended.
+Please note that kodi is not available at the moment.
+#+begin_src yaml :tangle yavdr07-rpi.yml
+---
+# file: yavdr07-rpi.yml
+# this playbook set up a yaVDR 0.7 installation on a Raspberry Pi 2 or 3
+# please note that kodi is not available at the moment
+
+- name: set up a headless yaVDR server
+  hosts: all
+  become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
+  roles:
+    - yavdr-common
+    - collect-facts              # query system facts
+    - vdr
+    - rpi                        # install rpihddevice and let vdr run on tty7
+    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
+    - headless-session           # set up a headless systemd user session, e.g. for udiskie
+    - yavdr-remote
+    - yavdr-network
+    #- samba-install
+    #- samba-config
+    #- nfs-server
+    - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
+    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+    - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+    - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+    - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+    - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+    - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
+    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
+    #- epgd                      # install vdr-epg-daemon
+    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    #- wakeup
+    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
+                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
+  tags:
+    - always
+  handlers:
+    - import_tasks: handlers/main.yml
+#+end_src
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
@@ -376,8 +399,20 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-kodi'
 
 #+END_SRC
+** Locales and Timezone
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+timezone: 'Europe/Berlin'
+default_locale: 'de_DE.UTF-8'
+generate_locales:  # see entries in /etc/locale.gen
+  - 'de_DE.UTF-8 UTF-8'
+  - 'en_US.UTF-8 UTF-8'
+language_packs:
+  - language-pack-de
+  - language-pack-en
+#+END_SRC
 ** VDR user, directories, special configuration and plugins
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # properties of the user vdr and vdr-related options
 # NOTE: user name, uid and confdir must match the values set by the vdr package
 vdr:
@@ -401,7 +436,7 @@ wait_for_dvb_devices: []
 # this allows to set up streamdev-client - set the server, port and number of devices
 # streamdev_client_remote_ip: "192.168.0.104"
 # streamdev_client_remote_port: 2004
-# streamdev_ciient_num_provided_systems: 1
+# streamdev_client_num_provided_systems: 1
 
 # copy channels.conf from a local file
 # vdr_channels_conf: /path/to/channels.conf
@@ -413,7 +448,12 @@ wait_for_dvb_devices: []
 vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad
-  - vdr-plugin-softhddevice
+
+# set the name of the output plugin (as used by vdrctl) - this defaults to softhddevice on x64 platforms and rpihddevice on Raspberry Pi 2 and 3
+# selected_frontend: softhddevice
+
+# set the package name of the output plugin - this defaults to vdr-plugin-softhddevice on x64 platforms and vdr-plugin-rpihddevice on Raspberry Pi 2 and 3
+# vdr_output_plugin: vdr-plugin-softhddevice-cuvid
 
 # IP (range) filter for vdr and plugins (this must be an array):
 # vdr_allowed_hosts:
@@ -438,6 +478,7 @@ vdr_plugins:
 #+END_SRC
 ** Media directories
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 # dictionary of directories for (shared) files. Automatically exported via NFS and Samba if those roles are enabled
 media_dirs:
   audio: /srv/audio
@@ -450,6 +491,7 @@ media_dirs:
 #+END_SRC
 ** NFS
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 nfs:
   insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
 
@@ -472,12 +514,33 @@ extra_packages:
   - vim
   - w-scan
   - t2scan
-  - plymouth-theme-yavdr-logo
   - vdrpbd
 
 #+END_SRC
+** Channellogos
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
+# choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
+# currently suported langugages/regions are: au, be, cz, de, es, ie, il, it, nordic, nz, ru, uk, us
+#
+#channellogo_languages:
+#  - au
+#  - be
+#  - cz
+#  - de
+#  - es
+#  - ie
+#  - il
+#  - it
+#  - nordic
+#  - nz
+#  - ru
+#  - uk
+#  - us
+#+END_SRC
 ** System pre-configuration
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
 frontend: vdr
 
 # vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
@@ -536,15 +599,36 @@ lifeguard_processes: []
 # check for active tcp connections of local processes
 # syntax: <processname> [:] <port>
 lifeguard_tcp:
-  - vdr 3000  # don't shutdown if there is an active streamdev connection 
+  - vdr 3000  # don't shutdown if there is an active streamdev connection
 #+END_SRC
 ** Serial IR
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 
 # Serial device to configure for a homebrew receiver.
-# Choose either ttyS0 (COM1) or ttyS1 (COM2)
-# Also ensure that the role serial-ir is enabled in yavdr07.yml
+# Choose one of the devices predefined in the variable serial_ir_data in roles/serial-ir/defaults/main.yml
+# ttyS0 (COM1), ttyS1 (COM2), ttyS2(COM3) or ttyS3 (COM4)
+# or customize the variable as needed
+#
 serial_ir_device: ttyS0
+#+END_SRC
+** RPI specific variables
+#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
+
+# Key for the MPEG2-Decoder
+#rpi_decode_mpg2: 0xdeadbeef
+
+# Key for the wvc1-Decoder
+#rpi_decode_wvc1: 0xdeadbeef
+
+# Pin for the GPIO remote receiver
+# rpi_ir_gpio_pin: 24
+
+# Pin for the GPIO remote sender (needs additional lirc configuration,
+# which is at the moment beyond the scope of this playbook)
+# rpi_ir_gpio_pin_tx: 13
+
+# Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
+# rpi_gpu_mem = 256
 #+END_SRC
 * Roles
 ** install-dependencies
@@ -604,7 +688,24 @@ repositories:
   - 'ppa:yavdr/{{branch}}-vdr'
   - 'ppa:yavdr/{{branch}}-kodi'
   - 'ppa:yavdr/{{branch}}-yavdr'
+
+rpi_repositories:
+  - 'ppa:yavdr/experimental-rpi'
+
 #+END_SRC
+
+**** Locales and Timezone
+#+begin_src yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
+timezone: 'Europe/Berlin'
+default_locale: 'de_DE.UTF-8'
+generate_locales:  # see entries in /etc/locale.gen
+  - 'de_DE.UTF-8 UTF-8'
+  - 'en_US.UTF-8 UTF-8'
+language_packs:
+  - language-pack-de
+  - language-pack-en
+
+#+end_src
 **** Drivers
 Automatically installed drivers can be very useful, but if you know you need a certain driver, you can simply set it's value to *true*. If you don't want a driver to be installed, set it's value to *false*.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
@@ -649,6 +750,21 @@ vdr_allowed_hosts: []
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 standby_reload_dvb: true
 #+END_SRC
+
+*** handlers
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/handlers/main.yml :mkdirp yes :padline no
+- name: reconfigure_tzdata
+  command: >
+      dpkg-reconfigure --frontend noninteractive tzdata
+
+- name: reconfigure_locales
+  command: >
+      dpkg-reconfigure --frontend noninteractive locales
+
+- name: reconfigure_dash
+  command: >
+      dpkg-reconfigure -f noninteractive dash
+#+END_SRC
 *** tasks
 yavdr-common executes the following tasks:
 **** main.yml
@@ -686,6 +802,17 @@ yavdr-common executes the following tasks:
   loop: "{{ repositories|flatten(levels=1) }}"
   tags:
     - ppa
+  when: ansible_architecture is match("x86_.*")
+
+- name: add PPAs for Raspberry Pi
+  apt_repository:
+      repo: '{{ item }}'
+      state: present
+      update_cache: no
+  loop: "{{ rpi_repositories|flatten(levels=1) }}"
+  tags:
+    - ppa
+  when: ansible_architecture == 'armv7l'
 
 - name: run apt-get dist-upgrade
   apt:
@@ -708,19 +835,74 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
   ignore_errors: yes
   when:  cloud_init_debconf.changed
   # notify: ['rerun required']
-  
+
 - name: "apt | ensure package cloud-init is not installed"
   apt:
     name: cloud-init
     state: absent
 #+END_SRC
+***** locales and timezone
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
+- name: apt | ensure packages for tzdata and locales are installed
+  apt:
+    state: present
+    name:
+      - tzdata
+      - locales
+
+- name: apt | install language packs
+  apt:
+    state: present
+    name: '{{ language_packs }}'
+
+- name: debconf | set timezone
+  block:
+    - name: set timezone area
+      debconf:
+        name: tzdata
+        question: tzdata/Areas
+        value: "{{ timezone | dirname }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+    - name: set timezone city
+      debconf:
+        name: tzdata
+        question: tzdata/Zones/Europe
+        value: "{{ timezone | basename }}"
+        vtype: string
+      notify: reconfigure_tzdata
+
+- name: debconf | set default locale
+  debconf:
+    name: locales
+    question: locales/default_environment_locale
+    value: '{{ default_locale }}'
+    vtype: select
+  notify: reconfigure_locales
+
+- name: debconf | set locales to be generated
+  debconf:
+    name: locales
+    question: locales/locales_to_be_generated
+    value: "{{ generate_locales | join(', ') }}"
+    vtype: multiselect
+  notify: reconfigure_locales
+
+#+END_SRC
 ***** Use bash instead of dash
 ~dash~ is more limited than bash (albeit faster) - since vdr packages and addons ship with a lot of scripts, we use ~bash~ as the default shell.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :mkdirp yes
 - name: use bash instead of dash
-  shell: |
-    echo "set dash/sh false" | debconf-communicate
-    dpkg-reconfigure -f noninteractive dash
+  debconf:
+    name: dash
+    question: dash/sh
+    value: 'false'
+    vtype: select
+  notify: reconfigure_dash
+
+- name: flush all handlers
+  meta: flush_handlers
 #+END_SRC
 
 ***** create user vdr
@@ -770,6 +952,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
       #- biosdevname  # caution: may change device names after a minimal installation!
       - debconf-utils
       - linux-firmware
+      - pciutils
       - psmisc
       - python3-jmespath
       - python3-kmodpy
@@ -795,6 +978,10 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     state: present
     install_recommends: no
 
+- name: apt | install plymouth-theme-yavdr-logo on x86 architectures
+  apt:
+    name: plymouth-theme-yavdr-logo
+  when: ansible_architecture is match("x86_.*")
 #+END_SRC
 ***** create directories
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/create_directories.yml :exports none :mkdirp yes
@@ -844,6 +1031,7 @@ Stop vdr before entering suspend and unload dvb modules, reverse this operation 
 
 #+END_SRC
 *** templates
+**** apt configuration
 #+BEGIN_SRC c :tangle roles/yavdr-common/templates/90-norecommends.j2 :mkdirp yes :padline no
 {{ ansible_managed | comment('c') }}
 // Recommends are as of now still abused in many packages
@@ -858,7 +1046,7 @@ Allow the vdr user to restart ~vdr.service~ and reboot the system
 #+END_SRC
 **** suspend hooks
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-common/templates/system-sleep_yavdr.j2 :mkdirp yes :padline no
-#!/bin/bash
+#!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 case $1 in
@@ -922,8 +1110,7 @@ esac
 
 #+END_SRC
 **** module-helper
-#+BEGIN_SRC python :tangle roles/yavdr-common/templates/module-helper.j2 :mkdirp yes :padline no
-#!/usr/bin/env python3
+#+BEGIN_SRC python :tangle roles/yavdr-common/templates/module-helper.j2 :mkdirp yes :padline no :shebang "#!/usr/bin/env python3"
 # {{ ansible_managed | comment }}
 # based on http://www.e-tobi.net/blog/files/module-helper
 # http://www.e-tobi.net/blog/2010/11/06/squeeze-vdr-teil-9-suspend-to-ram
@@ -1003,8 +1190,7 @@ if __name__ == '__main__':
 #+END_SRC
 *** MOTD
 **** Header
-#+begin_src shell :tangle roles/yavdr-common/templates/update-motd.d/00-header.j2 :mkdirp yes :padline no
-#!/bin/sh
+#+begin_src shell :tangle roles/yavdr-common/templates/update-motd.d/00-header.j2 :mkdirp yes :padline no :shebang #!/bin/sh
 #
 #    00-header - create the header of the MOTD
 #    Copyright (C) 2009-2010 Canonical Ltd.
@@ -1057,7 +1243,7 @@ lifeguard_tcp:
   apt:
     name: vdr-addon-lifeguard-ng
     state: present
-    
+
 - name: expand template for vdr-addon-lifeguard-ng configuration file
   template:
     src: templates/lifeguard.conf.j2
@@ -1147,6 +1333,18 @@ EnableSSH = {{ lifeguard_enable_ssh }}
 ** vdr
 #+begin_src yaml :tangle roles/vdr/defaults/main.yml
 streamdev_client_remote_ip: ''
+
+known_output_plugins:
+  - vdr-plugin-rpihddevice
+  - vdr-plugin-softhddevice
+  - vdr-plugin-softhddevice-cuvid
+  - vdr-plugin-softhddevice-openglosd
+  - vdr-plugin-softhdcuvid
+  - vdr-plugin-softhddrm
+  - vdr-plugin-softhdvaapi
+  - vdr-plugin-vaapidevice
+  - vdr-plugin-xine
+  - vdr-plugin-xineliboutput
 #+end_src
 *** tasks
 **** install the basic vdr packages
@@ -1216,6 +1414,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
     install_recommends: no
   notify: [ 'Restart VDR' ]
 #+END_SRC
+
 **** create or copy vdr configuration files
 Because some files are changed by the vdr at runtime, we won't overwrite them if the task is marked with =force: no=.
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
@@ -1352,7 +1551,7 @@ Set up IP resp. IP range based access for VDR plugins
   block:
     - name: apt | install vdr-plugin-streamdev-client
       apt:
-        state: '{{"present" if streamdev_client_remote_ip else "absent"}}'
+        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         name: "vdr-plugin-streamdev-client"
     - name: set streamdev-client.RemoteIp
       lineinfile:
@@ -1363,7 +1562,7 @@ Set up IP resp. IP range based access for VDR plugins
         path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemoteIp"
         line: "streamdev-client.RemoteIp = {{ streamdev_client_remote_ip }}"
-    
+
     - name: set streamdev-client.RemotePort
       lineinfile:
         owner: "{{ vdr.user }}"
@@ -1371,7 +1570,7 @@ Set up IP resp. IP range based access for VDR plugins
         create: yes
         path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemotePort"
-        line: "streamdev-client.RemotePort = {{streamdev_client_remote_port | default(2004)}}"
+        line: "streamdev-client.RemotePort = {{ streamdev_client_remote_port | default(2004) }}"
 
     - name: set streamdev-client.NumProvidedSystems
       lineinfile:
@@ -1380,7 +1579,7 @@ Set up IP resp. IP range based access for VDR plugins
         create: yes
         path : "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.NumProvidedSystems"
-        line: "streamdev-client.NumProvidedSystems = {{streamdev_client_num_provided_systems | default(1)}}"
+        line: "streamdev-client.NumProvidedSystems = {{ streamdev_client_num_provided_systems | default(1) }}"
 
     - name: set streamdev-client.StartClient
       lineinfile:
@@ -1404,6 +1603,7 @@ Set up IP resp. IP range based access for VDR plugins
   template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
+  notify: ["Reload Units"]
 
 #+END_SRC
 **** create commands.conf entries
@@ -1454,16 +1654,19 @@ Set up IP resp. IP range based access for VDR plugins
 
 #+begin_src jinja2 :tangle roles/vdr/templates/conf.d/02-vdr-charset-override.conf.j2
 {{ ansible_managed | comment }}
-{% if vdr.override_vdr_charset | bool %}
+{% if vdr.override_vdr_charset | default("") | length > 0 %}
 [vdr]
 --chartab={{ vdr.override_vdr_charset }}
 {% endif %}
 #+end_src
-**** Systemd Drop-in to start vdr.service after network-online.target
+**** Systemd Drop-in to start vdr.service after network-online.target and network.target
+~After=network-online.target~ is neccessary to prevent problems with vdr-plugins which expect to connect to a server during startup.
+~After=network.target~ is necessary to prevent the network to be deconfigured during shutdown before the vdr process exits.
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/network-online.j2 :mkdirp yes
 {{ansible_managed | comment }}
 [Unit]
-After=network-online.target
+After=network-online.target network.target
+Wants=network.target network-online.target
 #+END_SRC
 **** /etc/default/vdr
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
@@ -1553,7 +1756,7 @@ This is a snippet for the reccmds.conf. It adds some actions to remove marks, re
 {{ "Remove marks" | translate }} : /usr/local/bin/removemarks
 {{ "Remove Index-File" | translate }} : /usr/local/bin/removeindex
 {{ "Remove resume file" | translate }} : /usr/local/bin/removeresume
-{{ "Mark advertisements" | translate }} : /usr/local/bin/markad -O "$1" after
+{{ "Mark advertisements" | translate }} : /usr/bin/markad -O "$1" after
 #+end_src
 **** reccmds.searchrepeats.conf
 This is a snippet
@@ -1692,6 +1895,43 @@ XKeySym.Stop       XF86AudioStop
 XKeySym.Play/Pause  XF86AudioPlay
 XKeySym.Prev       XF86AudioPrev
 XKeySym.Next       XF86AudioNext
+
+KBD.Up         00000000001B5B41
+KBD.Down       00000000001B5B42
+KBD.Menu       000000001B5B317E
+KBD.Ok         000000000000000D
+KBD.Back       000000000000007F
+KBD.Left       00000000001B5B44
+KBD.Right      00000000001B5B43
+KBD.Red        000000001B5B5B41
+KBD.Green      000000001B5B5B42
+KBD.Yellow     000000001B5B5B43
+KBD.Blue       000000001B5B5B44
+KBD.0          0000000000000030
+KBD.1          0000000000000031
+KBD.2          0000000000000032
+KBD.3          0000000000000033
+KBD.4          0000000000000034
+KBD.5          0000000000000035
+KBD.6          0000000000000036
+KBD.7          0000000000000037
+KBD.8          0000000000000038
+KBD.9          0000000000000039
+KBD.Info       000000001B5B347E
+KBD.Play/Pause 0000001B5B32307E
+KBD.Power      00000000001B5B50
+KBD.Channel+   000000001B5B357E
+KBD.Channel-   000000001B5B367E
+KBD.Volume+    0000001B5B32347E
+KBD.Volume-    0000001B5B32337E
+KBD.Mute       0000001B5B32317E
+KBD.User1      000000001B5B5B45
+KBD.User2      0000001B5B31377E
+KBD.User3      0000001B5B31387E
+KBD.User4      0000001B5B31397E
+KBD.User7      000000001B5B327E
+KBD.User8      000000000000002F
+KBD.User9      000000000000002A
 #+END_SRC
 **** keymacros.conf
 #+BEGIN_SRC conf :tangle roles/vdr/files/keymacros.conf :padline no
@@ -1718,26 +1958,22 @@ User9     @softhddevice Blue 2 5 # toggle autocrop
 **** VDR helper scripts
 ***** removeresume
 This script deletes all =resume= and =resume.*= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -type f -name "resume" -o name "resume.*" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeresume.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 -type f \( -name "resume" -o -name "resume.*" \) -delete
 #+end_src
 ***** removeindex
 This script deletes all =index= and =index.vdr= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -name "index" -o -name "index.vdr" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removeindex.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 \( -name "index" -o -name "index.vdr" \) -delete
 #+end_src
 ***** removemarks
 This script deletes all =marks= and =marks.vdr= files of the given recording
-#+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh
-#!/bin/dash
-find "$1" -maxdepth 1 -name "marks" -o -name "marks.vdr" -delete
+#+begin_src shell :tangle roles/vdr/files/reccmds/removemarks.sh :shebang #!/usr/bin/sh
+find "$1" -maxdepth 1 \( -name "marks" -o -name "marks.vdr" \) -delete
 #+end_src
 ***** recrepeat
 This script allows to search for repeats of a recording using epgsearch
-#+begin_src shell :tangle roles/vdr/files/reccmds/vdr-recrepeat.sh
-#!/bin/bash
+#+begin_src shell :tangle roles/vdr/files/reccmds/vdr-recrepeat.sh :shebang #!/usr/bin/bash
 #------------------------------------------------------------------------------
 # this script allows searching for a repeat of a recording using epgsearch
 # add the following lines to your reccmds.conf
@@ -2042,6 +2278,7 @@ lircd0_socket: /var/run/lirc/lircd0
       template:
         src: templates/lircd.service.d/lircd2uinput.conf.j2
         dest: /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+      notify: ["Reload Units"]
   tags:
     - config
 
@@ -2084,7 +2321,21 @@ lircd0_socket: /var/run/lirc/lircd0
   notify: ['Trigger Udev']
   tags:
     - config
+
+
+- name: install dependencies for rc-core-learn.py
+  apt:
+    pkg:
+      - python3-evdev
+    state: present
+
+- name: expand template for rc-core-learn.py
+  template:
+    src:  templates/rc-core-learn.py.j2
+    dest: /usr/local/bin/rc-core-learn
+    mode: 0755
 #+END_SRC
+
 *** templates
 **** Systemd Drop-in to start vdr with lirc support
 #+BEGIN_SRC conf :tangle roles/yavdr-remote/templates/03-vdr-lirc.conf.j2 :mkdirp yes :padline no
@@ -2140,6 +2391,7 @@ ite-cir     rc-rc6-mce          /lib/udev/rc_keymaps/rc-rc6-mce
 nuvoton-cir rc-rc6-mce          /lib/udev/rc_keymaps/rc-rc6-mce
 serial_ir   rc-rc6-mce          /lib/udev/rc_keymaps/rc-rc6-mce
 mceusb      rc-rc6-mce          /lib/udev/rc_keymaps/HOPLOrc6
+gpio_ir_recv rc-rc6-mce         /lib/udev/rc_keymaps/rc-rc6-mce
 
 # Hauppauge PVR 350
 ir-kbd-i2c  rc-hauppauge	/lib/udev/rc_keymaps/rc-hauppauge
@@ -2286,9 +2538,254 @@ ati_remote    rc-medion-x10-digitainer   /lib/udev/rc_keymaps/rc-medion-x10-digi
 # *	*			 vp7045               # found in vp7045.c
 
 #+END_SRC
+*** Helper script to learn keys for rc-core receiver
+#+begin_src python :shebang "#!/usr/bin/env python3" :tangle  roles/yavdr-remote/templates/rc-core-learn.py.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
+import functools
+import contextlib
+import signal
+import sys
+import time
+from argparse import ArgumentParser
+from pathlib import Path
+from evdev import InputDevice, ecodes
+
+BUTTONS = [
+        "KEY_OK",
+        "KEY_MENU",
+        "KEY_ESC",
+        "KEY_UP",
+        "KEY_DOWN",
+        "KEY_LEFT",
+        "KEY_RIGHT",
+        "KEY_RED",
+        "KEY_GREEN",
+        "KEY_YELLOW",
+        "KEY_BLUE",
+        "KEY_0",
+        "KEY_1",
+        "KEY_2",
+        "KEY_3",
+        "KEY_4",
+        "KEY_5",
+        "KEY_6",
+        "KEY_7",
+        "KEY_8",
+        "KEY_9",
+        "KEY_INFO",
+        "KEY_PLAY",
+        "KEY_PAUSE",
+        "KEY_STOP",
+        "KEY_RECORD",
+        "KEY_FASTFORWARD",
+        "KEY_REWIND",
+        "KEY_NEXT",
+        "KEY_BACK",
+        "KEY_POWER2",
+        "KEY_CHANNELUP",
+        "KEY_CHANNELDOWN",
+        "KEY_PREVIOUS",
+        "KEY_VOLUMEUP",
+        "KEY_VOLUMEDOWN",
+        "KEY_MUTE",
+        "KEY_SUBTITLE",
+        "KEY_EPG",
+        "KEY_CHANNEL",
+        "KEY_FAVORITES",
+        "KEY_MODE",
+        "KEY_TIME",
+        "KEY_PVR",
+        "KEY_SETUP",
+        "KEY_TEXT",
+        "KEY_PROG1",
+        "KEY_PROG2",
+        "KEY_PROG3",
+        "KEY_PROG4",
+        "KEY_AUDIO",
+        "KEY_VIDEO",
+        "KEY_IMAGES",
+        "KEY_FN",
+        "KEY_SCREEN",
+        ]
+
+RC_SYS_DEVICES = Path('/sys/class/rc/')
+DEVPATH = Path('/dev')
+debug = functools.partial(print, file=sys.stderr)
+
+
+def print_keymap(keytable, protocol, keys, output):
+    print(f"\n# table: {keytable}, type: {protocol}", file=output)
+    for keyname, scancode in keys.items():
+        print(f"{scancode:#06x} {keyname}", file=output)
+
+
+def read_from_device(dev):
+    def btn_generator():
+        for btn in BUTTONS:
+            yield btn
+        while True:
+            yield None
+
+    btn_gen = btn_generator()
+
+    keymap = {}
+    last_scancode = None
+    last_ts = float('inf')
+
+    button = next(btn_gen)
+    first_btn = button
+    with contextlib.closing(InputDevice(dev)) as dev:
+        debug(f"Please press a button for {button}")
+
+        for ev in dev.read_loop():
+            advance_button = False
+            if ev.type == ecodes.EV_MSC:
+                ts = ev.timestamp()
+                if (
+                    ev.value == keymap.get(first_btn)
+                    and last_scancode == keymap.get(first_btn)
+                    and ts - last_ts > .5
+                ):
+
+                    # skip button because user pressed KEY_OK
+                    # and it's not an unwanted repeat
+                    advance_button = True
+                    debug(f"skipped learning button {button}")
+                elif last_scancode == ev.value:
+                    # repeated key
+                    pass
+                elif ev.value != keymap.get(first_btn):
+                    if ev.value < 0:
+                        ev.value &= 0xffffffff
+                    debug(f"Got scancode {ev.value:#06x} for {button}.")
+                    advance_button = True
+                    keymap[button] = ev.value
+                    last_scancode = ev.value
+
+                last_ts = ts
+                last_scancode = ev.value
+
+            if advance_button:
+                button = next(btn_gen)
+                if button:
+                    debug(f"Please press a button for {button} (press KEY_OK to skip)")
+                else:
+                    break
+        return keymap
+
+
+def list_devices():
+    devices = []
+    for rc_device in RC_SYS_DEVICES.glob('rc*'):
+        device = {}
+        device["path"] = rc_device
+        device["sys"] = rc_device.name
+
+        with open(next(rc_device.glob('input*/event*/uevent'))) as f:
+            # read DEVNAME attribute (and others)
+            for line in f:
+                key, value = line.rstrip().split('=')
+                device[key] = value
+
+        with open(rc_device.joinpath('uevent')) as f:
+            for line in f:
+                key, value = line.rstrip().split('=')
+                device[key] = value
+
+        with open(rc_device.joinpath('protocols')) as f:
+            protocols = f.read().rstrip().split()
+            active_protocols = [p[1:-1] for p in protocols if (
+                p.startswith('[') and p != "[lirc]")]
+            inactive_protocols = [p for p in protocols if not p.startswith('[')]
+            device["protocols"] = protocols
+            device["inactive_protocols"] = inactive_protocols
+            device["active_protocols"] = active_protocols
+            devices.append(device)
+    return devices
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description="create keymaps for rc-core devices")
+    parser.add_argument('-p', '--protocol', metavar='PROTOCOL',
+                        help='set ir-protocol')
+    parser.add_argument('-d', '--device', metavar='DEVICE', default=None,
+                        help='ir device (e.g. rc0)')
+    parser.add_argument('-o', '--output', metavar='KEYMAP', default=None,
+                        help='write the keymap to this file instead of printing to stdout')
+    args = parser.parse_args()
+
+    devices = list_devices()
+    if not devices:
+        sys.exit("No rc-core devices found. Exiting.")
+    elif len(devices) == 1:
+        print(f"Using device {devices[0]['NAME']}", file=sys.stderr)
+        dev = devices[0]['path']
+        input_dev = devices[0]['DEVNAME']
+        keytable = devices[0]['NAME']
+        protocol = ",".join(devices[0]['active_protocols'])
+    else:
+        if args.device:
+            for d in devices:
+                if (d['sys'] == args.device
+                        or d['path'] == RC_SYS_DEVICES.joinpath(args.device)):
+                    dev = RC_SYS_DEVICES.joinpath(args.device)
+                    input_dev = d['DEVNAME']
+                    keytable = d['NAME']
+                    protocol = ",".join(d['active_protocols'])
+        else:
+            for i, d in enumerate(devices, start=1):
+                if not args.protocol:
+                    print(f"{i}) {d['DEV_NAME']} ({','.join(d.get('active_protocols'))})")
+                else:
+                    print(f"{i}) {d['DEV_NAME']}")
+            try:
+                dev_num = int(input("\tUse device numer: "))
+                if dev_num < 0 or dev_num > len(devices):
+                    raise ValueError
+                d = devices[dev_num - 1]
+            except (ValueError, IndexError):
+                sys.exit("invalid device number")
+            input_dev = d['DEVNAME']
+            keytable = d['NAME']
+            protocol = ",".join(d['active_protocols'])
+            dev = d['path']
+
+    # set ir-protocol(s)
+    if args.protocol:
+        try:
+            with open(dev.joinpath('protocols'), 'w') as f:
+                f.write(args.protocol)
+        except PermissionError as e:
+            sys.exit(f"Error: insifficient permissions to change protocol - are you root?")
+        except IOError as e:
+            sys.exit(f"Error: could not set protocol(s) to {args.protocol}: {e}")
+        protocol = args.protocol
+
+    input_dev = DEVPATH.joinpath(input_dev)
+    debug("using device: ", input_dev)
+
+    def signal_handler(signum, frame):
+        sys.exit()
+
+    for signame in {'SIGINT', 'SIGTERM'}:
+        signal.signal(
+            getattr(signal, signame),
+            signal_handler)
+    try:
+        keymap = read_from_device(input_dev)
+    except PermissionError as e:
+        sys.exit(f"Error: can't open {input_dev} - are you root?")
+    else:
+        if args.output:
+            with open(args.output, 'w') as output:
+                print_keymap(keytable, protocol, keymap, output)
+        else:
+            print_keymap(keytable, protocol, keymap, None)
+
+#+end_src
 ** pulseaudio
 :PROPERTIES:
-:CUSTOM_ID:      pulseaudio 
+:CUSTOM_ID:      pulseaudio
 :END:
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/pulseaudio/tasks/main.yml :mkdirp yes :padline no
@@ -2371,7 +2868,7 @@ Restart=always
 WantedBy=default.target
 #+END_SRC
 ** headless-session
-*** About the headless session 
+*** About the headless session
 This configures a headless login session for the VDR user, so we can run services like udiskie in the context of a systemd user session.
 *** default variables
 #+begin_src yaml :tangle roles/headless-session/defaults/main.yml :mkdirp yes :padline no
@@ -2413,7 +2910,7 @@ dependencies:
   template:
     src: templates/systemd/headless-session@.service.j2
     dest: /etc/systemd/system/headless-session@.service
- 
+
 - name: start headless-session@.service for vdr user
   systemd:
     name: "headless-session@{{ vdr.user }}.service"
@@ -2423,7 +2920,7 @@ dependencies:
 
 - name: enable services for the user session
   systemd:
-    name: {{ item }}
+    name: "{{ item }}"
     state: started
     masked: no
     enabled: yes
@@ -2436,10 +2933,10 @@ dependencies:
 
 - name: disable services for the user session
   systemd:
-    name: {{ item }}
-    state: started
-    masked: no
-    enabled: yes
+    name: "{{ item }}"
+    state: stopped
+    masked: yes
+    enabled: no
     scope: user
   become: yes
   become_user: vdr
@@ -2451,6 +2948,7 @@ dependencies:
     - pulseaudio.service
     - yavdr-frontend.service
     - wm-exit.service
+  ignore_errors: yes
 #+END_SRC
 *** templates
 **** Systemd Service
@@ -2475,7 +2973,7 @@ WantedBy=graphical.target
 while :
 do
     sleep infinity
-done 
+done
 #+end_src
 ** udiskie
 This role installs and preconfigures udiskie
@@ -2483,7 +2981,9 @@ This role installs and preconfigures udiskie
 #+BEGIN_SRC yaml :tangle roles/udiskie/tasks/main.yml :mkdirp yes :padline no
 - name: install udiskie
   apt:
-    name: udiskie
+    name:
+      - policykit-1
+      - udiskie
     state: present
 
 - name: create ~/.config/udiskie
@@ -2533,7 +3033,7 @@ This role installs and preconfigures udiskie
 #+END_SRC
 *** templates
 **** config.yml
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/config.yml.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/config.yml.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 program_options:
@@ -2560,7 +3060,7 @@ notifications:
   device_removed:   true   # device has disappeared
 #+END_SRC
 **** mount helper script
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie_vdr_mount_helper.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 videodir="{{ vdr.recdir }}"
@@ -2572,9 +3072,15 @@ mount_path="$3"
 logger -t "mount-notification" "event: $event, device: $device_node, mount_path: $mount_path"
 case "$event" in
     'device_mounted')
+        [[ "$mount_path" =~ ^/media/{{ vdr.user }}/ ]] || {
+            logger -t "skip mount event" "ignoring mounts outside /media/{{ vdr.user }}/"
+            exit 0
+        }
         target="${videodir}/$(basename "${mount_path}")"
-        ln -s -T "$mount_path" "$target" ||
-            { logger -t "vdr recordings found" "mountpoint already exists, aborting"; exit; }
+        ln -s -T "$mount_path" "$target" || {
+            logger -t "vdr recordings found" "mountpoint already exists, aborting"
+            exit
+        }
         # check if we got a vdr recording on the mountpoint
         if [ -n $(find "$mount_path" -name "*.rec" -print -quit 2>/dev/null) ]
         then
@@ -2608,7 +3114,7 @@ case "$event" in
 esac
 #+END_SRC
 **** udiskie snippet for commands.conf
-#+BEGIN_SRC shell :tangle roles/udiskie/templates/umount_all.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/udiskie/templates/umount_all.j2 :mkdirp yes :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 
 {{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
@@ -2617,7 +3123,7 @@ esac
 
 #+BEGIN_SRC shell :tangle roles/udiskie/templates/udiskie.service.j2 :mkdirp yes
 [Unit]
-Description: dynamic mounts for the user session
+Description=dynamic mounts for the user session
 
 [Service]
 ExecStart=/usr/bin/udiskie
@@ -2658,11 +3164,126 @@ In order to achive a clean shutdown of the session, ~x@t7.service~ is set as a d
 create a xorg.conf for
 - [X] nvidia
 - [X] intel
-- [ ] amd gpus
+- [X] amd gpus
 - [ ] allow overscan compensation in xorg.conf or via xrandr on startup
 Missing steps:
-- [ ] X-Server configuration for AMD graphics cards
+- [X] X-Server configuration for AMD graphics cards
 - [ ] load edids by setting kernel boot arguments
+
+**** DONE AMD-GPUs
+CLOSED: [2020-09-23 Mi 21:09]
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2020-09-23 Mi 21:09]
+:END:
+***** Example configuration
+#+begin_src conf
+Section "ServerLayout"
+	Identifier     "X.org Configured"
+	Screen      0  "Screen0" 0 0
+	Screen      1  "Screen1" RightOf "Screen0"
+EndSection
+
+Section "Monitor"
+	Identifier   "Monitor0"
+	Modeline "1920x1080_60"  148.50 1920 2008 2052 2200 1080 1084 1089 1125 +hsync +vsync
+	Modeline "3840x2160_60"  533.25 3840 3888 3920 4000 2160 2163 2168 2222 +hsync -vsync
+	Modeline "1920x1080_60"  148.500 1920 2008 2052 2200 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1280x720_60"  74.250 1280 1390 1420 1650 720 725 730 750 +hsync +vsync
+	Modeline "720x480_60"  27.027 720 736 798 858 480 489 495 525 -hsync -vsync
+	Modeline "720x480_60"  27.027 720 736 798 858 480 489 495 525 -hsync -vsync
+	Modeline "1440x480_60"  54.054 1440 1472 1596 1716 480 489 495 525 -hsync -vsync
+	Modeline "1920x1080_50"  148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1920x1080_25"  74.250 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+	Modeline "1920x1080_25"  74.250 1920 2448 2492 2640 1080 1082 1089 1125 +hsync +vsync interlace
+	Modeline "1280x720_50"  74.250 1280 1720 1760 1980 720 725 730 750 +hsync +vsync
+	Modeline "720x576_50"  27.000 720 732 796 864 576 581 586 625 -hsync -vsync
+	Modeline "1440x576_25"  27.000 1440 1464 1590 1728 576 578 581 625 -hsync -vsync interlace
+	Modeline "640x480_60"  25.200 640 656 752 800 480 490 492 525 -hsync -vsync
+	Modeline "2560x1440_60"  241.50 2560 2608 2640 2720 1440 1443 1448 1481 +hsync -vsync
+EndSection
+
+Section "Monitor"
+	Identifier   "Monitor1"
+	Option "Ignore" "true"
+EndSection
+
+Section "Device"
+        ### Available Driver options are:-
+        ### Values: <i>: integer, <f>: float, <bool>: "True"/"False",
+        ### <string>: "String", <freq>: "<f> Hz/kHz/MHz",
+        ### <percent>: "<f>%"
+        ### [arg]: arg optional
+        #Option     "Accel"              	# [<bool>]
+        #Option     "SWcursor"           	# [<bool>]
+        #Option     "EnablePageFlip"     	# [<bool>]
+        #Option     "SubPixelOrder"      	# [<str>]
+        #Option     "ZaphodHeads"        	# <str>
+        #Option     "AccelMethod"        	# <str>
+        #Option     "DRI3"               	# [<bool>]
+        #Option     "DRI"                	# <i>
+        #Option     "ShadowPrimary"      	# [<bool>]
+        #Option     "TearFree"           	# [<bool>]
+        #Option     "DeleteUnusedDP12Displays" 	# [<bool>]
+        #Option     "VariableRefresh"    	# [<bool>]
+	Identifier  "Card0"
+	Driver      "amdgpu"
+	Option	    "TearFree" "true"
+	Option      "DRI3" "true"
+	Option      "DRI" "3"
+	Option      "VariableRefresh" "true"
+	BusID       "PCI:10:0:0"
+EndSection
+
+Section "Device"
+        ### Available Driver options are:-
+        ### Values: <i>: integer, <f>: float, <bool>: "True"/"False",
+        ### <string>: "String", <freq>: "<f> Hz/kHz/MHz",
+        ### <percent>: "<f>%"
+        ### [arg]: arg optional
+        #Option     "Accel"              	# [<bool>]
+        #Option     "SWcursor"           	# [<bool>]
+        #Option     "EnablePageFlip"     	# [<bool>]
+        #Option     "SubPixelOrder"      	# [<str>]
+        #Option     "ZaphodHeads"        	# <str>
+        #Option     "AccelMethod"        	# <str>
+        #Option     "DRI3"               	# [<bool>]
+        #Option     "DRI"                	# <i>
+        #Option     "ShadowPrimary"      	# [<bool>]
+        #Option     "TearFree"           	# [<bool>]
+        #Option     "DeleteUnusedDP12Displays" 	# [<bool>]
+        #Option     "VariableRefresh"    	# [<bool>]
+	Identifier  "Card1"
+	Driver      "amdgpu"
+        Option      "TearFree" "true"
+	Option      "DRI3" "true"        
+	Option      "DRI" "3"
+        Option      "VariableRefresh" "true
+	BusID       "PCI:10:0:1"
+EndSection
+
+Section "Screen"
+	Identifier "Screen0"
+	Device     "Card0"
+	Monitor    "Monitor0"
+	SubSection "Display"
+		Viewport   0 0
+		Depth     24
+		Modes     "3840x2160_60"
+		#Modes     "1920x1080_60"
+	EndSubSection
+EndSection
+
+Section "Screen"
+	Identifier "Screen1"
+	Device     "Card1"
+	Monitor    "Monitor1"
+	SubSection "Display"
+		Viewport   0 0
+		Depth     24
+		#Modes     "3840x2160_60"
+	EndSubSection
+EndSection
+#+end_src
 
 **** DONE Nvidia-GPUs:read  EDID:
 :LOGBOOK:
@@ -3109,26 +3730,31 @@ nvidia_force_dpi: 0
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service after plymouth.service
   template:
     src: templates/x@service.d/plymouth.conf.j2
     dest: /etc/systemd/system/x@.service.d/plymouth.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
+  notify: ["Reload Units"]
 
 - name: vdr-config | create softhddevice.conf if it doesn't exist yet
   lineinfile:
@@ -3144,13 +3770,8 @@ nvidia_force_dpi: 0
   loop:
       - '-D'
       - '-w alsa-driver-broken'
+      - '{{ "-v va-api" if (intel_detected and not nvidia_detected) else "" }}'
       # - '-a pulse' # do we need this with our existing asound.conf?
-
-- name: vdr-config | use vaapi for softhddevice if we got an intel IGP
-  lineinfile:
-    path: /etc/vdr/conf.avail/softhddevice.conf
-    line: '-v va-api'
-    state: '{{ "present" if (not nvidia_detected and intel_detected) else "absent" }}'
 
 - name: add a login shell for the user vdr
   user:
@@ -3165,11 +3786,11 @@ nvidia_force_dpi: 0
   apt:
     name:
       - yavdr-xorg
+      - edid-decode
       - python3-dbus2vdr
       - python3-yavdrfrontend
       - tmux
       - vdr-plugin-desktop
-      - vdr-plugin-osd2web
       - feh
     state: present
 
@@ -3177,8 +3798,29 @@ nvidia_force_dpi: 0
   apt:
     name:
       - i965-va-driver-shaders
+      - intel-media-va-driver-non-free
     state: present
   when: intel_detected | bool and not nvidia_detected | bool
+
+- name: add ppa:oibaf/graphics-drivers for up to date mesa drivers
+  apt_repository:
+    repo: ppa:oibaf/graphics-drivers
+  when: amd_detected | bool and not nvidia_detected | bool
+  register: oibaf_ppa
+
+- name: update package lists and all packages after adding ppa:oibaf/graphics-drivers
+  apt:
+    upgrade: dist
+    update_cache: yes
+  when: oibaf_ppa.changed
+
+- name: apt | install packages for AMD GPUs
+  apt:
+    name:
+      - mesa-vdpau-drivers
+      - mesa-va-drivers
+    state: present
+  when: amd_detected | bool and not nvidia_detected | bool
 
 - name: Install yaVDR Media (e.g. Backgrounds)
   apt:
@@ -3213,6 +3855,7 @@ nvidia_force_dpi: 0
   template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
+  notify: ["Reload Units"]
 
 - name: "expand template for xorg-verbose.conf"
   template:
@@ -3222,6 +3865,11 @@ nvidia_force_dpi: 0
 - name: "remove intel snippet"
   file:
     path: /etc/X11/xorg.conf.d/20-intel.conf
+    state: absent
+
+- name: remove amd snippet
+  file:
+    path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
 - name: Stop VDR
@@ -3406,10 +4054,18 @@ nvidia_force_dpi: 0
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
+- name: amd xorg config snippet
+  template:
+    src: templates/20-amd.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-amd.conf
+  when:
+    - amd_detected | bool and not nvidia_detected | bool
+
 - name: server flags config snippet to disable screen blanking
   template:
     src: templates/10-serverflags.conf.j2
     dest: /etc/X11/xorg.conf.d/10-serverflags.conf
+
 #+END_SRC
 **** intel.yml
 KMS drivers (like for intel (i915) and amd (radeon)) require additional configuration besides a customized ~xorg.conf~ - for a "static" output configuration (which works if the TV or AV receiver is not turned on) we need to force loading the display(s) EDID early during the boot process.
@@ -3521,6 +4177,120 @@ EndSection
 ***** intel graphics xorg.conf snippet
 #+CAPTION: roles/yavdr-xorg/templates/20-intel.conf.j2
 #+INCLUDE: "roles/yavdr-xorg/templates/20-intel.conf.j2" src jinja2
+
+
+
+***** TODO AMD graphics xorg.conf snippet
+This seems pretty straight forward - but I need someone with an AMD GPU to test this...
+#+begin_src jinja2 :tangle roles/yavdr-xorg/templates/20-amd.conf.j2
+{{ ansible_managed | comment }}
+{% set primary_output = xorg.primary.connector|replace("-", "") %}
+{% if xorg.secondary is defined %}
+  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
+{% endif %}
+
+Section "Device"
+  Identifier  "Device0"
+  Driver      "amdgpu"
+  Option      "TearFree" "true"
+  Option      "VariableRefresh" "true"
+{% if xorg.secondary is defined %}
+  Option      "ZaphodHeads" "{{ primary_output }}"
+  Screen      0  
+{% endif %}
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Device"
+  Identifier  "Device1"
+  Driver      "amdgpu"
+  Option      "TearFree" "true"
+  Option      "VariableRefresh" "true"
+  Option      "ZaphodHeads" "{{ secondary_output }}"
+  Screen      1  
+EndSection
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen      0  "Screen0" 0 0
+    Screen      1  "Screen1" RightOf "Screen0"
+EndSection
+{% endif %}
+
+Section "Screen"
+  Identifier  "Screen0"
+  Device      "Device0"
+  Monitor     "{{ primary_output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.primary.mode %}
+    Modes     "{{ xorg.primary.mode }}"
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Screen"
+  Identifier  "Screen1"
+  Device      "Device1"
+  Monitor     "{{ secondary_output }}"
+  DefaultDepth  24
+  SubSection "Display"
+    Depth       24
+{% if xorg.secondary.mode %}
+    Modes     "{{ xorg.secondary.mode }}"
+{% else %}
+    Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
+{% endif %}
+  EndSubSection
+EndSection
+
+{% endif %}
+Section "Monitor"
+  Identifier  "{{ primary_output }}"
+{% if xrandr["Screen 0:"][xorg.primary.connector].modelines %}
+  {{ xrandr["Screen 0:"][xorg.primary.connector].modelines[xorg.primary.mode]|default("") }}
+{% elif xorg.primary.modelines %}
+{% for modeline in xorg.primary.modelines %}
+  {{ modeline }}
+{% endfor %}
+{% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+{% endif %}
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Monitor"
+  Identifier  "{{ secondary_output }}"
+{% if xorg.secondary.modelines %}
+{% for modeline in xorg.secondary.modelines %}
+  {{ modeline }}
+{% endfor %}
+{% else %}
+  Modeline    "1920x1080_24"     74.230 1920 2560 2604 2752 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_50"    148.500 1920 2448 2492 2640 1080 1084 1089 1125 +hsync +vsync
+  Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
+{% endif %}
+EndSection
+
+{% endif %}
+{% for connector, data in xrandr["Screen 0:"].items() | list if not (
+    data.is_connected|bool or
+    connector == xorg.primary.connector or
+    (xorg.secondary is defined and connector == xorg.secondary.connector))
+ %}
+Section "Monitor"
+  Identifier "{{ connector|replace("-","") }}"
+  Option "Ignore" "true"
+EndSection
+
+{% endfor %}
+#+end_src
 ***** xorg.conf
 
 #+CAPTION: roles/yavdr-xorg/templates/xorg-verbose.conf.j2
@@ -3869,8 +4639,7 @@ Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
 #+END_SRC
 **** initramfs EDID hook
-#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2
-#!/bin/bash
+#+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2 :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}
 # This hook copies EDID files with the naming scheme "edid.${OUTPUT}.bin" to the initramfs.
 
@@ -4012,23 +4781,17 @@ dependencies:
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create osd2web.service for the session
-  template:
-    src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0644
-
 - name: create irexec configuration for the session
   block:
-    - template:
+    - name: expand template for irexec.service
+      template:
         src: templates/systemd/user/irexec.service.j2
         dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
         mode: 0644
         owner: '{{ vdr.user }}'
         group: '{{ vdr.group }}'
-    - template:
+    - name: expand template for .lircrc
+      template:
         src: templates/.lircrc.j2
         dest: '{{ vdr.home }}/.lircrc'
         mode: 0644
@@ -4058,7 +4821,7 @@ dependencies:
     scope: user
   become: yes
   become_user: vdr
-    
+
 - name: enable and start udiskie.service
   systemd:
     name: 'udiskie.service'
@@ -4094,14 +4857,13 @@ XTerm.vt100.faceName: xft:DejaVu Sans Mono:size=12:antialias=false
 XTerm.vt100.font: 7x13
 #+END_SRC
 ***** .xinitrc
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/.xinitrc.j2 :mkdirp yes :padline no :shebang #!/usb/bin/bash
 {{ ansible_managed | comment }}
 exec openbox-session
 #+END_SRC
 **** openbox
 ***** autostart
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/usr/bin/bash
 # forward environment variables to an environment file and the systemd user session
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
@@ -4110,7 +4872,7 @@ feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
 enabled_services=(
     "detect-second-display.service"
-    "openbox-second.service" "osd2web.service"
+    "openbox-second.service"
     "yavdr-frontend.service" "pulseaudio.socket"
     "pulseaudio.service" "wm-exit.service" "irexec.service")
 disabled_services=()
@@ -4194,7 +4956,7 @@ systemctl --user isolate yavdr-desktop.target
     <animateIconify>yes</animateIconify>
     <font place="ActiveWindow">
       <name>sans</name>
-      <size>8</size>
+      <size>14</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -4203,7 +4965,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="InactiveWindow">
       <name>sans</name>
-      <size>8</size>
+      <size>14</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -4212,7 +4974,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="MenuHeader">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>normal</weight>
       <!-- 'bold' or 'normal' -->
@@ -4221,7 +4983,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="MenuItem">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>normal</weight>
       <!-- 'bold' or 'normal' -->
@@ -4230,7 +4992,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="ActiveOnScreenDisplay">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -4239,7 +5001,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="InactiveOnScreenDisplay">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -5037,7 +5799,7 @@ systemctl --user isolate yavdr-desktop.target
     <animateIconify>yes</animateIconify>
     <font place="ActiveWindow">
       <name>sans</name>
-      <size>8</size>
+      <size>14</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -5046,7 +5808,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="InactiveWindow">
       <name>sans</name>
-      <size>8</size>
+      <size>14</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -5055,7 +5817,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="MenuHeader">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>normal</weight>
       <!-- 'bold' or 'normal' -->
@@ -5064,7 +5826,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="MenuItem">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>normal</weight>
       <!-- 'bold' or 'normal' -->
@@ -5073,7 +5835,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="ActiveOnScreenDisplay">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -5082,7 +5844,7 @@ systemctl --user isolate yavdr-desktop.target
     </font>
     <font place="InactiveOnScreenDisplay">
       <name>sans</name>
-      <size>9</size>
+      <size>16</size>
       <!-- font size in points -->
       <weight>bold</weight>
       <!-- 'bold' or 'normal' -->
@@ -5809,8 +6571,7 @@ Wants=dbus.service pulseaudio.service
 AllowIsolate=yes
 #+END_SRC
 ***** detect-second-display
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/detect-second-display.j2 :mkdirp yes :padline no :shebang #!/usr/bin/bash
 source <(systemctl --user show-environment)
 SECOND_DISPLAY="${DISPLAY%\.[0-9]*}.1"
 if xrandr -d "$SECOND_DISPLAY" -q | grep -q "connected"; then
@@ -5834,8 +6595,7 @@ WantedBy=yavdr-desktop.target
 #+END_SRC
 ***** switch-displays
 This script exchanges the primary and secondary screen. It needs access to the systemd user session.
-#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no
-#!/bin/bash
+#+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/bin/switch-displays.j2 :mkdirp yes :padline no :shebang #!/usr/bin/bash
 source <(systemctl --user show-environment)
 [[ "$DISPLAY" =~ \.1$ ]] && DISPLAY="${DISPLAY%.1}.0" || DISPLAY="${DISPLAY%.0}.1"
 
@@ -5859,25 +6619,6 @@ EnvironmentFile=%h/.second_display
 ExecStart=/usr/bin/openbox --config-file %h/.config/openbox/rc2.xml
 ExecStartPost=/usr/bin/xset -dpms s off -display $DISPLAY
 ExecStartPost=/usr/bin/feh --no-fehbg --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
-
-[Install]
-WantedBy=yavdr-desktop.target
-#+END_SRC
-***** osd2web.service
-#+BEGIN_SRC conf :tangle roles/yavdr-desktop/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
-[Unit]
-Description=Start a kiosk browser on the second DISPLAY if it exists
-After=detect-second-display.service openbox-second.service
-Wants=detect-second-display.service openbox-second.service
-ConditionFileNotEmpty=%h/.second_display
-
-[Service]
-EnvironmentFile=%h/.second_display
-Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
-Environment=browser={{"kiosk-browser" if nvidia_detected | bool else "firefox --no-remote --kiosk --private-window"  }}
-EnvironmentFile=-%h/.config/osd2web/config
-ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
-KillSignal=SIGINT
 
 [Install]
 WantedBy=yavdr-desktop.target
@@ -5915,6 +6656,64 @@ begin
     button = KEY_HOME
     config = frontend-dbus-send switchbetween kodi vdr
 end
+#+END_SRC
+
+** osd2web
+This role installs and configures osd2web to be displayed on a second display (if one exists).
+*** meta
+#+BEGIN_SRC yaml :tangle roles/osd2web/meta/main.yml :mkdirp yes :padline no
+---
+dependencies:
+    - { role: yavdr-desktop}
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/osd2web/tasks/main.yml :mkdirp yes :padline no
+---
+- name: apt | install vdr-plugin-osd2web
+  apt:
+    name: vdr-plugin-osd2web
+    state: present
+
+- name: expand osd2web.service from template for the session
+  template:
+    src: templates/systemd/user/osd2web.service.j2
+    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+
+- name: activate and start systemd unit osd2web.service
+  systemd:
+    name: 'osd2web.service'
+    daemon_reload: yes
+    enabled: yes
+    masked: no
+    scope: user
+    state: started
+  become: yes
+  become_user: "{{ vdr.user }}"
+#+END_SRC
+
+*** templates
+***** osd2web.service
+#+BEGIN_SRC yaml :tangle roles/osd2web/templates/systemd/user/osd2web.service.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=url="http://localhost:4444/skins/horchiTft/index.html?theme=anthraize&onlyView=1"
+Environment=browser={{"kiosk-browser" if nvidia_detected | bool else "firefox --no-remote --kiosk --private-window"  }}
+EnvironmentFile=-%h/.config/osd2web/config
+ExecStart=/usr/bin/on_vdr -o -c '${browser} "${url}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target
 #+END_SRC
 ** samba-install
 *** tasks
@@ -6132,25 +6931,139 @@ This role installs the guest additions for virtualbox guests on Ubuntu 18.04
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
 
+# TODO: replace by a role to allow proper frontend selection
+
 - name: set xineliboutput as frontend
   block:
-    - apt:
+    - name: set xineliboutput as preferred frontend
+      set_fact:
+        preferred_frontend: "xineliboutput"
+    - name: install xinelibouput and vdr-sxfe
+      apt:
         name:
           - vdr-plugin-xineliboutput
           - xineliboutput-sxfe
         state: present
-    - command: '{{ item }}'
-      loop:
-        - vdrctl disable softhddevice
-        - vdrctl disable vaapidevice
-        - vdrctl disable xine
-        - vdrctl disable pvr350
-        - vdrctl enable xineliboutput
-      ignore_errors: yes
+    - name: set vdr_output_plugin variable
+      set_fact:
+        automatically_installed_output_plugin: vdr-plugin-xineliboutput
+    #- name: disable other output plugins
+    #  command: '{{ item }}'
+    #  loop:
+    #    - vdrctl disable softhddevice
+    #    - vdrctl disable vaapidevice
+    #    - vdrctl disable xine
+    #    - vdrctl disable pvr350
+    #    - vdrctl enable xineliboutput
+    #  ignore_errors: yes
   when:
     - ansible_virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
     - ansible_virtualization_role == "guest"
 #+END_SRC
+** set-output-plugin
+This role sets the active output plugin and disables the other output plugins.
+*** defaults
+#+begin_src yaml :tangle roles/set-output-plugin/defaults/main.yml
+known_output_plugins:
+  - pvr350
+  - rpihddevice
+  - softhdcuvid
+  - softhddevice
+  - softhddrm
+  - softhdvaapi
+  - vaapidevice
+  - xine
+  - xineliboutput
+#+end_src
+*** tasks
+#+begin_src yaml :tangle roles/set-output-plugin/tasks/main.yml :padline no
+- name: show vdr_output_plugin
+  debug:
+    var: vdr_output_plugin
+    verbosity: 1
+
+- name: show automatically_installed_output_plugin
+  debug:
+    var: automatically_installed_output_plugin
+    verbosity: 1
+
+- name: apt | install the output plugin
+  apt:
+    state: present
+    name: '{{ vdr_output_plugin | default(automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice")) }}'
+
+- name: show selected_frontend
+  debug:
+    var: selected_frontend
+    verbosity: 1
+
+- name: show preferred_frontend
+  debug:
+    var: preferred_frontend
+
+- name: show active_output_plugin
+  debug:
+    msg: 'active_output_plugin is: {{ selected_frontend | default(preferred_frontend) | default("") }}'
+    verbosity: 1
+
+
+- name: set active output plugin
+  set_fact:
+    active_output_plugin: '{{ selected_frontend | default(preferred_frontend) | default("") }}'
+
+- name: set disabled output plugins
+  set_fact:
+    disabled_output_plugins: '{{ known_output_plugins | difference([active_output_plugin]) | list }}'
+  when: active_output_plugin | length > 0
+
+- name: show disabled_output_plugins
+  debug:
+    var: q('list', disabled_output_plugins)
+    verbosity: 1
+
+- name: disable unused output plugins
+  command: "vdrctl disable {{ item }}"
+  loop: '{{ disabled_output_plugins }}'
+  #ignore_errors: yes
+  register: vdrctl
+  failed_when:
+    - vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
+  when: disabled_output_plugins is defined
+
+- name: enable chosen output plugin
+  command: vdrctl enable {{ active_output_plugin }}
+  #ignore_errors: yes
+  register: vdrctl
+  failed_when:
+    - vdrctl.rc != 0 and 'is already linked to' not in vdrctl.stderr
+  when: active_output_plugin | length > 0
+
+#known_frontends:
+#  xineliboutput_sxfe:
+#    plugin_name: xineliboutput
+#    plugin_options: ""
+#    packages:
+#      - vdr-plugin-xineliboutput
+#      - xineliboutput-sxfe
+#  softhddevice_cuvid:
+#    plugin_name: softhddevice
+#    plugin_options: |
+#      -D
+#      -a pulse 
+#      -w alsa-driver-broken
+#      -v cuvid
+#    packages:
+#      - vdr-plugin-softhddevice-cuvid
+#  softhddevice:
+#    plugin_name: softhddevice
+#    plugin_options: |
+#      -D
+#      -a pulse
+#      -w alsa-driver-broken
+#    packages:
+#      - vdr-plugin-softhddevice
+
+#+end_src
 ** autoinstall-atric-usb
 *** dependencies
 #+BEGIN_SRC yaml :tangle roles/autoinstall-atric-usb/meta/main.yml :padline no
@@ -6441,9 +7354,8 @@ Size=16x2
 
 - name: apt | install libcec-daemon if connected
   apt:
-    name: libcec-daemon
-  when:
-    - "2548:1002" in usb
+    name: "libcec-daemon"
+  when: '"2548:1002" in usb'
 #+END_SRC
 ** autoinstall-pvr350
 *** tasks
@@ -6502,7 +7414,7 @@ dependencies:
     checksum: sha256:213d98ec2cd575eba15d82ee79fed7098e670de43792f8aa773a95cfb7c32060
     dest: /lib/firmware/ngene_18.fw
   when: '"ngene" in modules'
-  notify: reboot required
+  notify: ['reboot required']
 
 - name: Firmware drxk_a3.mc for drxk
   get_url:
@@ -6510,7 +7422,15 @@ dependencies:
      checksum: sha256:f8956ad6f92a4ce90a6ab94ed23e2f9a27e9317e936fd3e0119778dd28e7e294
      dest: /lib/firmware/drxk_a3.mc
   when: '"ngene" in modules or "drxk" in modules'
-  notify: reboot required
+  notify: ['reboot required']
+
+- name: Firmware for Hauppauge Win-TV HVR-4000 and NOVA-HD-S2
+  get_url:
+    url: https://github.com/OpenELEC/dvb-firmware/blob/master/firmware/dvb-fe-cx24116.fw?raw=true
+    checksum: sha256:8fa49be12cf332b4c9b0379ef997be9ab6e193ae03aae55b39e033ae31e35da0
+    dest: /lib/firmware/dvb-fe-cx24116.fw
+  when: '"14f1:8802" in pci'
+  notify: ['reboot required']
 #+END_SRC
 ** autoinstall-dvbsky-firmware
 *** dependencies
@@ -6549,7 +7469,7 @@ dependencies:
   block:
     - name: apt | install vdr-plugin-dvbhddevice and unzip
       apt:
-        name: 
+        name:
           - vdr-plugin-dvbhddevice
           - unzip
         state: present
@@ -6573,8 +7493,7 @@ dependencies:
         remote_src: yes
       loop: "{{ dvbhddevice_firmware }}"
       notify: [ 'reboot required' ]
-        
-  when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool' 
+  when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool'
 #+END_SRC
 ** autoinstall-dvbsddevice
 *** defaults
@@ -6598,7 +7517,7 @@ dependencies:
 
 - name: Install firmware and output plugin for FF sd cards
   block:
-    - name:
+    - name: download firmware files
       get_url:
         url: '{{ item.src }}'
         dest: '/lib/firmware/{{ item.name }}'
@@ -6640,12 +7559,31 @@ As configured in the role yavdr-remote ([[*create /etc/rc_maps.cfg][/etc/rc_maps
 ---
 # file: roles/serial-ir/defaults/main.yml
 
-serial_ir_device: ttyS0
+serial_ir_device: ''
+
+serial_ir_data:
+  ttyS0:
+    irq: 4
+    io: '0x3f8'
+  ttyS1:
+    irq: 3
+    io: '0x2f8'
+  ttyS2:
+    irq: 3
+    io: '0x3e8'
+  ttyS3:
+    irq: 4
+    io: '0x2e8'
+
 #+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/serial-ir/tasks/main.yml
 ---
 # file: roles/serial-ir/tasks/main.yml
+- name: check if serial_ir_device is not empty and does not match devices defined in serial_ir_data
+  fail:
+    msg: "The serial device  {{ serial_ir_device }} is not defined in serial_ir_data"
+  when: serial_ir_device|length > 0 and serial_ir_device not in serial_ir_data
 
 - name: apt | install setserial
   apt:
@@ -6671,33 +7609,25 @@ serial_ir_device: ttyS0
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modules-load.d/serial_ir.conf.j2
 {{ ansible_managed | comment }}
 
+{% if serial_ir_device in serial_ir_data %}
 serial_ir
+{% endif %}
 #+END_SRC
 **** serial_ir module options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/modprobe.d/serial_ir.conf.j2
 {{ ansible_managed | comment }}
 
-{% if serial_ir_device == "ttyS0" %}
-#COM1 equivalent, /dev/ttyS0
-options serial_ir irq=4 io=0x3f8
-{% elif serial_ir_device == "ttyS1" %}
-#COM2 equivalent, /dev/ttyS1
-options serial_ir irq=3 io=0x2f8
-{% endif %}
-{% if serial_ir_device in ("ttyS0", "ttyS1") %}
-install serial_ir setserial /dev/{{serial_ir_device}} uart none; /sbin/modprobe --ignore-install serial_ir
+{% if serial_ir_device in serial_ir_data %}
+options serial_ir irq={{ serial_ir_data[serial_ir_device].irq }} io={{ serial_ir_data[serial_ir_device].io }}
+install serial_ir setserial /dev/{{ serial_ir_device }} uart none; /sbin/modprobe --ignore-install serial_ir
 {% endif %}
 #+END_SRC
 **** setserial options
 #+BEGIN_SRC jinja2 :tangle roles/serial-ir/templates/serial.conf.j2
 {{ ansible_managed | comment }}
 
-{% if serial_ir_device == "ttyS0" %}
-#COM1 equivalent, /dev/ttyS0
-/dev/ttyS0 uart none
-{% elif serial_ir_device == "ttyS1" %}
-#COM2 equivalent, /dev/ttyS1
-/dev/ttyS1 uart none
+{% if serial_ir_device in serial_ir_data %}
+/dev/{{serial_ir_device}} uart none
 {% endif %}
 #+END_SRC
 ** kodi
@@ -6814,7 +7744,7 @@ sundtek:
       template:
         src: templates/systemd/vdr.service.d/sundtek.conf.j2
         dest: /etc/systemd/system/vdr.service.d/sundtek_LD_PRELOAD.conf
-      notify: ['Restart VDR']
+      notify: ['Reload Units', 'Restart VDR']
 
   when: install_sundtek | bool
 
@@ -7024,6 +7954,193 @@ disable_analogtv=1                                      #disable initialization 
 
 {% endif %}
 {% endfor %}
+{% endif %}
+#+END_SRC
+
+** channel logos
+This role loads the channel logos from https://github.com/Jasmeet181/mediaportal-de-logos and links them to ~/var/lib/vdr/channellogos~. Please note, that all files in this directory will be replaced by this role.
+*** default
+#+BEGIN_SRC yaml :tangle roles/channellogos/defaults/main.yml
+---
+# file: roles/channellogos/defaults/main.yml
+
+channellogo_languages: []
+#+END_SRC
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/channellogos/tasks/main.yml :padline no
+- name: apt | install dependencies
+  apt:
+    name:
+      - git
+      - python3-lxml
+    state: present
+
+- name: copy channel_linker script
+  template:
+    src: roles/channellogos/templates/channel_linker.py.j2
+    dest: /usr/local/bin/channel_linker
+    mode: 0755
+
+- name: get current mediaportal channel logos
+  git:
+    repo: "https://github.com/Jasmeet181/mediaportal-{{ item }}-logos.git"
+    dest: "/usr/local/lib/mediaportal-{{ item }}-logos"
+    clone: yes
+    depth: 1
+    update: yes
+  loop: "{{ channellogo_languages }}"
+
+- name: update channel logo links
+  command: /usr/local/bin/channel_linker "{{ channellogo_languages | map('quote') | join(' ') }}"
+#+END_SRC
+
+*** templaces
+#+BEGIN_SRC python :tangle roles/channellogos/templates/channel_linker.py.j2 :padline no :shebang "#!/usr/bin/env python3"
+{{ ansible_managed | comment }}
+import shutil
+import sys
+from collections import defaultdict
+from pathlib import Path
+from lxml import etree
+
+
+target = Path("/var/lib/vdr/channellogos")
+
+logo_dir = {
+    "au": ".Light",
+    "be": ".Light",
+    "cz": ".Light",
+    "de": ".Light",
+    "es": ".Light",
+    "ie": ".Light",
+    "il": ".Light",
+    "it": ".Light",
+    "nordic": ".Light",
+    "nz": ".Light",
+    "ru": ".Light",
+    "uk": ".Light",
+    "us": ".Light",
+}
+
+languages = []
+for lang in sys.argv[1:]:
+    if lang in logo_dir:
+        languages.append(lang)
+    else:
+        print(f"language {lang} is not supported")
+
+if languages:
+    shutil.rmtree(target, ignore_errors=True)
+
+target.mkdir(parents=True, exist_ok=True)
+
+for language in languages:
+    origin = Path(f"/usr/local/lib/mediaportal-{language}-logos")
+    tree = etree.parse(str(origin / "LogoMapping.xml"))
+    channels = defaultdict(set)
+    for t in ("TV", "Radio"):
+        base_path = Path(origin) / Path(t) / logo_dir[language]
+        for channel in tree.xpath(f'{t}/Channel'):
+            for channel_item in channel.findall("Item"):
+                channel_name = channel_item.get("Name")
+                channel_file_node = channel.find("File")
+                if channel_file_node is None:
+                    continue
+                channel_file = base_path / Path(channel_file_node.text)
+                suffix = channel_file.suffix
+                channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
+
+    for channel_logo, channel_names in channels.items():
+        for channel_name in channel_names:
+            try:
+                channel_name.parent.mkdir(parents=True, exist_ok=True)
+                channel_name.symlink_to(channel_logo)
+            except IOError as err:
+                if err.errno == 17:
+                    pass
+                else:
+                    print(err)
+#+END_SRC
+** rpi
+This role installs =vdr-plugin-rpihddevice= and configures the output to use =tty7=. A Systemd User session allows to use =udiskie= and other programs within a systemd user session. Please note that =kodi= is not supported at the moment on the Raspberry Pi platform since it requires a special build.
+
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/rpi/tasks/main.yml :mkdirp yes :padline no
+---
+# this role is used to configure the output for a raspberry pi 2 or 3
+
+- name: ensure /etc/systemd/system/vdr.service.d/ exists
+  file:
+    path: /etc/systemd/system/vdr.service.d/
+    state: directory
+
+- name: let vdr run on tty7
+  template:
+    src: templates/rpi.conf.j2
+    dest: /etc/systemd/system/vdr.service.d/99-rpi.conf
+  notify: ['Reload Units', 'Restart VDR']
+  tags:
+    - config
+
+- name: install vdr-plugin-rpihddevice
+  apt:
+    name:
+      - libraspberrypi-dev
+      - vdr-plugin-rpihddevice
+    state: present
+  tags:
+    - packages
+
+- name: set preferred_frontend to rpihddevice
+  set_fact:
+    preferred_frontend: rpihddevice
+    automatically_installed_output_plugin: vdr-plugin-rpihddevice
+
+# Note: this needs to be in config.txt, because the early firmware loader ingores include directives
+- name: set gpu_mem firmware option
+  lineinfile:
+    path: /boot/firmware/config.txt
+    regexp: '^gpu_mem='
+    line: "gpu_mem={{ rpi_gpu_mem | default(256) | int if 16 <= rpi_gpu_mem | default(256) | int <= 512 else 256 }}"
+    state: present
+
+- name: set firmware options for decoder keys, rpi ir receiver
+  template:
+    src: templates/usercfg.txt.j2
+    dest: /boot/firmware/usercfg.txt
+  notify: ['reboot required']
+#+END_SRC
+*** templates
+#+BEGIN_SRC jinja2 :tangle roles/rpi/templates/rpi.conf.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
+[Unit]
+Conflicts=getty@tty7.service
+
+[Service]
+StandardInput=tty-force
+StandardOutput=syslog
+TTYPath=/dev/tty7
+TTYReset=no
+TTYVHangup=yes
+ExecStartPre=/usr/bin/chvt 7
+#+END_SRC
+
+#+BEGIN_SRC jinja2 :tangle roles/rpi/templates/usercfg.txt.j2 :mkdirp yes :padline no
+{{ansible_managed | comment }}
+# Place "config.txt" changes (dtparam, dtoverlay, disable_overscan, etc.) in
+# this file. Please refer to the README file for a description of the various
+# configuration files on the boot partition.
+{% if rpi_decode_mpg2 is defined %}
+decode_MPG2={{ rpi_decode_mpg2 }}
+{% endif %}
+{% if rpi_decode_wvc1 is defined %}
+decode_WVC1={{ rpi_decode_wvc1 }}
+{% endif %}
+{% if rpi_ir_gpio_pin is defined %}
+dtoverlay=gpio-ir,gpio_pin={{ rpi_ir_gpio_pin }}{% if rpi_gpio_in_pullup|default(False)|bool %},gpio_in_pullup=up{% endif %}
+{% endif %}
+{% if rpi_ir_gpio_pin_tx is defined %}
+dtoverlay=gpio-ir-tx,gpio_pin={{ rpi_ir_gpio_pin_tx }}
 {% endif %}
 #+END_SRC
 ** channelpedia upload
@@ -7475,7 +8592,7 @@ intel_boot_options: ""
       dest: /etc/default/grub
       state: present
       regexp: '^(GRUB_TIMEOUT=)'
-      line: 'GRUB_TIMEOUT={{grub.timeout}}'
+      line: 'GRUB_TIMEOUT={{ grub.timeout }}'
       backrefs: yes
   notify: [ 'Update GRUB' ]
 
@@ -7484,13 +8601,12 @@ intel_boot_options: ""
       dest: /etc/default/grub
       state: present
       regexp: '^(GRUB_TIMEOUT_STYLE=)'
-      line: '\1{{"hidden" if grub.timeout == 0 else "menu"}}'
+      line: '\1{{ "hidden" if grub.timeout == 0 else "menu" }}'
       backrefs: yes
   notify: [ 'Update GRUB' ]
 #+END_SRC
 *** templates
-#+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no
-#!/bin/sh
+#+BEGIN_SRC jinja2 :tangle roles/grub-config/templates/50_custom.j2 :mkdirp yes :padline no :shebang #!/usr/bin/sh
 {{ ansible_managed | comment }}
 
 exec tail -n +3 $0
@@ -7953,6 +9069,10 @@ if __name__ == '__main__':
 - name: Trigger Udev
   command: 'udevadm trigger '
 
+- name: Reload Units
+  systemd:
+    daemon_reload: yes
+
 - name: Restart Samba
   systemd:
     name: smbd.service
@@ -7988,6 +9108,7 @@ if __name__ == '__main__':
     name: vdr.service
     state: restarted
     enabled: yes
+    daemon_reload: yes
   register: vdr_restart
 
 - name: Stop VDR
@@ -8002,6 +9123,7 @@ if __name__ == '__main__':
     name: vdr.service
     state: started
     enabled: yes
+    daemon_reload: yes
   register: vdr_start
 
 - name: Start yavdr-xorg
@@ -8042,4 +9164,64 @@ if __name__ == '__main__':
   debug:
     msg: PLEASE REBOOT YOUR SYSTEM AND RUN THIS PLAYBOOK AGAIN.
 #+END_SRC
- 
+
+* Settings for Export :noexport:
+:DOCUMENT_OPTIONS:
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+OPTIONS: ^:nil
+#+LANGUAGE: en
+# Local Variables:
+# org-src-preserve-indentation: t
+# End:
+#+PROPERTY: header-args :mkdirp yes :padline no
+#+TITLE: Ansible Playbooks for yaVDR 0.7
+#+Author: Alexander Grothe <seahawk1986@gmx.de>
+#+STARTUP: latexpreview
+#+LATEX_CLASS_OPTIONS: [english,a4paper,locale=DE,koma,palatino,DIV=15,BCOR=15mm]
+#+LATEX_HEADER: \usepackage[margin=3.0cm]{geometry}
+#+LATEX_HEADER: \usepackage[ngerman]{babel}
+#+LATEX_HEADER: \usepackage{palatino}
+#+LATEX_HEADER: \usepackage{inconsolata}
+# #+LATEX_HEADER: \renewcommand*\ttdefault{pcr}
+#+LATEX_HEADER: \usepackage{rotating}
+#+LATEX_HEADER: \usepackage{paralist}
+#+LATEX_HEADER: \usepackage{booktabs}
+#+LATEX_HEADER: \usepackage{titlesec}
+#+LATEX_HEADER: \usepackage{url}
+#+LATEX_HEADER: \usepackage[locale=DE,seperr,repeatunits=true,trapambigerr=false,tophrase={{ bis }}]{siunitx}
+#+LATEX_HEADER: \usemintedstyle{lovelace}
+#+LATEX_HEADER: \lstset{basicstyle=\ttfamily, columns=fullflexible, frame=single, breaklines=true, postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+#+LATEX_HEADER:         xleftmargin=17pt,
+#+LATEX_HEADER:         framexleftmargin=17pt,
+#+LATEX_HEADER:         framexrightmargin=5pt,
+#+LATEX_HEADER:         framexbottommargin=4pt,
+#+LATEX_HEADER:         breakatwhitespace=true,
+#+LATEX_HEADER: }
+#+LATEX: \defaultfontfeatures{Ligatures=TeX}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \let\OldTexttt\texttt
+#+LATEX_HEADER: \renewcommand{\texttt}[1]{\OldTexttt{\path{#1}}}
+# #+LATEX_HEADER_EXTRA:
+#+BEGIN_SRC latex
+\newcommand*\justify{%
+  \fontdimen2\font=0.4em% interword space
+  \fontdimen3\font=0.2em% interword stretch
+  \fontdimen4\font=0.1em% interword shrink
+  \fontdimen7\font=0.1em% extra space
+  \hyphenchar\font=`\-% allowing hyphenation
+}
+
+\renewcommand{\texttt}[1]{%
+  \begingroup
+  \ttfamily
+  \begingroup\lccode`~=`/\lowercase{\endgroup\def~}{/\discretionary{}{}{}}%
+  \begingroup\lccode`~=`[\lowercase{\endgroup\def~}{[\discretionary{}{}{}}%
+  \begingroup\lccode`~=`.\lowercase{\endgroup\def~}{.\discretionary{}{}{}}%
+  \catcode`/=\active\catcode`[=\active\catcode`.=\active
+  \justify\scantokens{#1\noexpand}%
+  \endgroup
+}
+#+END_SRC
+
+#+EXCLUDE_TAGS: noexport
+:END:

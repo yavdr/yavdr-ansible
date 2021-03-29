@@ -1,0 +1,43 @@
+---
+# this role is used to configure the output for a raspberry pi 2 or 3
+
+- name: ensure /etc/systemd/system/vdr.service.d/ exists
+  file:
+    path: /etc/systemd/system/vdr.service.d/
+    state: directory
+
+- name: let vdr run on tty7
+  template:
+    src: templates/rpi.conf.j2
+    dest: /etc/systemd/system/vdr.service.d/99-rpi.conf
+  notify: ['Reload Units', 'Restart VDR']
+  tags:
+    - config
+
+- name: install vdr-plugin-rpihddevice
+  apt:
+    name:
+      - libraspberrypi-dev
+      - vdr-plugin-rpihddevice
+    state: present
+  tags:
+    - packages
+
+- name: set preferred_frontend to rpihddevice
+  set_fact:
+    preferred_frontend: rpihddevice
+    automatically_installed_output_plugin: vdr-plugin-rpihddevice
+
+# Note: this needs to be in config.txt, because the early firmware loader ingores include directives
+- name: set gpu_mem firmware option
+  lineinfile:
+    path: /boot/firmware/config.txt
+    regexp: '^gpu_mem='
+    line: "gpu_mem={{ rpi_gpu_mem | default(256) | int if 16 <= rpi_gpu_mem | default(256) | int <= 512 else 256 }}"
+    state: present
+
+- name: set firmware options for decoder keys, rpi ir receiver
+  template:
+    src: templates/usercfg.txt.j2
+    dest: /boot/firmware/usercfg.txt
+  notify: ['reboot required']

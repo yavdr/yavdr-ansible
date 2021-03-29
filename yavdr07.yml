@@ -5,6 +5,8 @@
 - name: set up yaVDR
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts
@@ -22,6 +24,7 @@
     - yavdr-xorg                 # graphical session
     - yavdr-remote               # remote configuration files, services and scripts
     - yavdr-desktop              # openbox session with yavdr frontend script
+    - osd2web                    # configure osd2web to run on the second display if there is any
     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
     - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
@@ -39,11 +42,15 @@
     #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
     #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
+                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
     - kodi
     - dvd                        # set up packages and a udev rule to allow kodi and other players
                                  # to play and eject optical media
     - wakeup                     # set up wakeup methods for rtc etc.
     - grub-config                # configure grub
+    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
 
   handlers:
     - import_tasks: handlers/main.yml

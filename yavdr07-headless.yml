@@ -5,6 +5,8 @@
 - name: set up a headless yaVDR server
   hosts: all
   become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
   roles:
     - yavdr-common
     - collect-facts              # query system facts
@@ -16,14 +18,15 @@
     - samba-config
     - nfs-server
     - grub-config
-    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
-    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
-    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
     - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-pvr350         # install vdr-plugin-pvr350 if a matching card is detected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     #- epgd                      # install vdr-epg-daemon
     #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
     - wakeup
   tags:
     - always

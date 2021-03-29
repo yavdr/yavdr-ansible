@@ -20,6 +20,7 @@
       template:
         src: templates/lircd.service.d/lircd2uinput.conf.j2
         dest: /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+      notify: ["Reload Units"]
   tags:
     - config
 
@@ -62,3 +63,16 @@
   notify: ['Trigger Udev']
   tags:
     - config
+
+
+- name: install dependencies for rc-core-learn.py
+  apt:
+    pkg:
+      - python3-evdev
+    state: present
+
+- name: expand template for rc-core-learn.py
+  template:
+    src:  templates/rc-core-learn.py.j2
+    dest: /usr/local/bin/rc-core-learn
+    mode: 0755

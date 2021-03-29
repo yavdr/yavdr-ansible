@@ -1,5 +1,9 @@
 ---
 # file: roles/serial-ir/tasks/main.yml
+- name: check if serial_ir_device is not empty and does not match devices defined in serial_ir_data
+  fail:
+    msg: "The serial device  {{ serial_ir_device }} is not defined in serial_ir_data"
+  when: serial_ir_device|length > 0 and serial_ir_device not in serial_ir_data
 
 - name: apt | install setserial
   apt:

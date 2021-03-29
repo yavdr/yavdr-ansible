@@ -14,26 +14,31 @@
   template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service after plymouth.service
   template:
     src: templates/x@service.d/plymouth.conf.j2
     dest: /etc/systemd/system/x@.service.d/plymouth.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | start x@.service before xlogin@.service
   template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | load environment file for vdr.service
   template:
     src: templates/systemd/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+  notify: ["Reload Units"]
 
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
+  notify: ["Reload Units"]
 
 - name: vdr-config | create softhddevice.conf if it doesn't exist yet
   lineinfile:
@@ -49,13 +54,8 @@
   loop:
       - '-D'
       - '-w alsa-driver-broken'
+      - '{{ "-v va-api" if (intel_detected and not nvidia_detected) else "" }}'
       # - '-a pulse' # do we need this with our existing asound.conf?
-
-- name: vdr-config | use vaapi for softhddevice if we got an intel IGP
-  lineinfile:
-    path: /etc/vdr/conf.avail/softhddevice.conf
-    line: '-v va-api'
-    state: '{{ "present" if (not nvidia_detected and intel_detected) else "absent" }}'
 
 - name: add a login shell for the user vdr
   user:
@@ -70,11 +70,11 @@
   apt:
     name:
       - yavdr-xorg
+      - edid-decode
       - python3-dbus2vdr
       - python3-yavdrfrontend
       - tmux
       - vdr-plugin-desktop
-      - vdr-plugin-osd2web
       - feh
     state: present
 
@@ -82,8 +82,29 @@
   apt:
     name:
       - i965-va-driver-shaders
+      - intel-media-va-driver-non-free
     state: present
   when: intel_detected | bool and not nvidia_detected | bool
+
+- name: add ppa:oibaf/graphics-drivers for up to date mesa drivers
+  apt_repository:
+    repo: ppa:oibaf/graphics-drivers
+  when: amd_detected | bool and not nvidia_detected | bool
+  register: oibaf_ppa
+
+- name: update package lists and all packages after adding ppa:oibaf/graphics-drivers
+  apt:
+    upgrade: dist
+    update_cache: yes
+  when: oibaf_ppa.changed
+
+- name: apt | install packages for AMD GPUs
+  apt:
+    name:
+      - mesa-vdpau-drivers
+      - mesa-va-drivers
+    state: present
+  when: amd_detected | bool and not nvidia_detected | bool
 
 - name: Install yaVDR Media (e.g. Backgrounds)
   apt:

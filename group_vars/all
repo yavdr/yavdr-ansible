@@ -8,6 +8,14 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-main'
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
+timezone: 'Europe/Berlin'
+default_locale: 'de_DE.UTF-8'
+generate_locales:  # see entries in /etc/locale.gen
+  - 'de_DE.UTF-8 UTF-8'
+  - 'en_US.UTF-8 UTF-8'
+language_packs:
+  - language-pack-de
+  - language-pack-en
 # properties of the user vdr and vdr-related options
 # NOTE: user name, uid and confdir must match the values set by the vdr package
 vdr:
@@ -31,7 +39,7 @@ wait_for_dvb_devices: []
 # this allows to set up streamdev-client - set the server, port and number of devices
 # streamdev_client_remote_ip: "192.168.0.104"
 # streamdev_client_remote_port: 2004
-# streamdev_ciient_num_provided_systems: 1
+# streamdev_client_num_provided_systems: 1
 
 # copy channels.conf from a local file
 # vdr_channels_conf: /path/to/channels.conf
@@ -43,7 +51,12 @@ wait_for_dvb_devices: []
 vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad
-  - vdr-plugin-softhddevice
+
+# set the name of the output plugin (as used by vdrctl) - this defaults to softhddevice on x64 platforms and rpihddevice on Raspberry Pi 2 and 3
+# selected_frontend: softhddevice
+
+# set the package name of the output plugin - this defaults to vdr-plugin-softhddevice on x64 platforms and vdr-plugin-rpihddevice on Raspberry Pi 2 and 3
+# vdr_output_plugin: vdr-plugin-softhddevice-cuvid
 
 # IP (range) filter for vdr and plugins (this must be an array):
 # vdr_allowed_hosts:
@@ -86,8 +99,24 @@ extra_packages:
   - vim
   - w-scan
   - t2scan
-  - plymouth-theme-yavdr-logo
   - vdrpbd
+# choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
+# currently suported langugages/regions are: au, be, cz, de, es, ie, il, it, nordic, nz, ru, uk, us
+#
+#channellogo_languages:
+#  - au
+#  - be
+#  - cz
+#  - de
+#  - es
+#  - ie
+#  - il
+#  - it
+#  - nordic
+#  - nz
+#  - ru
+#  - uk
+#  - us
 frontend: vdr
 
 # vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
@@ -148,6 +177,23 @@ lifeguard_processes: []
 lifeguard_tcp:
   - vdr 3000  # don't shutdown if there is an active streamdev connection
 # Serial device to configure for a homebrew receiver.
-# Choose either ttyS0 (COM1) or ttyS1 (COM2)
-# Also ensure that the role serial-ir is enabled in yavdr07.yml
+# Choose one of the devices predefined in the variable serial_ir_data in roles/serial-ir/defaults/main.yml
+# ttyS0 (COM1), ttyS1 (COM2), ttyS2(COM3) or ttyS3 (COM4)
+# or customize the variable as needed
+#
 serial_ir_device: ttyS0
+# Key for the MPEG2-Decoder
+#rpi_decode_mpg2: 0xdeadbeef
+
+# Key for the wvc1-Decoder
+#rpi_decode_wvc1: 0xdeadbeef
+
+# Pin for the GPIO remote receiver
+# rpi_ir_gpio_pin: 24
+
+# Pin for the GPIO remote sender (needs additional lirc configuration,
+# which is at the moment beyond the scope of this playbook)
+# rpi_ir_gpio_pin_tx: 13
+
+# Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
+# rpi_gpu_mem = 256

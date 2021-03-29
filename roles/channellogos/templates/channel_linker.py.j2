@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+{{ ansible_managed | comment }}
+import shutil
+import sys
+from collections import defaultdict
+from pathlib import Path
+from lxml import etree
+
+
+target = Path("/var/lib/vdr/channellogos")
+
+logo_dir = {
+    "au": ".Light",
+    "be": ".Light",
+    "cz": ".Light",
+    "de": ".Light",
+    "es": ".Light",
+    "ie": ".Light",
+    "il": ".Light",
+    "it": ".Light",
+    "nordic": ".Light",
+    "nz": ".Light",
+    "ru": ".Light",
+    "uk": ".Light",
+    "us": ".Light",
+}
+
+languages = []
+for lang in sys.argv[1:]:
+    if lang in logo_dir:
+        languages.append(lang)
+    else:
+        print(f"language {lang} is not supported")
+
+if languages:
+    shutil.rmtree(target, ignore_errors=True)
+
+target.mkdir(parents=True, exist_ok=True)
+
+for language in languages:
+    origin = Path(f"/usr/local/lib/mediaportal-{language}-logos")
+    tree = etree.parse(str(origin / "LogoMapping.xml"))
+    channels = defaultdict(set)
+    for t in ("TV", "Radio"):
+        base_path = Path(origin) / Path(t) / logo_dir[language]
+        for channel in tree.xpath(f'{t}/Channel'):
+            for channel_item in channel.findall("Item"):
+                channel_name = channel_item.get("Name")
+                channel_file_node = channel.find("File")
+                if channel_file_node is None:
+                    continue
+                channel_file = base_path / Path(channel_file_node.text)
+                suffix = channel_file.suffix
+                channels[channel_file].add(target / (f"{channel_name}{suffix}".lower()))
+
+    for channel_logo, channel_names in channels.items():
+        for channel_name in channel_names:
+            try:
+                channel_name.parent.mkdir(parents=True, exist_ok=True)
+                channel_name.symlink_to(channel_logo)
+            except IOError as err:
+                if err.errno == 17:
+                    pass
+                else:
+                    print(err)

@@ -228,18 +228,19 @@ def parse_edid_data(edid):
     model = "Unknown"
     modelines = []
     try:
-        data = subprocess.check_output("parse-edid < {}".format(edid),
-                                       shell=True, errors='replace', universal_newlines=True)
+        data = subprocess.check_output(["edid-decode", "-LnpsX", edid],
+                                       errors='replace',
+                                       universal_newlines=True)
     except subprocess.CalledProcessError:
         pass
     else:
         for line in data.splitlines():
             line = line.strip()
-            if "VendorName" in line:
-                vendor = line.split('"')[1]
-            elif "ModelName" in line:
-                model = line.split('"')[1]
-            elif "Modeline" in line:
+            if line.startswith("Manufacturer:"):
+                _, _, vendor = line.partition(': ')
+            elif line.startswith("Display Product Name:"):
+                _, _, model = line.partition(': ')
+            elif line.startswith("Modeline"):
                 # For the fields of a modeline see
                 # https://en.wikipedia.org/wiki/XFree86_Modeline
                 print(line)
@@ -255,14 +256,10 @@ def parse_edid_data(edid):
                     continue
                 refresh = round(float(mode.pixelclock) * 1E6 /
                                 (float(mode.htotal) * float(mode.vtotal)))
-                interlaced = "interlaced" in mode.flags
-                if interlaced:
-                    refresh /= 2
+                interlaced = "i" if "Interlace" in mode.flags else ""
                 refresh = int(refresh)
-                modeline_name = '"{}x{}_{}{}"'.format(mode.hdisp, mode.vdisp,
-                                                      refresh, "i" if interlaced else '')
-                modelines.append(" ".join(("Modeline", modeline_name,
-                                           line)))
+                modeline_name = f'"{mode.hdisp}x{mode.vdisp}_{refresh}{interlaced}"'
+                modelines.append(f'"Modeline" {modeline_name} {line}')
     return vendor, model, modelines
 
 

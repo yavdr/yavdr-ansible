@@ -111,23 +111,17 @@
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create osd2web.service for the session
-  template:
-    src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: 0644
-
 - name: create irexec configuration for the session
   block:
-    - template:
+    - name: expand template for irexec.service
+      template:
         src: templates/systemd/user/irexec.service.j2
         dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
         mode: 0644
         owner: '{{ vdr.user }}'
         group: '{{ vdr.group }}'
-    - template:
+    - name: expand template for .lircrc
+      template:
         src: templates/.lircrc.j2
         dest: '{{ vdr.home }}/.lircrc'
         mode: 0644
@@ -157,7 +151,7 @@
     scope: user
   become: yes
   become_user: vdr
-    
+
 - name: enable and start udiskie.service
   systemd:
     name: 'udiskie.service'

@@ -1,2 +1,2 @@
-#!/bin/dash
-find "$1" -maxdepth 1 -name "marks" -o -name "marks.vdr" -delete
+#!/usr/bin/sh
+find "$1" -maxdepth 1 \( -name "marks" -o -name "marks.vdr" \) -delete

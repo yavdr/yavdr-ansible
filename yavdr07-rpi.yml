@@ -1,0 +1,44 @@
+---
+# file: yavdr07-rpi.yml
+# this playbook set up a yaVDR 0.7 installation on a Raspberry Pi 2 or 3
+# please note that kodi is not available at the moment
+
+- name: set up a headless yaVDR server
+  hosts: all
+  become: true
+  environment:
+    LANG: "{{ default_locale | default('c.UTF-8') }}"
+  roles:
+    - yavdr-common
+    - collect-facts              # query system facts
+    - vdr
+    - rpi                        # install rpihddevice and let vdr run on tty7
+    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
+    - headless-session           # set up a headless systemd user session, e.g. for udiskie
+    - yavdr-remote
+    - yavdr-network
+    #- samba-install
+    #- samba-config
+    #- nfs-server
+    - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
+    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
+    - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
+    - autoinstall-firmware       # download and install firmware files for dvb devices
+    - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
+    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
+    - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
+    - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
+    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
+    - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
+    - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
+    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
+    #- epgd                      # install vdr-epg-daemon
+    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    #- wakeup
+    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
+                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
+  tags:
+    - always
+  handlers:
+    - import_tasks: handlers/main.yml
