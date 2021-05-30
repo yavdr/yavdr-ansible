@@ -852,8 +852,14 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 
 - name: apt | install language packs
   apt:
-    state: present
+    state: present1
     name: '{{ language_packs }}'
+
+
+- name: set timezone
+  timezone:
+    name: "{{ timezone | replace('Etc/', '') }}"
+  register: tz_setting
 
 - name: debconf | set timezone
   block:
@@ -862,16 +868,17 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
         name: tzdata
         question: tzdata/Areas
         value: "{{ timezone | dirname }}"
-        vtype: string
+        vtype: select
       notify: reconfigure_tzdata
 
     - name: set timezone city
       debconf:
         name: tzdata
-        question: tzdata/Zones/Europe
+        question: "tzdata/Zones/{{ timezone | dirname }}"
         value: "{{ timezone | basename }}"
-        vtype: string
+        vtype: select
       notify: reconfigure_tzdata
+  when: tz_setting.changed
 
 - name: debconf | set default locale
   debconf:

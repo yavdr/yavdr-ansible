@@ -28,6 +28,12 @@
     state: present
     name: '{{ language_packs }}'
 
+
+- name: set timezone
+  timezone:
+    name: "{{ timezone }}"
+  register: tz_setting
+
 - name: debconf | set timezone
   block:
     - name: set timezone area
@@ -35,16 +41,17 @@
         name: tzdata
         question: tzdata/Areas
         value: "{{ timezone | dirname }}"
-        vtype: string
+        vtype: select
       notify: reconfigure_tzdata
 
     - name: set timezone city
       debconf:
         name: tzdata
-        question: tzdata/Zones/Europe
+        question: "tzdata/Zones/{{ timezone | dirname }}"
         value: "{{ timezone | basename }}"
-        vtype: string
+        vtype: select
       notify: reconfigure_tzdata
+  when: tz_setting.changed
 
 - name: debconf | set default locale
   debconf:
