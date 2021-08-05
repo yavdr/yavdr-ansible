@@ -259,7 +259,7 @@ def parse_edid_data(edid):
                 interlaced = "i" if "Interlace" in mode.flags else ""
                 refresh = int(refresh)
                 modeline_name = f'"{mode.hdisp}x{mode.vdisp}_{refresh}{interlaced}"'
-                modelines.append(f'"Modeline" {modeline_name} {line}')
+                modelines.append(f'Modeline {modeline_name} {line}')
     return vendor, model, modelines
 
 
