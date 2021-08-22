@@ -7,6 +7,15 @@
   become: true
   environment:
     LANG: "{{ default_locale | default('c.UTF-8') }}"
+
+  pre_tasks:
+    - name: update all packages if the action doesn't happen locally
+      apt:
+        name: "*"
+        state: latest
+        update_cache: true
+      when: (ansible_host | default(inventory_hostname)) not in ['localhost', '127.0.0.1']
+
   roles:
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts
