@@ -11,7 +11,7 @@
 - name: apt | install the output plugin
   apt:
     state: present
-    name: '{{ vdr_output_plugin | default(automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice")) }}'
+    name: '{{ vdr_output_plugin }}'
 
 - name: show selected_frontend
   debug:
@@ -21,16 +21,16 @@
 - name: show preferred_frontend
   debug:
     var: preferred_frontend
-
-- name: show active_output_plugin
-  debug:
-    msg: 'active_output_plugin is: {{ selected_frontend | default(preferred_frontend) | default("") }}'
     verbosity: 1
-
 
 - name: set active output plugin
   set_fact:
-    active_output_plugin: '{{ selected_frontend | default(preferred_frontend) | default("") }}'
+    active_output_plugin: '{{ selected_frontend }}'
+
+- name: show active_output_plugin
+  debug:
+    msg: 'active_output_plugin is: {{ active_output_plugin }}'
+    verbosity: 1
 
 - name: set disabled output plugins
   set_fact:
