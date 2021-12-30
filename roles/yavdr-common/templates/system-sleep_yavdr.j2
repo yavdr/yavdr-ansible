@@ -17,8 +17,10 @@ case $1 in
     echo "unload dvb drivers"
     /usr/local/bin/module-helper -u dvb_core
     {% endif %}
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh stop{% endif %}
     ;;
   post)
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh start{% endif %}
     # start current frontend again
     if [ -x /usr/bin/frontend-dbus-send ]
     then
