@@ -9,6 +9,7 @@
     state: touch
     dest: '/etc/samba/smb.conf.custom'
   notify: [ 'Restart Samba' ]
+  when: samba_enable
 
 - name: expand template for smb.conf
   template:
@@ -16,3 +17,4 @@
     dest: '/etc/samba/smb.conf'
     #validate: 'testparm -s %s'
   notify: [ 'Restart Samba' ]
+  when: samba_enable
