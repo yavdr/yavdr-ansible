@@ -1391,13 +1391,18 @@ known_output_plugins:
 
 - name: set vdr charset override
   template:
-    src: templates/conf.d/02-vdr-charset-override.conf.j2
+    src: conf.d/02-vdr-charset-override.conf.j2
     dest: /etc/vdr/conf.d/02-vdr-charset-override.conf
 
 - name: set option to use hide-first-recording-level patch
   template:
-    src: templates/conf.d/04-vdr-hide-first-recordinglevel.conf.j2
+    src: conf.d/04-vdr-hide-first-recordinglevel.conf.j2
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+
+- name: set option to define recordings directory
+  template:
+    src: conf.d/06-vdr-recordings.conf.j2
+    dest: /etc/vdr/conf.d/06-vdr-recordings.conf
 
 - name: create local dir in recdir
   file:
@@ -1665,6 +1670,13 @@ Set up IP resp. IP range based access for VDR plugins
 [vdr]
 --chartab={{ vdr.override_vdr_charset }}
 {% endif %}
+#+end_src
+
+#+begin_src jinja2 :tangle roles/vdr/templates/conf.d/06-vdr-recordings.conf.j2
+{{ ansible_managed | comment }}
+
+[vdr]
+--video={{ vdr.recdir }}
 #+end_src
 **** Systemd Drop-in to start vdr.service after network-online.target and network.target
 ~After=network-online.target~ is neccessary to prevent problems with vdr-plugins which expect to connect to a server during startup.
