@@ -6734,6 +6734,8 @@ WantedBy=yavdr-desktop.target
       - samba
       - samba-common
       - samba-common-bin
+      - samba-vfs-modules
+      - smbclient
       - tdb-tools
     state: present
     install_recommends: no
@@ -7437,6 +7439,14 @@ dependencies:
     checksum: sha256:8fa49be12cf332b4c9b0379ef997be9ab6e193ae03aae55b39e033ae31e35da0
     dest: /lib/firmware/dvb-fe-cx24116.fw
   when: '"14f1:8802" in pci'
+  notify: ['reboot required']
+
+- name: Firmware for Tevii S464/470/471/660
+  get_url:
+    url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-fe-ds3000.fw
+    checksum: sha256:ad8c23bfb51642f48d31fe4f797182352bb13a4d4b7247b25aea18e208e0e882
+    dest: /lib/firmware/dvb-fe-ds3000.fw
+  when: '"d464:9022" in pci or "14f1:8802" in pci or "d470:9022" in pci or "d471:9022" in pci or "9022:d660" in usb or "0572:6831" in usb'
   notify: ['reboot required']
 #+END_SRC
 ** autoinstall-dvbsky-firmware

@@ -5,8 +5,6 @@ ansible playbooks for yaVDR
 [Ansible](https://docs.ansible.com/ansible/latest/index.html) is an automation tool which can be used to configure systems and deploy software.
 yavdr-ansible uses Ansible to set up a yaVDR System on top of an Ubuntu 20.04 Server installation (see below for details) and allows the user to fully customize the installation - have a look at the Ansible documentation if you want to learn how it works.
 
-Please note that Ubuntu 20.04 is still in early development and API- and version-changes may still occur. I would not recommend to use this if you want a "stable" experience.
-
 Please note that this is still work in progress and several features of yaVDR 0.6 haven't been implemented (yet).
 
 ## System Requirements and Compatiblity Notes
