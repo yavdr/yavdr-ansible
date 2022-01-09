@@ -17,6 +17,12 @@
   loop:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
+- name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id }}" and user "{{ vdr.user }}"
+  vars:
+    vdr_instance_id: "{{ '' if vdr.instance_id | int | default(0) == 0 else vdr.instance_id }}"
+  template:
+    src: dbus2vdr/de.tvdr.vdr.conf.j2
+    dest: /etc/dbus-1/system.d/de.tvdr.vdr.conf
 - name: create vdr recdir
   file:
     state: directory
@@ -35,6 +41,12 @@
     src: conf.d/04-vdr-hide-first-recordinglevel.conf.j2
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
 
+
+- name: set instance id for vdr
+  template:
+    src: conf.d/05-vdr-instance.conf.j2
+    dest: /etc/vdr/conf.d/05-vdr-instance.conf
+
 - name: set option to define recordings directory
   template:
     src: conf.d/06-vdr-recordings.conf.j2
@@ -50,38 +62,13 @@
   when:
     vdr.hide_first_recording_level
 
-
-# TODO: set recdir, user etc. in /etc/vdr/conf.d/
-
-- name: set vdr instance to "{{ vdr.instance }}"
+- name: set VDR_ID for shells in /etc/profile.d/
   template:
-    src: templates/conf.d/06-vdr-instance.conf.j2
-    dest: /etc/vdr/conf.d/06-vdr-instance.conf
-  when:
-    - vdr.instance is defined
+    src: vdr-dbus-send-vdr-id.sh
+    dest: /etc/profile.d/vdr-dbus-send-vdr-id.sh
+  notify: ["reboot required"]
 
-- name: configure dbus for vdr instance "{{ vdr.instance }}"
-  vars:
-    inst_value: "{{ '' if vdr.instance == 0 else vdr.instance }}"
-  replace:
-    path: /etc/dbus-1/system.d/de.tvdr.vdr.conf
-    regexp: 'de.tvdr.vdr\d?'
-    replace: 'de.tvdr.vdr{{ inst_value }}'
-  when:
-    - vdr.instance is defined
-
-- name: configure vdr-dbus-send.sh for vdr instance "{{ vdr.instance }}"
-  vars:
-    inst_value: "{{ '' if vdr.instance == 0 else vdr.instance }}"
-  replace:
-    path: /usr/share/vdr-plugin-dbus2vdr/vdr-dbus-send.sh
-    regexp: 'de.tvdr.vdr\d?'
-    replace: 'de.tvdr.vdr{{ inst_value }}'
-  when:
-    - vdr.instance is defined
-
-
-
+# TODO: set user etc. in /etc/vdr/conf.d/
 - name: apt | install additional vdr plugins
   apt:
     name: '{{ vdr_plugins | default([]) }}'
@@ -253,6 +240,12 @@
   template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
+  notify: ["Reload Units"]
+
+- name: systemd-drop-in | load environment file for vdr.service
+  template:
+    src: templates/systemd/vdr.service.d/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
   notify: ["Reload Units"]
 - name: create snippet with yavdr commands
   template:

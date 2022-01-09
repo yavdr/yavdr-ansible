@@ -41,6 +41,13 @@
     option: "vdr"
     value: "{{ vdr.recdir }}"
 
+- name: set vdr instance id for avahi-linker
+  ini_file:
+    path: /etc/avahi-linker/default.cfg
+    section: "options"
+    option: "vdr_instance_id"
+    value: "{{ vdr.instance_id }}"
+
 - name: restart avahi-linker if running
   systemd:
     name: avahi-linker

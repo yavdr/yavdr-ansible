@@ -427,6 +427,7 @@ vdr:
   hide_first_recording_level: false
   safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
   override_vdr_charset: ""  # set the desired charset, e.g. "ISO-8859-9"
+  instance_id: 0  # set the vdr instance id (see parameter "-i" in man 1 vdr)
 
 # wait for dvb devices by adapter number
 # NOTE: This only works for devices that are discoverable by udev, not userspace drivers like sundtek tuners!
@@ -1380,6 +1381,15 @@ known_output_plugins:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
 #+END_SRC
+**** allow dbus2vdr to use the system bus
+#+begin_src yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
+- name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id }}" and user "{{ vdr.user }}"
+  vars:
+    vdr_instance_id: "{{ '' if vdr.instance_id | int | default(0) == 0 else vdr.instance_id }}"
+  template:
+    src: dbus2vdr/de.tvdr.vdr.conf.j2
+    dest: /etc/dbus-1/system.d/de.tvdr.vdr.conf
+#+end_src
 **** Set up the recording directory for the vdr user
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create vdr recdir
@@ -1400,6 +1410,12 @@ known_output_plugins:
     src: conf.d/04-vdr-hide-first-recordinglevel.conf.j2
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
 
+
+- name: set instance id for vdr
+  template:
+    src: conf.d/05-vdr-instance.conf.j2
+    dest: /etc/vdr/conf.d/05-vdr-instance.conf
+
 - name: set option to define recordings directory
   template:
     src: conf.d/06-vdr-recordings.conf.j2
@@ -1415,7 +1431,14 @@ known_output_plugins:
   when:
     vdr.hide_first_recording_level
 
-# TODO: set recdir, user etc. in /etc/vdr/conf.d/
+- name: set VDR_ID for shells in /etc/profile.d/
+  template:
+    src: vdr-dbus-send-vdr-id.sh
+    dest: /etc/profile.d/vdr-dbus-send-vdr-id.sh
+  notify: ["reboot required"]
+
+# TODO: set user etc. in /etc/vdr/conf.d/
+
 #+END_SRC
 **** Install additional vdr plugins
 The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ in the group variables
@@ -1603,7 +1626,7 @@ Set up IP resp. IP range based access for VDR plugins
         regexp: "^streamdev-client.StartClient"
         line: "streamdev-client.StartClient = {{ '1' if streamdev_client_remote_ip else '0' }}"
 #+end_src
-**** start vdr after network-online.target
+**** Drop-Ins for vdr.service
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: create directory for vdr.service systemd drop-in files
   file:
@@ -1616,6 +1639,12 @@ Set up IP resp. IP range based access for VDR plugins
   template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
+  notify: ["Reload Units"]
+
+- name: systemd-drop-in | load environment file for vdr.service
+  template:
+    src: templates/systemd/vdr.service.d/vdr-environ.j2
+    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
   notify: ["Reload Units"]
 
 #+END_SRC
@@ -1673,6 +1702,13 @@ Set up IP resp. IP range based access for VDR plugins
 {% endif %}
 #+end_src
 
+#+begin_src jinja2 :tangle roles/vdr/templates/conf.d/05-vdr-instance.conf.j2
+{{ ansible_managed | comment }}
+
+[vdr]
+--instance={{ vdr.instance_id }}
+#+end_src
+
 #+begin_src jinja2 :tangle roles/vdr/templates/conf.d/06-vdr-recordings.conf.j2
 {{ ansible_managed | comment }}
 
@@ -1688,6 +1724,44 @@ Set up IP resp. IP range based access for VDR plugins
 After=network-online.target network.target
 Wants=network.target network-online.target
 #+END_SRC
+**** Systemd Drop-in for setting vdr environment
+Set environment variables for system locale and user session on startup
+#+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/vdr.service.d/vdr-environ.j2
+[Service]
+EnvironmentFile=-/etc/default/locale
+Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
+EnvironmentFile=-/var/lib/vdr/.session-env
+Environment=VDR_ID={{ vdr.instance_id  }}
+#+END_SRC
+
+**** dbus2vdr dbus system bus configuration
+#+begin_src jinja2 :tangle roles/vdr/templates/dbus2vdr/de.tvdr.vdr.conf.j2 :mkdirp yes
+{{ ansible_managed | comment('xml') }}
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <!-- Only user {{ vdr.user }} can own the vdr-dbus-service -->
+  <policy user="{{ vdr.user }}">
+    <allow own="de.tvdr.vdr{{ vdr_instance_id }}"/>
+  </policy>
+
+  <!-- allow everyone to call vdr's methods -->
+  <policy context="default">
+    <allow send_destination="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow receive_sender="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow send_destination="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow receive_sender="de.tvdr.vdr{{ vdr_instance_id }}"/>
+  </policy>
+
+</busconfig>
+#+end_src
+**** set VDR_ID in /etc/profile.d/
+#+begin_src jinja2 :tangle roles/vdr/templates/vdr-dbus-send-vdr-id.sh :mkdirp yes
+{{ ansible_managed | comment }}
+export VDR_ID={{ vdr.instance_id }}
+#+end_src
 **** /etc/default/vdr
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
 {{ ansible_managed | comment }}
@@ -1698,6 +1772,7 @@ Wants=network.target network-online.target
 
 SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 #+END_SRC
+
 **** svdrphosts.conf
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/svdrphosts.conf.j2 :mkdirp yes
 {{ ansible_managed | comment }}
@@ -2095,6 +2170,13 @@ install_avahi: true
     section: "targetdirs"
     option: "vdr"
     value: "{{ vdr.recdir }}"
+
+- name: set vdr instance id for avahi-linker
+  ini_file:
+    path: /etc/avahi-linker/default.cfg
+    section: "options"
+    option: "vdr_instance_id"
+    value: "{{ vdr.instance_id }}"
 
 - name: restart avahi-linker if running
   systemd:
@@ -3771,12 +3853,6 @@ nvidia_force_dpi: 0
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | load environment file for vdr.service
-  template:
-    src: templates/systemd/vdr-environ.j2
-    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
-  notify: ["Reload Units"]
-
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2
@@ -4123,7 +4199,7 @@ TODO: create ~clean-edids~ script/role/Playbook to undo kernel boot options for 
 
 - name: "set intel_boot_options variable"
   set_fact:
-    intel_boot_options: " drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }} {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
+    intel_boot_options: "video={{ drm.primary.drm_connector }}:D drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}" # {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
   when: intel_set_boot_edid | bool
   notify: ['Update Initramfs', 'Update GRUB']
 
@@ -4150,6 +4226,9 @@ Before=graphical.target
 
 [Service]
 Type=forking
+ExecStartPre=/usr/bin/bash -c "printf '\0' > /sys/module/drm/parameters/edid_firmware"
+ExecStartPre=/usr/bin/bash -c 'shopt -s nullglob; for e in /sys/kernel/debug/dri/0/*/edid_override; do echo -n reset > "$$e"; done'
+ExecStartPre=/usr/bin/bash -c 'shopt -s nullglob; for e in /sys/class/drm/card0*/status; do echo -n detect > "$$e"; done'
 ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config /etc/X11/xorg-verbose.conf
 #+END_SRC
 ***** Drop-in snippet for x@.service
@@ -4657,14 +4736,7 @@ Section "ServerFlags"
     Option         "off time" "0"
 EndSection
 #+END_SRC
-**** vdr
-Set environment variables for system locale and user session on startup
-#+BEGIN_SRC conf :tangle roles/yavdr-xorg/templates/systemd/vdr-environ.j2
-[Service]
-EnvironmentFile=-/etc/default/locale
-Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
-EnvironmentFile=-/var/lib/vdr/.session-env
-#+END_SRC
+
 **** initramfs EDID hook
 #+BEGIN_SRC jinja2 :tangle roles/yavdr-xorg/templates/include-edid-data.sh.j2 :shebang #!/usr/bin/bash
 {{ ansible_managed | comment }}

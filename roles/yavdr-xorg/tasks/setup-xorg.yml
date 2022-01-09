@@ -28,12 +28,6 @@
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | load environment file for vdr.service
-  template:
-    src: templates/systemd/vdr-environ.j2
-    dest: /etc/systemd/system/vdr.service.d/load-environ.conf
-  notify: ["Reload Units"]
-
 - name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
   template:
     src: templates/user@666.service.d/x-dependency.conf.j2

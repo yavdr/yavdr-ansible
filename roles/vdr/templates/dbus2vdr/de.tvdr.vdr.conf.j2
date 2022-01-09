@@ -1,0 +1,20 @@
+{{ ansible_managed | comment('xml') }}
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <!-- Only user {{ vdr.user }} can own the vdr-dbus-service -->
+  <policy user="{{ vdr.user }}">
+    <allow own="de.tvdr.vdr{{ vdr_instance_id }}"/>
+  </policy>
+
+  <!-- allow everyone to call vdr's methods -->
+  <policy context="default">
+    <allow send_destination="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow receive_sender="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow send_destination="de.tvdr.vdr{{ vdr_instance_id }}"/>
+    <allow receive_sender="de.tvdr.vdr{{ vdr_instance_id }}"/>
+  </policy>
+
+</busconfig>
