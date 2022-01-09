@@ -1,24 +1,14 @@
 ---
 # file roles/wakeup/tasks/main.yml
 
-- name: install and configure vdr-addon-acpiwakeup
+- name: install package {{ wakeup_addon_packages[wakeup_method] }}
   apt:
-    name: vdr-addon-acpiwakeup
+    name: "{{ wakeup_addon_packages[wakeup_method] }}"
     state: present
-  when: wakeup_method == "acpiwakeup"
 
-- name: install and configure vdr-addon-stm32wakeup
-  apt:
-    name: vdr-addon-stmp32-wakeup
-    state: present
-  when: wakeup_method == "stm32wakeup"
-
-- name: expand template for /etc/vdr/vdr-addon-acpiwakeup.conf
+# we expand all templates so that any add-on can be disabled if needed
+- name: expand template for each wakeup add-on config file
   template:
-    src: templates/vdr-addon-acpiwakeup.conf.j2
-    dest: /etc/vdr/vdr-addon-acpiwakeup.conf
-
-- name: expand template for /etc/vdr/vdr-addon-stm32imrp-wakeup.conf
-  template:
-    src: templates/vdr-addon-stm32irmp-wakeup.conf.j2
-    dest: /etc/vdr/vdr-addon-stm32irmp-wakeup.conf
+    src: "{{ item.value | basename }}.j2"
+    dest: "{{ item.value }}"
+  loop: "{{ wakeup_addon_confs | dict2items }}"

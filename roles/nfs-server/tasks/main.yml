@@ -7,15 +7,18 @@
       - nfs-common
     state: present
     install_recommends: no
+  when: nfs_server_enable
 
 - name: create /etc/exports
   template:
-    src: templates/nfs-exports.j2
+    src: nfs-exports.j2
     dest: /etc/exports
   notify: [ 'Restart NFS Kernel Server' ]
+  when: nfs_server_enable
 
-- name: populate /etc/avahi/services
+- name: populate /etc/avahi/services with media dirs services
   template:
-    src: templates/avahi/service.j2
+    src: avahi/service.j2
     dest: '/etc/avahi/services/yavdr-{{ item.key }}.service'
-  loop: '{{ media_dirs|dict2items }}'
+  loop: '{{ media_dirs | dict2items }}'
+  when: nfs_server_enable
