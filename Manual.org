@@ -3783,6 +3783,8 @@ b'\xde\xad\xbe\xef'
 dependencies:
     - role: collect-facts
 #+END_SRC
+
+
 *** default variables
 :PROPERTIES:
 :CUSTOM_ID: yavdr-xorg-defaults
@@ -3807,6 +3809,9 @@ preferred_refreshrates:
 intel_boot_options: ""
 intel_set_boot_edid: false
 nvidia_force_dpi: 0
+
+yavdr_frontend:
+    attach_on_startup: auto  # choose one of auto, always or never
 #+END_SRC
 *** tasks
 :PROPERTIES:
@@ -3896,6 +3901,18 @@ nvidia_force_dpi: 0
       - vdr-plugin-desktop
       - feh
     state: present
+
+- name: set the vdr instance id for yavdr-frontend
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: vdr.id
+    int_value: "{{ vdr.instance_id }}"
+
+- name: yavdr-frontend | set attach on startup to "{{ yavdr_frontend.attach_on_startup }}"
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: vdr.attach_on_startup
+    str_value: "{{ yavdr_frontend.attach_on_startup }}"
 
 - name: apt | install packages for Intel IGP
   apt:

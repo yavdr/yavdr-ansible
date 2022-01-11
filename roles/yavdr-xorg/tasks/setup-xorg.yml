@@ -72,6 +72,18 @@
       - feh
     state: present
 
+- name: set the vdr instance id for yavdr-frontend
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: vdr.id
+    int_value: "{{ vdr.instance_id }}"
+
+- name: yavdr-frontend | set attach on startup to "{{ yavdr_frontend.attach_on_startup }}"
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: vdr.attach_on_startup
+    str_value: "{{ yavdr_frontend.attach_on_startup }}"
+
 - name: apt | install packages for Intel IGP
   apt:
     name:

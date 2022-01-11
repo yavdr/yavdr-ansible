@@ -74,13 +74,15 @@ EXAMPLES = '''
 ARG_SPECS = {
     'display': dict(default=":0", type='str', required=False),
     'preferred_outputs': dict(
-        default=["HDMI", "DP", "eDP", "DVI", "VGA", "TV", "Virtual"], type='list', required=False),
+        default=["HDMI", "DP", "eDP", "DVI", "VGA", "TV", "Virtual"],
+        type='list', elements='str', required=False
+    ),
     'preferred_refreshrates': dict(
-        default=[50, 60, 75, 30, 25], type='list', required=False),
+        default=[50, 60, 75, 30, 25], type='list', elements='int', required=False),
     'preferred_resolutions': dict(
         default=[
             "7680x4320", "3840x2160", "1920x1080", "1280x720", "720x576"],
-        type='list', required=False),
+        type='list', elements='str', required=False),
     'write_edids': dict(default=True, type='bool', required=False),
 }
 
