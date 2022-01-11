@@ -19,7 +19,7 @@
     - "svdrp-disc       6419/udp"
 - name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id | default(0) }}" and user "{{ vdr.user }}"
   vars:
-    vdr_instance_id: "{{ '' if vdr.instance_id | int | default(0) == 0 else vdr.instance_id }}"
+    vdr_instance_id: "{{ '' if vdr.instance_id | default(0) | int == 0 else vdr.instance_id }}"
   template:
     src: dbus2vdr/de.tvdr.vdr.conf.j2
     dest: /etc/dbus-1/system.d/de.tvdr.vdr.conf
