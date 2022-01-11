@@ -1383,7 +1383,7 @@ known_output_plugins:
 #+END_SRC
 **** allow dbus2vdr to use the system bus
 #+begin_src yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
-- name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id }}" and user "{{ vdr.user }}"
+- name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id | default(0) }}" and user "{{ vdr.user }}"
   vars:
     vdr_instance_id: "{{ '' if vdr.instance_id | int | default(0) == 0 else vdr.instance_id }}"
   template:
@@ -1706,7 +1706,7 @@ Set up IP resp. IP range based access for VDR plugins
 {{ ansible_managed | comment }}
 
 [vdr]
---instance={{ vdr.instance_id }}
+--instance={{ vdr.instance_id | default(0) }}
 #+end_src
 
 #+begin_src jinja2 :tangle roles/vdr/templates/conf.d/06-vdr-recordings.conf.j2
@@ -1731,7 +1731,7 @@ Set environment variables for system locale and user session on startup
 EnvironmentFile=-/etc/default/locale
 Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
 EnvironmentFile=-/var/lib/vdr/.session-env
-Environment=VDR_ID={{ vdr.instance_id  }}
+Environment=VDR_ID={{ vdr.instance_id | default(0)  }}
 #+END_SRC
 
 **** dbus2vdr dbus system bus configuration
@@ -1760,7 +1760,7 @@ Environment=VDR_ID={{ vdr.instance_id  }}
 **** set VDR_ID in /etc/profile.d/
 #+begin_src jinja2 :tangle roles/vdr/templates/vdr-dbus-send-vdr-id.sh :mkdirp yes
 {{ ansible_managed | comment }}
-export VDR_ID={{ vdr.instance_id }}
+export VDR_ID={{ vdr.instance_id | default(0) }}
 #+end_src
 **** /etc/default/vdr
 #+BEGIN_SRC jinja2 :tangle roles/vdr/templates/default_vdr.j2 :mkdirp yes
@@ -2176,7 +2176,7 @@ install_avahi: true
     path: /etc/avahi-linker/default.cfg
     section: "options"
     option: "vdr_instance_id"
-    value: "{{ vdr.instance_id }}"
+    value: "{{ vdr.instance_id | default(0) }}"
 
 - name: restart avahi-linker if running
   systemd:
@@ -3906,7 +3906,7 @@ yavdr_frontend:
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: vdr.id
-    int_value: "{{ vdr.instance_id }}"
+    int_value: "{{ vdr.instance_id | default(0) }}"
 
 - name: yavdr-frontend | set attach on startup to "{{ yavdr_frontend.attach_on_startup }}"
   yaml_edit:
