@@ -242,6 +242,15 @@ The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
   become: true
   environment:
     LANG: "{{ default_locale | default('c.UTF-8') }}"
+
+  pre_tasks:
+    - name: update all packages if the action doesn't happen locally
+      apt:
+        name: "*"
+        state: latest
+        update_cache: true
+      when: (ansible_host | default(inventory_hostname)) not in ['localhost', '127.0.0.1']
+
   roles:
     - yavdr-common               # install and configure the basic system
     - collect-facts              # query system facts
@@ -389,6 +398,10 @@ localhost ansible_connection=local
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 ---
 # file: group_vars/all
+# Ansible configuration, overwrite if you want to use the playbook(s) remotely
+# e.g. in a file `host_vars/my_yavdr_host`
+ansible_host: localhost
+ansible_connection: local
 
 branch: experimental
 ppa_owner: 'ppa:yavdr'
