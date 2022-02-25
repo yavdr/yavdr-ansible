@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+from dasbus.connection import SystemMessageBus
+from dasbus.loop import EventLoop
+import pulsectl
+
+pulse = pulsectl.Pulse('pulse_dbus_ctl')
+loop = EventLoop()
+bus = SystemMessageBus()
+
+class PulseDBusCtl(object):
+    __dbus_xml__ = """
+    <node>
+        <interface name="org.yavdr.PulseDBusCtl">
+            <method name="ListSinks">
+                <!--
+                    Returns an array of
+                    structs containing data for each sink:
+                      name: string
+                      description: string
+                      index: int32
+                      muted: bool
+                      number of channels: int32
+                      volume_values: array of doubles
+                      port_active: string one of ["yes", "no", "unknown"]
+                    -->
+                <arg direction="out" name="output_sinks" type="a(ssibiads)" />
+            </method>
+            <method name="SetDefaultSink">
+                <!--
+                    set the default sink by a given sink name, e.g.
+                    'alsa_output.pci-0000_01_00.1.hdmi-stereo'
+                -->
+                <arg direction="in" name="sink_name" type="s" />
+                <arg direction="out" name="success" type="b" />
+            </method>
+        </interface>
+    </node>
+    """
+
+    def ListSinks(self):
+        return [
+            (
+                s.name,
+                s.description,
+                s.index,
+                s.mute,
+                s.channel_count,
+                s.volume.values,
+                s.port_active.available_state._value
+            ) for s in pulse.sink_list()
+        ]
+
+    def SetDefaultSink(self, sink_name: str) -> bool:
+        try:
+            target_sink = pulse.get_sink_by_name(sink_name)
+        except:
+            print("could not get target sink")
+            return False
+        try:
+            pulse.sink_default_set(target_sink)
+        except Exception as e:
+            print(e)
+            return False
+
+        # move all streams to the new default sink
+        for stream in pulse.sink_input_list():
+            pulse.sink_input_move(stream.index, target_sink.index)
+        return True
+
+
+bus.publish_object("/org/yavdr/PulseDBusCtl", PulseDBusCtl())
+bus.register_service("org.yavdr.PulseDBusCtl")
+try:
+    loop.run()
+except KeyboardInterrupt:
+    loop.quit()
+    pulse.disconnect()

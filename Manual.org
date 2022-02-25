@@ -2916,6 +2916,7 @@ if __name__ == '__main__':
       - pulseaudio
       - pavucontrol
       - vdr-plugin-pulsecontrol
+      - python3-pulsectl
     state: present
     install_recommends: no
 
@@ -2923,6 +2924,28 @@ if __name__ == '__main__':
   template:
     src: templates/alsa/asound.conf.j2
     dest: /etc/asound.conf
+
+
+
+- name: "create /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
+  template:
+    src: "dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2"
+    dest: "/etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf"
+
+- name: create dbus_pulsectl script
+  template:
+    src: "dbus_pulsectl/dbus_pulsectl.py.j2"
+    dest: "/var/lib/vdr/bin/dbus_pulsectl"
+    mode: 0755
+
+- name: create dbus service for dbus_pulsectl
+  template:
+    src: dbus_pulsectl/dbus-pulsectl.service.j2
+    dest: /var/lib/vdr/.config/systemd/user/dbus-pulsectl.service
+    owner: "{{ vdr.user }}"
+
+    # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?
+    
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/pulseaudio/templates/alsa/asound.conf.j2 :mkdirp yes :padline no
@@ -2941,6 +2964,120 @@ ctl.!default {
   type pulse
   fallback "sysdefault"
 }
+#+END_SRC
+*** dbus_pulsectl
+This script allows to change the pulseaudio output device via dbus.
+#+begin_src xml :tangle roles/pulseaudio/templates/dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2 :mkdirp yes :padline no 
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+  <!-- Only user vdr can own the dbus-service -->
+  <policy user="{{ vdr.user }}">
+    <allow own="org.yavdr.PulseDBusCtl"/>
+  </policy>
+
+  <!-- allow everyone to call to call the dbus methods -->
+  <policy context="default">
+    <allow send_destination="org.yavdr.PulseDBusCtl"/>
+    <allow receive_sender="org.yavdr.PulseDBusCtl"/>
+  </policy>
+
+</busconfig>
+#+end_src
+
+#+begin_src python :tangle roles/pulseaudio/templates/dbus_pulsectl/dbus_pulsectl.py.j2 :mkdirp yes :padline no
+#!/usr/bin/env python3
+from dasbus.connection import SystemMessageBus
+from dasbus.loop import EventLoop
+import pulsectl
+
+pulse = pulsectl.Pulse('pulse_dbus_ctl')
+loop = EventLoop()
+bus = SystemMessageBus()
+
+class PulseDBusCtl(object):
+    __dbus_xml__ = """
+    <node>
+        <interface name="org.yavdr.PulseDBusCtl">
+            <method name="ListSinks">
+                <!--
+                    Returns an array of
+                    structs containing data for each sink:
+                      name: string
+                      description: string
+                      index: int32
+                      muted: bool
+                      number of channels: int32
+                      volume_values: array of doubles
+                      port_active: string one of ["yes", "no", "unknown"]
+                    -->
+                <arg direction="out" name="output_sinks" type="a(ssibiads)" />
+            </method>
+            <method name="SetDefaultSink">
+                <!--
+                    set the default sink by a given sink name, e.g.
+                    'alsa_output.pci-0000_01_00.1.hdmi-stereo'
+                -->
+                <arg direction="in" name="sink_name" type="s" />
+                <arg direction="out" name="success" type="b" />
+            </method>
+        </interface>
+    </node>
+    """
+
+    def ListSinks(self):
+        return [
+            (
+                s.name,
+                s.description,
+                s.index,
+                s.mute,
+                s.channel_count,
+                s.volume.values,
+                s.port_active.available_state._value
+            ) for s in pulse.sink_list()
+        ]
+
+    def SetDefaultSink(self, sink_name: str) -> bool:
+        try:
+            target_sink = pulse.get_sink_by_name(sink_name)
+        except:
+            print("could not get target sink")
+            return False
+        try:
+            pulse.sink_default_set(target_sink)
+        except Exception as e:
+            print(e)
+            return False
+
+        # move all streams to the new default sink
+        for stream in pulse.sink_input_list():
+            pulse.sink_input_move(stream.index, target_sink.index)
+        return True
+
+
+bus.publish_object("/org/yavdr/PulseDBusCtl", PulseDBusCtl())
+bus.register_service("org.yavdr.PulseDBusCtl")
+try:
+    loop.run()
+except KeyboardInterrupt:
+    loop.quit()
+    pulse.disconnect()
+#+end_src
+
+
+#+BEGIN_SRC shell :tangle roles/pulseaudio/templates/dbus_pulsectl/dbus-pulsectl.service.j2 :mkdirp yes :padline no
+[Unit]
+Description=Control pulseaudio output via DBus
+
+[Service]
+Type=simple
+ExecStart=/var/lib/vdr/bin/dbus_pulsectl
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target
 #+END_SRC
 ** session-common
 This role prepares a basic systemd user session
@@ -4999,7 +5136,7 @@ feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 enabled_services=(
     "detect-second-display.service"
     "openbox-second.service"
-    "yavdr-frontend.service" "pulseaudio.socket"
+    "yavdr-frontend.service" "pulseaudio.socket" "dbus-pulsectl.service"
     "pulseaudio.service" "wm-exit.service" "irexec.service")
 disabled_services=()
 
