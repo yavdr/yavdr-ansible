@@ -8,3 +8,21 @@ known_output_plugins:
   - vaapidevice
   - xine
   - xineliboutput
+
+# must be one of the above values if the default doesn't fit
+selected_frontend: '{{ preferred_frontend | default("") }}'
+
+# name of the VDR output plugin deb-package to install,
+# overwrite if you want something else than the default
+# it must be one of:
+#  - vdr-plugin-rpihddevice
+#  - vdr-plugin-softhddevice
+#  - vdr-plugin-softhddevice-cuvid
+#  - vdr-plugin-softhddevice-openglosd
+#  - vdr-plugin-softhdcuvid
+#  - vdr-plugin-softhddrm
+#  - vdr-plugin-softhdvaapi
+#  - vdr-plugin-vaapidevice
+#  - vdr-plugin-xine
+#  - vdr-plugin-xineliboutput
+vdr_output_plugin: '{{ automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice") }}'

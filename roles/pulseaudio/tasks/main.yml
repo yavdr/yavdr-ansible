@@ -6,6 +6,7 @@
       - pulseaudio
       - pavucontrol
       - vdr-plugin-pulsecontrol
+      - python3-pulsectl
     state: present
     install_recommends: no
 
@@ -13,3 +14,24 @@
   template:
     src: templates/alsa/asound.conf.j2
     dest: /etc/asound.conf
+
+
+
+- name: "create /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
+  template:
+    src: "dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2"
+    dest: "/etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf"
+
+- name: create dbus_pulsectl script
+  template:
+    src: "dbus_pulsectl/dbus_pulsectl.py.j2"
+    dest: "/var/lib/vdr/bin/dbus_pulsectl"
+    mode: 0755
+
+- name: create dbus service for dbus_pulsectl
+  template:
+    src: dbus_pulsectl/dbus-pulsectl.service.j2
+    dest: /var/lib/vdr/.config/systemd/user/dbus-pulsectl.service
+    owner: "{{ vdr.user }}"
+
+    # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?

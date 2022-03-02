@@ -11,7 +11,12 @@ Red       Recordings
 Green     Schedule
 Yellow    Info
 Blue      Timers
-User0     @osdteletext
 
+{% if "vdr-plugin-osdteletext" in vdr_plugins %}
+User0     @osdteletext
+{% endif %}
+{% if vdr_output_plugin == "vdr-plugin-xineliboutput" %}
 User9     @xineliboutput Red 4   # toggle autocrop
+{% elif vdr_output_plugin == "vdr-plugin-softhddevice" %}
 User9     @softhddevice Blue 2 5 # toggle autocrop
+{% endif %}

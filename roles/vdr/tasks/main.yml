@@ -71,7 +71,7 @@
 # TODO: set user etc. in /etc/vdr/conf.d/
 - name: apt | install additional vdr plugins
   apt:
-    name: '{{ vdr_plugins | default([]) }}'
+    name: '{{ vdr_plugins }}'
     state: present
     install_recommends: no
   notify: [ 'Restart VDR' ]
@@ -83,16 +83,16 @@
 
 - name: "vdr configuration | copy remote.conf if it doesn't exist yet"
   copy:
-    src: files/remote.conf
+    src: remote.conf
     dest: '{{ vdr.confdir }}/remote.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
     force: no
 
-- name: "vdr configuration | copy keymacros.conf"
-  copy:
-    src: files/keymacros.conf
+- name: "vdr configuration | create keymacros.conf"
+  template:
+    src: keymacros.conf.j2
     dest: '{{ vdr.etc_confdir }}/keymacros.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
@@ -253,7 +253,7 @@
     dest: /usr/share/vdr/command-hooks/commands.yavdr.conf
 - name: create helper scripts for reccmds
   copy:
-    src: files/reccmds/{{ item }}.sh
+    src: reccmds/{{ item }}.sh
     dest: /usr/local/bin/{{ item }}
     mode: 0755
   loop:
@@ -263,11 +263,11 @@
     - vdr-recrepeat
 - name: create snippet for yavdr reccmds to handle marks-, resume- and index-files
   template:
-    src: files/reccmds.removemarks.conf.j2
+    src: reccmds.removemarks.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.removemarks.conf
 
 - name: create snippet for yavdr reccmds to search repeats using epgsearch
   template:
-    src: files/reccmds.searchrepeats.conf.j2
+    src: reccmds.searchrepeats.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.searchrepeats.conf
   when: '"vdr-plugin-epgsearch" in vdr_plugins'
