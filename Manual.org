@@ -415,6 +415,13 @@ repositories:
 ** Locales and Timezone
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 timezone: 'Europe/Berlin'
+# timezone_hw can be set to 'UTC' or 'local' to set the preferred hardware clock
+# timezone. This variable is optional, the default behavior is to let systemd
+# set the hw clock to UTC # and sync it with the time aquired via NTP.
+# Please note that changing the hw clock is usually not supported within virtual
+# environments and systemd-timesyncd won't sync the current time to the hardware
+# clock if it is set to local time.
+# timezone_hw: 'UTC'  # or 'local'
 default_locale: 'de_DE.UTF-8'
 generate_locales:  # see entries in /etc/locale.gen
   - 'de_DE.UTF-8 UTF-8'
@@ -711,6 +718,13 @@ rpi_repositories:
 **** Locales and Timezone
 #+begin_src yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 timezone: 'Europe/Berlin'
+# timezone_hw can be set to 'UTC' or 'local' to set the preferred hardware clock
+# timezone. This variable is optional, the default behavior is to let systemd
+# set the hw clock to UTC # and sync it with the time aquired via NTP.
+# Please note that changing the hw clock is usually not supported within virtual
+# environments and systemd-timesyncd won't sync the current time to the hardware
+# clock if it is set to local time.
+# timezone_hw: 'UTC'  # or 'local'
 default_locale: 'de_DE.UTF-8'
 generate_locales:  # see entries in /etc/locale.gen
   - 'de_DE.UTF-8 UTF-8'
@@ -873,6 +887,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 - name: set timezone
   timezone:
     name: "{{ timezone }}"
+    hwclock: "{{ timezone_hw | default(omit) }}"
   register: tz_setting
 
 - name: debconf | set timezone
@@ -1087,8 +1102,10 @@ case $1 in
     echo "unload dvb drivers"
     /usr/local/bin/module-helper -u dvb_core
     {% endif %}
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh stop{% endif %}
     ;;
   post)
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh start{% endif %}
     # start current frontend again
     if [ -x /usr/bin/frontend-dbus-send ]
     then
