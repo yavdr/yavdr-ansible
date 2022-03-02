@@ -415,6 +415,13 @@ repositories:
 ** Locales and Timezone
 #+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 timezone: 'Europe/Berlin'
+# timezone_hw can be set to 'UTC' or 'local' to set the preferred hardware clock
+# timezone. This variable is optional, the default behavior is to let systemd
+# set the hw clock to UTC # and sync it with the time aquired via NTP.
+# Please note that changing the hw clock is usually not supported within virtual
+# environments and systemd-timesyncd won't sync the current time to the hardware
+# clock if it is set to local time.
+# timezone_hw: 'UTC'  # or 'local'
 default_locale: 'de_DE.UTF-8'
 generate_locales:  # see entries in /etc/locale.gen
   - 'de_DE.UTF-8 UTF-8'
@@ -709,6 +716,13 @@ rpi_repositories:
 **** Locales and Timezone
 #+begin_src yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 timezone: 'Europe/Berlin'
+# timezone_hw can be set to 'UTC' or 'local' to set the preferred hardware clock
+# timezone. This variable is optional, the default behavior is to let systemd
+# set the hw clock to UTC # and sync it with the time aquired via NTP.
+# Please note that changing the hw clock is usually not supported within virtual
+# environments and systemd-timesyncd won't sync the current time to the hardware
+# clock if it is set to local time.
+# timezone_hw: 'UTC'  # or 'local'
 default_locale: 'de_DE.UTF-8'
 generate_locales:  # see entries in /etc/locale.gen
   - 'de_DE.UTF-8 UTF-8'
@@ -871,6 +885,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 - name: set timezone
   timezone:
     name: "{{ timezone }}"
+    hwclock: "{{ timezone_hw | default(omit) }}"
   register: tz_setting
 
 - name: debconf | set timezone
@@ -1084,8 +1099,10 @@ case $1 in
     echo "unload dvb drivers"
     /usr/local/bin/module-helper -u dvb_core
     {% endif %}
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh stop{% endif %}
     ;;
   post)
+    {% if timezone_hw is defined %}/etc/init.d/hwclock.sh start{% endif %}
     # start current frontend again
     if [ -x /usr/bin/frontend-dbus-send ]
     then
@@ -1848,7 +1865,7 @@ SHUTDOWNCMD="{{ vdr_shutdown_command }}"
 #+end_src
 **** reccmds.removemarks.conf
 This is a snippet for the reccmds.conf. It adds some actions to remove marks, resume and index files.
-#+begin_src jinja2 :tangle roles/vdr/files/reccmds.removemarks.conf.j2
+#+begin_src jinja2 :tangle roles/vdr/templates/reccmds.removemarks.conf.j2
 {{ ansible_managed | comment }}
 {{ "Remove marks" | translate }} : /usr/local/bin/removemarks
 {{ "Remove Index-File" | translate }} : /usr/local/bin/removeindex
@@ -1857,7 +1874,7 @@ This is a snippet for the reccmds.conf. It adds some actions to remove marks, re
 #+end_src
 **** reccmds.searchrepeats.conf
 This is a snippet
-#+begin_src jinja2 :tangle roles/vdr/files/reccmds.searchrepeats.conf.j2
+#+begin_src jinja2 :tangle roles/vdr/templates/reccmds.searchrepeats.conf.j2
 {{ "Search for repeat" | translate }} : /usr/local/bin/vdr-recrepeat 0
 {{ "Search for repeat with subtitle (same episode)" | translate }} : /usr/local/bin/vdr-recrepeat 1
 #+end_src
@@ -4906,7 +4923,7 @@ EndSection
 # load hook helper functions
 . /usr/share/initramfs-tools/hook-functions
 
-rm /lib/firmware/edid/edid.*.bin
+rm -r /lib/firmware/edid/edid.*.bin
 find "/etc/X11/" -name "edid.*.bin" -type f -exec cp -t "/lib/firmware/edid/" {} +
 mkdir -p "${DESTDIR}/lib/firmware/edid"
 find "/etc/X11/" -name "edid.*.bin" -type f -exec cp -t "${DESTDIR}/lib/firmware/edid/" {} +
