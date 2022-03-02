@@ -1353,17 +1353,9 @@ EnableSSH = {{ lifeguard_enable_ssh }}
 #+begin_src yaml :tangle roles/vdr/defaults/main.yml
 streamdev_client_remote_ip: ''
 
-known_output_plugins:
-  - vdr-plugin-rpihddevice
-  - vdr-plugin-softhddevice
-  - vdr-plugin-softhddevice-cuvid
-  - vdr-plugin-softhddevice-openglosd
-  - vdr-plugin-softhdcuvid
-  - vdr-plugin-softhddrm
-  - vdr-plugin-softhdvaapi
-  - vdr-plugin-vaapidevice
-  - vdr-plugin-xine
-  - vdr-plugin-xineliboutput
+# list of additional debian packages to install
+vdr_plugins: []
+
 #+end_src
 *** tasks
 **** install the basic vdr packages
@@ -1455,7 +1447,7 @@ The additional plugins to install can be set in the variable ~{{vdr_plugins}}~ i
 #+BEGIN_SRC yaml :tangle roles/vdr/tasks/main.yml :mkdirp yes
 - name: apt | install additional vdr plugins
   apt:
-    name: '{{ vdr_plugins | default([]) }}'
+    name: '{{ vdr_plugins }}'
     state: present
     install_recommends: no
   notify: [ 'Restart VDR' ]
@@ -1472,16 +1464,16 @@ Because some files are changed by the vdr at runtime, we won't overwrite them if
 
 - name: "vdr configuration | copy remote.conf if it doesn't exist yet"
   copy:
-    src: files/remote.conf
+    src: remote.conf
     dest: '{{ vdr.confdir }}/remote.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
     force: no
 
-- name: "vdr configuration | copy keymacros.conf"
-  copy:
-    src: files/keymacros.conf
+- name: "vdr configuration | create keymacros.conf"
+  template:
+    src: keymacros.conf.j2
     dest: '{{ vdr.etc_confdir }}/keymacros.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
@@ -1670,7 +1662,7 @@ Set up IP resp. IP range based access for VDR plugins
 #+begin_src yaml :tangle roles/vdr/tasks/main.yml
 - name: create helper scripts for reccmds
   copy:
-    src: files/reccmds/{{ item }}.sh
+    src: reccmds/{{ item }}.sh
     dest: /usr/local/bin/{{ item }}
     mode: 0755
   loop:
@@ -1683,12 +1675,12 @@ Set up IP resp. IP range based access for VDR plugins
 #+begin_src yaml :tangle roles/vdr/tasks/main.yml
 - name: create snippet for yavdr reccmds to handle marks-, resume- and index-files
   template:
-    src: files/reccmds.removemarks.conf.j2
+    src: reccmds.removemarks.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.removemarks.conf
 
 - name: create snippet for yavdr reccmds to search repeats using epgsearch
   template:
-    src: files/reccmds.searchrepeats.conf.j2
+    src: reccmds.searchrepeats.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.searchrepeats.conf
   when: '"vdr-plugin-epgsearch" in vdr_plugins'
 #+end_src
@@ -2039,7 +2031,7 @@ KBD.User8      000000000000002F
 KBD.User9      000000000000002A
 #+END_SRC
 **** keymacros.conf
-#+BEGIN_SRC conf :tangle roles/vdr/files/keymacros.conf :padline no
+#+BEGIN_SRC conf :tangle roles/vdr/templates/keymacros.conf.j2 :padline no
 # Remote control key macros for VDR
 #
 # Format:
@@ -2053,12 +2045,15 @@ Red       Recordings
 Green     Schedule
 Yellow    Info
 Blue      Timers
+
+{% if "vdr-plugin-osdteletext" in vdr_plugins %}
 User0     @osdteletext
-
+{% endif %}
+{% if vdr_output_plugin == "vdr-plugin-xineliboutput" %}
 User9     @xineliboutput Red 4   # toggle autocrop
+{% elif vdr_output_plugin == "vdr-plugin-softhddevice" %}
 User9     @softhddevice Blue 2 5 # toggle autocrop
-
-
+{% endif %}
 #+END_SRC
 **** VDR helper scripts
 ***** removeresume
@@ -7239,6 +7234,25 @@ known_output_plugins:
   - vaapidevice
   - xine
   - xineliboutput
+
+# must be one of the above values if the default doesn't fit
+selected_frontend: '{{ preferred_frontend | default("") }}'
+
+# name of the VDR output plugin deb-package to install,
+# overwrite if you want something else than the default
+# it must be one of:
+#  - vdr-plugin-rpihddevice
+#  - vdr-plugin-softhddevice
+#  - vdr-plugin-softhddevice-cuvid
+#  - vdr-plugin-softhddevice-openglosd
+#  - vdr-plugin-softhdcuvid
+#  - vdr-plugin-softhddrm
+#  - vdr-plugin-softhdvaapi
+#  - vdr-plugin-vaapidevice
+#  - vdr-plugin-xine
+#  - vdr-plugin-xineliboutput
+vdr_output_plugin: '{{ automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice") }}'
+
 #+end_src
 *** tasks
 #+begin_src yaml :tangle roles/set-output-plugin/tasks/main.yml :padline no
@@ -7255,7 +7269,7 @@ known_output_plugins:
 - name: apt | install the output plugin
   apt:
     state: present
-    name: '{{ vdr_output_plugin | default(automatically_installed_output_plugin | default("vdr-plugin-rpihddevice" if ansible_architecture == "armv7l" else "vdr-plugin-softhddevice")) }}'
+    name: '{{ vdr_output_plugin }}'
 
 - name: show selected_frontend
   debug:
@@ -7265,16 +7279,16 @@ known_output_plugins:
 - name: show preferred_frontend
   debug:
     var: preferred_frontend
-
-- name: show active_output_plugin
-  debug:
-    msg: 'active_output_plugin is: {{ selected_frontend | default(preferred_frontend) | default("") }}'
     verbosity: 1
-
 
 - name: set active output plugin
   set_fact:
-    active_output_plugin: '{{ selected_frontend | default(preferred_frontend) | default("") }}'
+    active_output_plugin: '{{ selected_frontend }}'
+
+- name: show active_output_plugin
+  debug:
+    msg: 'active_output_plugin is: {{ active_output_plugin }}'
+    verbosity: 1
 
 - name: set disabled output plugins
   set_fact:
