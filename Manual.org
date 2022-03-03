@@ -590,6 +590,10 @@ wakeup_days: ""
 # wakeup_time: "00:00"
 wakeup_time: ""
 
+# this will set the primary display as connected and force KMS to load
+# the EDID saved when the role yavdr-xorg detects the connected displays
+intel_set_boot_edid: false
+
 # settings for grub
 grub:
   timeout: 0
@@ -3984,6 +3988,9 @@ yavdr_frontend:
   tags: [install,update]
 - import_tasks: detect-xorg.yml
   tags: [xorg.detect,install]
+- import_tasks: intel.yml
+  tags: [xorg.detect,install]
+  when: intel_detected | bool and not nvidia_detected | bool
 #+END_SRC
 **** setup-xorg.yml
 #+BEGIN_SRC yaml :tangle roles/yavdr-xorg/tasks/setup-xorg.yml :mkdirp yes :padline no

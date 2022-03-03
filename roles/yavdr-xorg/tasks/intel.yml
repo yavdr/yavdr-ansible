@@ -1,0 +1,17 @@
+- name: "create initramfs hook to copy EDID files"
+  template:
+    src: templates/include-edid-data.sh.j2
+    dest: '/etc/initramfs-tools/hooks/include-edid-data'
+    mode: 0755
+    force: yes
+
+- name: "create /lib/firmware/edid"
+  file:
+    state: directory
+    dest: /lib/firmware/edid
+
+- name: "set intel_boot_options variable"
+  set_fact:
+    intel_boot_options: "video={{ drm.primary.drm_connector }}:D drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}" # {% for ignored_c in drm.ignored_outputs %}video={{ ignored_c }}:d{% endfor %}"
+  when: intel_set_boot_edid | bool
+  notify: ['Update Initramfs', 'Update GRUB']

@@ -1,0 +1,15 @@
+#!/usr/bin/bash
+{{ ansible_managed | comment }}
+# This hook copies EDID files with the naming scheme "edid.${OUTPUT}.bin" to the initramfs.
+
+[ "$1" = "prereqs" ] && { echo "udev"; exit 0; }
+
+# load hook helper functions
+. /usr/share/initramfs-tools/hook-functions
+
+rm -r /lib/firmware/edid/edid.*.bin
+find "/etc/X11/" -name "edid.*.bin" -type f -exec cp -t "/lib/firmware/edid/" {} +
+mkdir -p "${DESTDIR}/lib/firmware/edid"
+find "/etc/X11/" -name "edid.*.bin" -type f -exec cp -t "${DESTDIR}/lib/firmware/edid/" {} +
+manual_add_modules i915 radeon
+exit 0
