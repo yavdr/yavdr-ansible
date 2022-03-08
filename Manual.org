@@ -1501,6 +1501,15 @@ Because some files are changed by the vdr at runtime, we won't overwrite them if
     mode: 0644
     force: yes
 
+- name: "vdr configuration | create scr.conf"
+  template:
+    src: keymacros.conf.j2
+    dest: '{{ vdr.etc_confdir }}/scr.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: yes
+
 - name: "vdr configuration | copy channels.conf if it doesn't exist yet"
   copy:
     src: '{{ vdr_channels_conf }}'
