@@ -101,8 +101,17 @@
 
 - name: "vdr configuration | create scr.conf"
   template:
-    src: keymacros.conf.j2
+    src: scr.conf.j2
     dest: '{{ vdr.etc_confdir }}/scr.conf'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: 0644
+    force: yes
+
+- name: "vdr configuration | create diseqc.conf"
+  template:
+    src: disecq.conf.j2
+    dest: '{{ vdr.etc_confdir }}/diseqc.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     mode: 0644
