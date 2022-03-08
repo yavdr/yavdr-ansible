@@ -2053,6 +2053,7 @@ KBD.User9      000000000000002A
 #+END_SRC
 **** keymacros.conf
 #+BEGIN_SRC conf :tangle roles/vdr/templates/keymacros.conf.j2 :padline no
+{{ ansible_managed | comment }}
 # Remote control key macros for VDR
 #
 # Format:
@@ -2075,6 +2076,40 @@ User9     @xineliboutput Red 4   # toggle autocrop
 {% elif vdr_output_plugin == "vdr-plugin-softhddevice" %}
 User9     @softhddevice Blue 2 5 # toggle autocrop
 {% endif %}
+#+END_SRC
+**** scr.conf
+#+BEGIN_SRC conf :tangle roles/vdr/templates/scr.conf.j2 :padline no
+{{ ansible_managed | comment }}
+# SCR (Satellite Channel Routing) configuration for VDR
+#
+# Format:
+#
+# channel frequency [pin]
+#
+# channel:        SCR channel index (0-7)
+# frequency:      frequency of the SCR channel ("user band")
+# pin:            optional pin of the SCR channel (0-255)
+#
+# A line containing space separated integer numbers, terminated with a ':',
+# defines that any following lines apply only to the given list
+# of device numbers.
+#
+# Examples:
+
+# EN50494 & EN50607 ("JESS")
+# 0 974
+# 1 1076
+# 2 1178
+# 3 1280
+# 4 1382
+# 5 1484
+# 6 1586
+# 7 1688
+# EN50607 ("JESS") only
+# 8 1790
+# 9 1892
+# 10 1994
+# 11 2096
 #+END_SRC
 **** VDR helper scripts
 ***** removeresume
@@ -2941,17 +2976,27 @@ if __name__ == '__main__':
     src: templates/alsa/asound.conf.j2
     dest: /etc/asound.conf
 
-
-
 - name: "create /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
   template:
     src: "dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2"
     dest: "/etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf"
 
+- name: ensure ~/bin exists for vdr user
+  file:
+    path: "{{ vdr.home }}/bin"
+    state: directory
+    mode: 0755
+
 - name: create dbus_pulsectl script
   template:
     src: "dbus_pulsectl/dbus_pulsectl.py.j2"
-    dest: "/var/lib/vdr/bin/dbus_pulsectl"
+    dest: "{{ vdr.home }}/bin/dbus_pulsectl"
+    mode: 0755
+
+- name: ensure ~/.config/systemd/user exists for vdr user
+  file:
+    path: "{{ vdr.home }}/.config/systemd/user"
+    state: directory
     mode: 0755
 
 - name: create dbus service for dbus_pulsectl
@@ -3084,12 +3129,13 @@ except KeyboardInterrupt:
 
 
 #+BEGIN_SRC shell :tangle roles/pulseaudio/templates/dbus_pulsectl/dbus-pulsectl.service.j2 :mkdirp yes :padline no
+{{ ansible_managed | comment }}
 [Unit]
 Description=Control pulseaudio output via DBus
 
 [Service]
 Type=simple
-ExecStart=/var/lib/vdr/bin/dbus_pulsectl
+ExecStart={{ vdr.home }}/bin/dbus_pulsectl
 KillSignal=SIGINT
 
 [Install]
@@ -3440,7 +3486,7 @@ create a xorg.conf for
 - [ ] allow overscan compensation in xorg.conf or via xrandr on startup
 Missing steps:
 - [X] X-Server configuration for AMD graphics cards
-- [ ] load edids by setting kernel boot arguments
+- [X] load edids by setting kernel boot arguments
 
 **** DONE AMD-GPUs
 CLOSED: [2020-09-23 Mi 21:09]
