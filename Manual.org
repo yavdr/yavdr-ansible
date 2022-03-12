@@ -440,7 +440,7 @@ vdr:
   group: vdr
   uid: 666
   gid: 666
-  home: /var/lib/vdr
+  home: /home/vdr
   etc_confdir: /etc/vdr
   confdir: /var/lib/vdr
   recdir: /srv/vdr/video
@@ -943,8 +943,9 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
   meta: flush_handlers
 #+END_SRC
 
-***** create user vdr
+***** create user vdr and set up home directories
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/tasks/configure_system.yml :exports none :mkdirp yes
+
 - name: create vdr group
   group:
     gid: '{{ vdr.gid }}'
@@ -959,6 +960,44 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     home: '{{ vdr.home }}'
     shell: '/bin/bash'
     state: present
+
+- name: prepare /var/lib/vdr
+  file:
+    path: /var/lib/vdr
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0755'
+
+- name: collect dotfiles for newly created user
+  find:
+    file_type: file
+    hidden: yes
+    paths: '{{ vdr.home }}'
+    patterns: '.*'
+    recurse: no
+  register: dotfiles
+
+- name: copy dotfiles to /var/lib/vdr unless they already exist
+  copy:
+    src: '{{ item }}'
+    dest: /var/lib/vdr/
+    remote_src: true
+    force: false
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - "{{ dotfiles.files }}"
+
+- name: "ensure {{ vdr.home }} is a mount-bind from /var/lib/vdr"
+  mount:
+    path: "{{ vdr.home }}"
+    src: /var/lib/vdr
+    opts: bind
+    state: mounted
+    fstype: none
+  when: not (vdr.home | realpath is match("/var/lib/vdr"))
+
 #+END_SRC
 
 ***** Disable release-upgrade notifications
@@ -1768,10 +1807,11 @@ Wants=network.target network-online.target
 **** Systemd Drop-in for setting vdr environment
 Set environment variables for system locale and user session on startup
 #+BEGIN_SRC conf :tangle roles/vdr/templates/systemd/vdr.service.d/vdr-environ.j2
+{{ ansible_managed | comment }}
 [Service]
 EnvironmentFile=-/etc/default/locale
 Environment=XDG_RUNTIME_DIR=/run/user/{{ vdr.uid }}/
-EnvironmentFile=-/var/lib/vdr/.session-env
+EnvironmentFile=-{{ vdr.home }}/.session-env
 Environment=VDR_ID={{ vdr.instance_id | default(0)  }}
 #+END_SRC
 
@@ -5341,8 +5381,8 @@ exec openbox-session
 ***** autostart
 #+BEGIN_SRC shell :tangle roles/yavdr-desktop/templates/openbox/autostart.j2 :mkdirp yes :shebang #!/usr/bin/bash
 # forward environment variables to an environment file and the systemd user session
-env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
-systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR\|XDG_DATA_DIRS" > ~/.session-env
+systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_DATA_DIRS DBUS_SESSION_BUS_ADDRESS
 
 feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
@@ -5364,7 +5404,7 @@ for service in "${disabled_services[@]}"; do
 done
 
 if which dbus-update-activation-environment >/dev/null 2>&1; then
-        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
+        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_DATA_DIRS
 fi
 
 # start systemd units for the yavdr user session

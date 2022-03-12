@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 # forward environment variables to an environment file and the systemd user session
-env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR" > ~/.session-env
-systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR\|XDG_DATA_DIRS" > ~/.session-env
+systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_DATA_DIRS DBUS_SESSION_BUS_ADDRESS
 
 feh --no-fehbg  --bg-center "/usr/share/yavdr/images/yavdr_logo.png"
 
@@ -23,7 +23,7 @@ for service in "${disabled_services[@]}"; do
 done
 
 if which dbus-update-activation-environment >/dev/null 2>&1; then
-        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR
+        dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_DATA_DIRS
 fi
 
 # start systemd units for the yavdr user session

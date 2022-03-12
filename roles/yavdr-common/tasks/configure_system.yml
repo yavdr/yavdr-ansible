@@ -93,6 +93,43 @@
     home: '{{ vdr.home }}'
     shell: '/bin/bash'
     state: present
+
+- name: prepare /var/lib/vdr
+  file:
+    path: /var/lib/vdr
+    state: directory
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+    mode: '0755'
+
+- name: collect dotfiles for newly created user
+  find:
+    file_type: file
+    hidden: yes
+    paths: '{{ vdr.home }}'
+    patterns: '.*'
+    recurse: no
+  register: dotfiles
+
+- name: copy dotfiles to /var/lib/vdr unless they already exist
+  copy:
+    src: '{{ item }}'
+    dest: /var/lib/vdr/
+    remote_src: true
+    force: false
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
+  with_items:
+    - "{{ dotfiles.files }}"
+
+- name: "ensure {{ vdr.home }} is a mount-bind from /var/lib/vdr"
+  mount:
+    path: "{{ vdr.home }}"
+    src: /var/lib/vdr
+    opts: bind
+    state: mounted
+    fstype: none
+  when: not (vdr.home | realpath is match("/var/lib/vdr"))
 - name: disable release-upgrade notifications
   lineinfile:
     path: /etc/update-manager/release-upgrades
