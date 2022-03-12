@@ -1,0 +1,9 @@
+---
+
+- name: 'Stop {{ item.instance_name }}'
+  systemd:
+    name: '{{ item.instance_name }}'
+    state: stopped
+  notify: ['Start {{ item.notification | default(omit) }}']
+  loop: '{{ xorg_services }}'
+  when: item.service_name in known_services

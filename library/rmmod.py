@@ -10,6 +10,7 @@ import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
+import subprocess
 
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
@@ -24,7 +25,7 @@ version_added: 2.7
 author:
     - Alexander Grothe
 description:
-    - Unload kernel modules with rmmod.
+    - Unload kernel modules and their dependencies with rmmod.
     - Builtin kernel modules can't be removed (will do nothing in this case).
 options:
     name:
@@ -40,6 +41,29 @@ EXAMPLES = '''
 '''
 
 
+
+def find_dependencies(module, dependencies=[]):
+    dependencies.append(module)
+    if module in dependency_map:
+        for dependency in dependency_map[module]:
+            find_dependencies(dependency, dependencies)
+    return dependencies
+
+
+def build_module_dependency_map():
+    dependency_map = {}
+    with subprocess.Popen(['lsmod'],
+                          stdout=subprocess.PIPE,
+                          universal_newlines=True
+                          ) as p:
+        for line in p.stdout:
+            values = line.split()
+            if len(values) > 3:
+                #print("module {} depends on {}".format(values[0], values[3]))
+                dependency_map[values[0]] = values[3].split(',')
+    return dependency_map
+
+
 def main():
     module = AnsibleModule(
         argument_spec=dict(
@@ -50,10 +74,10 @@ def main():
 
     name = module.params['name']
 
-    # FIXME: Adding all parameters as result values is useless
     result = dict(
         changed=False,
         name=name,
+        unloaded_modules = list()
     )
 
     # Check if module is loaded
@@ -71,10 +95,17 @@ def main():
     # remove module if it is loaded
     if is_loaded:
         if not module.check_mode:
-            rc, out, err = module.run_command([module.get_bin_path('rmmod', True), name])
-            if rc != 0:
-                module.fail_json(msg=err, rc=rc, stdout=out, stderr=err, **result)
-        result['changed'] = True
+            dependency_map = build_module_dependency_map()
+            all_modules = find_dependencies(name)
+            all_modules.reverse()
+            for kernel_module in all_modules:
+                rc, out, err = module.run_command([module.get_bin_path('rmmod', True), kernel_module])
+                if rc != 0:
+                    module.fail_json(msg=err, rc=rc, stdout=out, stderr=err, **result)
+                else:
+                    result['unloaded_modules'].append(kernel_module)
+            if result['unloaded_modules']:
+                result['changed'] = True
 
     module.exit_json(**result)
 

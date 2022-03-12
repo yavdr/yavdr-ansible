@@ -21,6 +21,9 @@
   - [[#serial-ir][Serial IR]]
   - [[#rpi-specific-variables][RPI specific variables]]
 - [[#roles][Roles]]
+  - [[#check-known-services][check known services]]
+  - [[#stop-vdr][stop vdr]]
+  - [[#stop-xorg][stop xorg]]
   - [[#install-dependencies][install-dependencies]]
   - [[#nvidia-experimental-drivers][nvidia experimental drivers]]
   - [[#yavdr-common][yavdr-common]]
@@ -654,6 +657,78 @@ serial_ir_device: ttyS0
 # rpi_gpu_mem = 256
 #+END_SRC
 * Roles
+** check known services
+#+begin_src yaml :tangle roles/get-systemd-services/tasks/main.yml
+---
+
+# workaround for https://bugs.launchpad.net/ubuntu/+source/ansible/+bug/1880359
+# TODO: for later ansible versions use ansible.builtin.service_facts (https://docs.ansible.com/ansible/latest/collections/ansible/builtin/service_facts_module.html#service-facts-module)
+- name: check known services
+  command: systemctl list-unit-files --no-pager --type service --all
+  register: output
+
+- name: create list of known services
+  set_fact:
+     known_services: "{{ output.stdout.split('\n') | map('regex_search', '^.*[.]service') | list }}"
+
+- name: show known services
+  debug:
+    var: known_services
+    verbosity: 1
+#+end_src
+** stop vdr
+*** meta
+#+begin_src yaml :tangle roles/stop-vdr/meta/main.yml :mkdirp yes :padline no
+---
+dependencies:
+    - role: get-systemd-services
+#+end_src
+*** tasks
+#+begin_src yaml :tangle roles/stop-vdr/tasks/main.yml :mkdirp yes :padline no
+---
+
+- name: Stop VDR
+  systemd:
+    name: vdr.service
+    state: stopped
+  notify: ['Start VDR']
+  when: '"vdr.service" in known_services'
+    
+#+end_src
+** stop xorg
+*** meta
+#+begin_src yaml :tangle roles/stop-xorg/meta/main.yml :mkdirp yes :padline no
+---
+dependencies:
+    - role: get-systemd-services
+#+end_src
+*** defaults
+#+begin_src yaml :tangle roles/stop-xorg/defaults/main.yml :mkdirp yes :padline no
+xorg_services:
+  - service_name: 'yavdr-xorg.servie'
+    instance_name: 'yavdr-xorg.service'
+    notification: 'Start yavdr-xorg'
+
+  - service_name: 'xlogin@.service'
+    instance_name: 'xlogin@{{ vdr.user | default("vdr") }}.service'
+    notification: 'Start xlogin'
+
+  - service_name: 'x@.service'
+    instance_name: 'x@vt7.service'
+ 
+#+end_src
+*** main.yml
+#+begin_src yaml :tangle roles/stop-xorg/tasks/main.yml :mkdirp yes :padline no
+---
+
+- name: 'Stop {{ item.instance_name }}'
+  systemd:
+    name: '{{ item.instance_name }}'
+    state: stopped
+  notify: ['Start {{ item.notification | default(omit) }}']
+  loop: '{{ xorg_services }}'
+  when: item.service_name in known_services
+#+end_src
 ** install-dependencies
 *** tasks
 **** main.yml
@@ -781,6 +856,71 @@ vdr_allowed_hosts: []
 standby_reload_dvb: true
 #+END_SRC
 
+** vdr-addon-lifeguardng
+*** variables
+#+BEGIN_SRC yaml :tangle roles/lifeguardng/defaults/main.yml :mkdirp yes
+lifeguard_enable_nfs: True
+lifeguard_enable_samba: True
+lifeguard_enable_ssh: True
+lifeguard_hosts: []
+lifeguard_users: []
+lifeguard_processes: []
+lifeguard_tcp:
+  - vdr 3000
+#+END_SRC
+
+*** tasks
+#+BEGIN_SRC yaml :tangle roles/lifeguardng/tasks/main.yml :mkdirp yes
+- name: apt | install vdr-addon-lifeguard-ng
+  apt:
+    name: vdr-addon-lifeguard-ng
+    state: present
+
+- name: expand template for vdr-addon-lifeguard-ng configuration file
+  template:
+    src: templates/lifeguard.conf.j2
+    dest: /etc/lifeguard.conf
+  notify: Restart vdr-addon-lifeguard-ng
+#+END_SRC
+*** templates
+#+begin_src jinja2 :tangle roles/lifeguardng/templates/lifeguard.conf.j2 :mkdirp yes
+{{ ansible_managed | comment }}
+
+[Options]
+EnableNFS = {{ lifeguard_enable_nfs }}
+EnableSamba = {{ lifeguard_enable_samba }}
+EnableSSH = {{ lifeguard_enable_ssh }}
+[Hosts]
+# ping hostnames or IP addresses (which are faster than hostnames)
+# Caution: pinging hosts can be quite slow!
+{% for host in lifeguard_hosts %}
+{{ host }}
+{% endfor %}
+[Process]
+# one process name per line
+{% for process in lifeguard_processes %}
+{{ process }}
+{% endfor %}
+[User]
+# one user name per line
+{% for user in lifeguard_users %}
+{{ user }}
+{% endfor %}
+[TCP]
+# process name [:] <port> [<another port>]
+{% for connection in lifeguard_tcp %}
+{{ connection }}
+{% endfor %}
+#+end_src
+
+*** Meta
+#+CAPTION: roles/yavdr-common/meta/main.yml
+#+BEGIN_SRC yaml :tangle roles/yavdr-common/meta/main.yml :padline no
+---
+dependencies:
+    - role: stop-vdr
+    - role: stop-xorg
+#+END_SRC
 *** handlers
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/handlers/main.yml :mkdirp yes :padline no
 - name: reconfigure_tzdata
@@ -952,6 +1092,8 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
     state: present
     name: '{{ vdr.group }}'
 
+
+# TODO: ensure openbox, vdr, xorg etc. are stopped
 - name: create vdr user
   user:
     name: '{{ vdr.user }}'
@@ -980,7 +1122,7 @@ This should at least prevent black screen errors after a reboot, if the Ubuntu C
 
 - name: copy dotfiles to /var/lib/vdr unless they already exist
   copy:
-    src: '{{ item }}'
+    src: '{{ item.path }}'
     dest: /var/lib/vdr/
     remote_src: true
     force: false
@@ -1303,63 +1445,6 @@ fi
 
 printf "%s (%s %s %s)\n" "$DISTRIB_DESCRIPTION" "$(uname -o)" "$(uname -r)" "$(uname -m)"
 #+end_src
-** vdr-addon-lifeguardng
-*** variables
-#+BEGIN_SRC yaml :tangle roles/lifeguardng/defaults/main.yml :mkdirp yes
-lifeguard_enable_nfs: True
-lifeguard_enable_samba: True
-lifeguard_enable_ssh: True
-lifeguard_hosts: []
-lifeguard_users: []
-lifeguard_processes: []
-lifeguard_tcp:
-  - vdr 3000
-#+END_SRC
-
-*** tasks
-#+BEGIN_SRC yaml :tangle roles/lifeguardng/tasks/main.yml :mkdirp yes
-- name: apt | install vdr-addon-lifeguard-ng
-  apt:
-    name: vdr-addon-lifeguard-ng
-    state: present
-
-- name: expand template for vdr-addon-lifeguard-ng configuration file
-  template:
-    src: templates/lifeguard.conf.j2
-    dest: /etc/lifeguard.conf
-  notify: Restart vdr-addon-lifeguard-ng
-#+END_SRC
-*** templates
-#+begin_src jinja2 :tangle roles/lifeguardng/templates/lifeguard.conf.j2 :mkdirp yes
-{{ ansible_managed | comment }}
-
-[Options]
-EnableNFS = {{ lifeguard_enable_nfs }}
-EnableSamba = {{ lifeguard_enable_samba }}
-EnableSSH = {{ lifeguard_enable_ssh }}
-[Hosts]
-# ping hostnames or IP addresses (which are faster than hostnames)
-# Caution: pinging hosts can be quite slow!
-{% for host in lifeguard_hosts %}
-{{ host }}
-{% endfor %}
-[Process]
-# one process name per line
-{% for process in lifeguard_processes %}
-{{ process }}
-{% endfor %}
-[User]
-# one user name per line
-{% for user in lifeguard_users %}
-{{ user }}
-{% endfor %}
-[TCP]
-# process name [:] <port> [<another port>]
-{% for connection in lifeguard_tcp %}
-{{ connection }}
-{% endfor %}
-#+end_src
-
 ** collect facts about the system with custom modules
 *** variables
 #+BEGIN_SRC yaml :tangle roles/collect-facts/defaults/main.yml :mkdirp yes
@@ -4178,6 +4263,8 @@ b'\xde\xad\xbe\xef'
 ---
 dependencies:
     - role: collect-facts
+    - role: stop-vdr
+    - role: stop-xorg
 #+END_SRC
 
 
@@ -4392,30 +4479,30 @@ yavdr_frontend:
     path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
-- name: Stop VDR
-  systemd:
-    name: vdr.service
-    state: stopped
-    enabled: yes
-  notify: ['Start VDR']
-
-- name: Stop yavdr-xorg
-  systemd:
-    name: 'yavdr-xorg'
-    state: stopped
-    enabled: yes
-  notify: ['Start yavdr-xorg']
-
-- name: Stop xlogin
-  systemd:
-    name: 'xlogin@{{ vdr.user }}.service'
-    state: stopped
-  notify: ['Start xlogin']
-
-- name: Stop x
-  systemd:
-    name: x@vt7.service
-    state: stopped
+#- name: Stop VDR
+#  systemd:
+#    name: vdr.service
+#    state: stopped
+#    enabled: yes
+#  notify: ['Start VDR']
+#
+#- name: Stop yavdr-xorg
+#  systemd:
+#    name: 'yavdr-xorg'
+#    state: stopped
+#    enabled: yes
+#  notify: ['Start yavdr-xorg']
+#
+#- name: Stop xlogin
+#  systemd:
+#    name: 'xlogin@{{ vdr.user }}.service'
+#    state: stopped
+#  notify: ['Start xlogin']
+#
+#- name: Stop x
+#  systemd:
+#    name: x@vt7.service
+#    state: stopped
 
 - name: check /etc/yavdr/autoinstalled if a nvidia driver has been installed
   lineinfile:

@@ -85,6 +85,8 @@
     state: present
     name: '{{ vdr.group }}'
 
+
+# TODO: ensure openbox, vdr, xorg etc. are stopped
 - name: create vdr user
   user:
     name: '{{ vdr.user }}'
@@ -113,7 +115,7 @@
 
 - name: copy dotfiles to /var/lib/vdr unless they already exist
   copy:
-    src: '{{ item }}'
+    src: '{{ item.path }}'
     dest: /var/lib/vdr/
     remote_src: true
     force: false
