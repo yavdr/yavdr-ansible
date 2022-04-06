@@ -725,7 +725,7 @@ xorg_services:
   systemd:
     name: '{{ item.instance_name }}'
     state: stopped
-  notify: ['{{ item.notification | default(omit) }}']
+  notify: '{{ item.notification | default(omit) }}'
   loop: '{{ xorg_services }}'
   when: item.service_name in known_services
 #+end_src
