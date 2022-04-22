@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 # use this script to configure a remote VDR host instead of localhost
 set -e
 
