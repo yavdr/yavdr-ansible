@@ -7,37 +7,70 @@
 # This script resolves linux kernel module dependencies automatically, so only
 # the base module has to be specified (e.g. dvb_core)
 
+from dataclasses import dataclass, field
+from typing import List, Set
 import argparse
-import subprocess
+import pathlib
 import pickle
+import subprocess
+import sys
 
-dependency_map = {}
-
-
-def find_dependencies(module, dependencies=[]):
-    dependencies.append(module)
-    if module in dependency_map:
-        for dependency in dependency_map[module]:
-            find_dependencies(dependency, dependencies)
-    return dependencies
+PROC_MODULES = pathlib.Path('/proc/modules')
 
 
-def build_module_dependency_map():
-    with subprocess.Popen(['lsmod'],
-                          stdout=subprocess.PIPE,
-                          universal_newlines=True
-                          ) as p:
-        for line in p.stdout:
-            values = line.split()
-            if len(values) > 3:
-                #print("module {} depends on {}".format(values[0], values[3]))
-                dependency_map[values[0]] = values[3].split(',')
+@dataclass
+class Module:
+    name: str
+    raw_dependencies: List["Module"] = field(default_factory=list)
+    dependencies: List["Module"] = field(default_factory=list)
+    n_instances: int = 0
+
+    def __hash__(self) -> int:
+        return hash(self.name)
+
+    @property
+    def has_dependencies(self) -> bool:
+        return len(self.dependencies) > 0 or self.n_instances > 0
+
+    def get_all_dependencies(self) -> Set["Module"]:
+        deps = set()
+        deps.add(self)
+        for dep in self.dependencies:
+            deps |= dep.get_all_dependencies()
+        return deps
+
+
+def read_modules(main_module_name: str) -> Set[Module]:
+    modules_with_deps = {}
+    # read the proc filesystem to get the loaded modules
+    for line in PROC_MODULES.read_text().splitlines():
+        module, _, n_instances, dependencies, *_ = line.split()
+        deps = list(
+            filter(lambda x: x not in ('', '-'), dependencies.split(',')))
+        modules_with_deps[module] = Module(
+            name=module,
+            raw_dependencies=deps,
+            n_instances=int(n_instances)
+        )
+    # fill in dependencies
+    for m in modules_with_deps.values():
+        for dep in m.raw_dependencies:
+            m.dependencies.append(modules_with_deps[dep])
+        m.raw_dependencies.clear()
+
+    # get a set of the modules we need to unload
+    if (main_module := modules_with_deps.get(main_module_name)):
+        all_dependencies = main_module.get_all_dependencies()
+    else:
+        all_dependencies = set()
+    return all_dependencies
 
 
 def run_command_on_module_list(command, module_list):
     for module in module_list:
         cmd = [command, module]
-        subprocess.call(cmd)
+        print(*cmd)
+        subprocess.run(cmd, check=True)
 
 
 def create_argparser():
@@ -53,25 +86,37 @@ def create_argparser():
                               default location is /tmp/modules.list''')
     return parser
 
-if __name__ == '__main__':
+
+def main():
     parser = create_argparser()
     args = parser.parse_args()
     if args.unload:
-        build_module_dependency_map()
-        all_modules = []
         for module in args.unload:
-            all_modules.extend(find_dependencies(module))
-        all_modules.reverse()
-        try:
-            with open(args.temp_file, 'wb') as f:
-                pickle.dump(all_modules, f)
-            run_command_on_module_list('rmmod', all_modules)
-        except Exception as e:
-            print(e)
-            pass
+            unloaded_modules = []
+            while (all_dependencies := read_modules(module)):
+                # print(all_dependencies)
+                modules_without_deps = [
+                    m for m in all_dependencies if not m.has_dependencies
+                ]
+                for m in modules_without_deps:
+                    print(f"modprobe -r {m.name}")
+                    subprocess.run(['modprobe', '-r', m.name], check=True)
+                    unloaded_modules.append(m.name)
+            print(f"modprobe -r {module}")
+            subprocess.run(['modprobe', '-r', module], check=True)
+            unloaded_modules.append(module)
+            try:
+                with open(args.temp_file, 'wb') as f:
+                    pickle.dump(unloaded_modules, f)
+            except Exception as err:
+                sys.exit(err)
     elif args.reload:
         with open(args.temp_file, 'rb') as f:
             all_modules = pickle.load(f)
         run_command_on_module_list('modprobe', all_modules)
     else:
         parser.print_help()
+
+
+if __name__ == '__main__':
+    main()
