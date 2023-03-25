@@ -22,8 +22,9 @@ class PulseDBusCtl(object):
                       number of channels: int32
                       volume_values: array of doubles
                       port_active: string one of ["yes", "no", "unknown"]
+                      is_default_sink: bool
                     -->
-                <arg direction="out" name="output_sinks" type="a(ssibiads)" />
+                <arg direction="out" name="output_sinks" type="a(ssibiadsb)" />
             </method>
             <method name="SetDefaultSink">
                 <!--
@@ -38,6 +39,7 @@ class PulseDBusCtl(object):
     """
 
     def ListSinks(self):
+        default_sink_name = pulse.server_info().default_sink_name
         return [
             (
                 s.name,
