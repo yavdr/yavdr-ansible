@@ -46,15 +46,16 @@ class PulseDBusCtl(object):
                 s.mute,
                 s.channel_count,
                 s.volume.values,
-                s.port_active.available_state._value
+                s.port_active.available_state._value,
+                s.name == default_sink_name
             ) for s in pulse.sink_list()
         ]
 
     def SetDefaultSink(self, sink_name: str) -> bool:
         try:
             target_sink = pulse.get_sink_by_name(sink_name)
-        except:
-            print("could not get target sink")
+        except Exception as e:
+            print("could not get target sink", e)
             return False
         try:
             pulse.sink_default_set(target_sink)
