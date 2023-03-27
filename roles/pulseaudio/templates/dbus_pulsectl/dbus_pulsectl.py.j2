@@ -41,16 +41,20 @@ class PulseDBusCtl(object):
     def ListSinks(self):
         default_sink_name = pulse.server_info().default_sink_name
         return [
-            (
-                s.name,
-                s.description,
-                s.index,
-                s.mute,
-                s.channel_count,
-                s.volume.values,
-                s.port_active.available_state._value,
-                s.name == default_sink_name
-            ) for s in pulse.sink_list()
+            [
+                (
+                    s.name,
+                    s.description,
+                    s.index,
+                    s.mute,
+                    s.channel_count,
+                    s.volume.values,
+                    s.port_active.available_state._value,
+                    s.name == default_sink_name,
+                )
+                for s in pulse.sink_list()
+            ],
+            default_sink_name,
         ]
 
     def SetDefaultSink(self, sink_name: str) -> bool:
