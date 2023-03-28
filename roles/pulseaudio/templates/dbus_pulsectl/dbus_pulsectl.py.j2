@@ -3,9 +3,10 @@ from dasbus.connection import SystemMessageBus
 from dasbus.loop import EventLoop
 import pulsectl
 
-pulse = pulsectl.Pulse('pulse_dbus_ctl')
+pulse = pulsectl.Pulse("pulse_dbus_ctl")
 loop = EventLoop()
 bus = SystemMessageBus()
+
 
 class PulseDBusCtl(object):
     __dbus_xml__ = """
@@ -24,7 +25,7 @@ class PulseDBusCtl(object):
                       port_active: string one of ["yes", "no", "unknown"]
                       is_default_sink: bool
                     -->
-                <arg direction="out" name="output_sinks" type="a(ssibiadsb)" />
+                <arg direction="out" name="output_sinks" type="a(a(ssibiadsb)s)" />
             </method>
             <method name="SetDefaultSink">
                 <!--
