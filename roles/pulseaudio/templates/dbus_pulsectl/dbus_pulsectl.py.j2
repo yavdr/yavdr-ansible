@@ -25,7 +25,7 @@ class PulseDBusCtl(object):
                       port_active: string one of ["yes", "no", "unknown"]
                       is_default_sink: bool
                     -->
-                <arg direction="out" name="output_sinks" type="a(a(ssibiadsb)s)" />
+                <arg direction="out" name="output_sinks" type="(a(ssibiadsb)s)" />
             </method>
             <method name="SetDefaultSink">
                 <!--
@@ -41,24 +41,23 @@ class PulseDBusCtl(object):
 
     def ListSinks(self):
         default_sink_name = pulse.server_info().default_sink_name
-        result = [
-            (
-                [
-                    (
-                        s.name,
-                        s.description,
-                        s.index,
-                        s.mute,
-                        s.channel_count,
-                        s.volume.values,
-                        s.port_active.available_state._value,
-                        s.name == default_sink_name,
-                    )
-                    for s in pulse.sink_list()
-                ],
-                default_sink_name,
-            )
-        ]
+        result = (
+            [
+                (
+                    s.name,
+                    s.description,
+                    s.index,
+                    s.mute,
+                    s.channel_count,
+                    s.volume.values,
+                    s.port_active.available_state._value,
+                    s.name == default_sink_name,
+                )
+                for s in pulse.sink_list()
+            ],
+            default_sink_name,
+        )
+
         print(result)
         return result
 
