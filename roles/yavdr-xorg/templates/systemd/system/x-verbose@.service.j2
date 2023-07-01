@@ -7,6 +7,6 @@ Before=graphical.target
 [Service]
 Type=forking
 ExecStartPre=/usr/bin/bash -c "printf '\0' > /sys/module/drm/parameters/edid_firmware"
-ExecStartPre-=/usr/bin/bash -c 'shopt -s nullglob; for e in /sys/kernel/debug/dri/0/*/edid_override; do echo -n reset > "$$e"; done'
+ExecStartPre=-/usr/bin/bash -c 'shopt -s nullglob; for e in /sys/kernel/debug/dri/0/*/edid_override; do echo -n reset > "$$e"; done'
 ExecStartPre=/usr/bin/bash -c 'shopt -s nullglob; for e in /sys/class/drm/card0*/status; do echo -n detect > "$$e"; done'
 ExecStart=/usr/bin/x-daemon -logverbose 6 -noreset %I -config /etc/X11/xorg-verbose.conf
