@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This Module collects the vendor- and device ids for USB- and PCI(e)-devices and currently loaded kernel modules.
 DOCUMENTATION = '''
   ---

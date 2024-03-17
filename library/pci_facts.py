@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This module parses the output of lspci for detailed information about available (sub) devices.
 DOCUMENTATION = '''
   ---
