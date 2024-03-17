@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # Copyright: (c) 2019, Alexander Grothe <seahawk1986@gmx.de>
