@@ -8088,6 +8088,24 @@ dependencies:
   - { role: collect-facts }
 
 #+END_SRC
+*** defaults
+#+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/defaults/main.yml :padline no
+hauppauge_wintv_hd_usb_ids:
+  - "2040:0264"
+  - "2013:025f"
+  - "2040:0265"
+  - "2040:8265"
+
+ds3000_pci_ids:
+  - "d464:9022"
+  - "14f1:8802"
+  - "d470:9022"
+  - "d471:9022"
+
+ds3000_usb_ids:
+  - "9022:d660"
+  - "0572:6831"
+#+END_SRC
 *** tasks
 #+BEGIN_SRC yaml :tangle roles/autoinstall-firmware/tasks/main.yml :padline no
 ---
@@ -8099,7 +8117,7 @@ dependencies:
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-b40-01.fw
     checksum: sha256:8507536630d75a316d0719d6b95c04b90c36baa5b457ad457c9bacadafcef134
     dest: /lib/firmware/dvb-demod-si2168-b40-01.fw
-  when: '"2040:0264" in usb or "2013:025f" in usb'
+  when: 'hauppauge_wintv_hd_usb_id | union(usb) | length > 0'
 
 - name: Firmware dvb-fe-xc5000-1.6.114.fw for Hauppauge WinTV-HVR-930C
   get_url:
@@ -8137,7 +8155,7 @@ dependencies:
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-fe-ds3000.fw
     checksum: sha256:ad8c23bfb51642f48d31fe4f797182352bb13a4d4b7247b25aea18e208e0e882
     dest: /lib/firmware/dvb-fe-ds3000.fw
-  when: '"d464:9022" in pci or "14f1:8802" in pci or "d470:9022" in pci or "d471:9022" in pci or "9022:d660" in usb or "0572:6831" in usb'
+  when: 'ds3000_pci_ids | union(pci) | length > 0 or ds3000_usb_ids | union(usb) | length > 0'
   notify: ['reboot required']
 #+END_SRC
 ** autoinstall-dvbsky-firmware
