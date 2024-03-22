@@ -54,21 +54,37 @@
       notify: reconfigure_tzdata
   when: tz_setting.changed
 
-- name: debconf | set default locale
-  debconf:
-    name: locales
-    question: locales/default_environment_locale
-    value: '{{ default_locale }}'
-    vtype: select
-  notify: reconfigure_locales
 
-- name: debconf | set locales to be generated
-  debconf:
-    name: locales
-    question: locales/locales_to_be_generated
-    value: "{{ generate_locales | join(', ') }}"
-    vtype: multiselect
-  notify: reconfigure_locales
+# based on https://serverfault.com/a/981742
+- block:
+   - name: Ensure localisation files for '{{ default_locale }}' are available
+     locale_gen:
+       name: "{{ default_locale }}"
+       state: present
+
+   - name: Ensure localisation files for '{{ generate_locales }}' are available
+     locale_gen:
+       name: "{{ item }}"
+       state: present
+     loop: "{{ generate_locales }}"
+
+   - name: Get current locale and language configuration
+     command: localectl status
+     register: locale_status
+     changed_when: false
+
+   - name: Parse 'LANG' from current locale and language configuration
+     set_fact:
+       locale_lang: "{{ locale_status.stdout | regex_search('LANG=([^\n]+)', '\\1') | first }}"
+
+   - name: Parse 'LANGUAGE' from current locale and language configuration
+     set_fact:
+       locale_language: "{{ locale_status.stdout | regex_search('LANGUAGE=([^\n]+)', '\\1') | default([locale_lang], true) | first }}"
+
+   - name: Configure locale to '{{ default_locale }}' and language to '{{ default_locale }}'
+     become: yes
+     command: localectl set-locale LANG={{ default_locale }} LANGUAGE={{ default_locale }}
+     changed_when: locale_lang != default_locale or locale_language != default_locale
 - name: use bash instead of dash
   debconf:
     name: dash
