@@ -7,7 +7,7 @@
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-b40-01.fw
     checksum: sha256:8507536630d75a316d0719d6b95c04b90c36baa5b457ad457c9bacadafcef134
     dest: /lib/firmware/dvb-demod-si2168-b40-01.fw
-  when: 'hauppauge_wintv_hd_usb_ids | union(usb) | length > 0'
+  when: '(hauppauge_wintv_hd_usb_ids | union(usb)) | length > 0'
 
 - name: Firmware dvb-fe-xc5000-1.6.114.fw for Hauppauge WinTV-HVR-930C
   get_url:
@@ -45,5 +45,5 @@
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-fe-ds3000.fw
     checksum: sha256:ad8c23bfb51642f48d31fe4f797182352bb13a4d4b7247b25aea18e208e0e882
     dest: /lib/firmware/dvb-fe-ds3000.fw
-  when: 'ds3000_pci_ids | union(pci) | length > 0 or ds3000_usb_ids | union(usb) | length > 0'
+  when: '(ds3000_pci_ids | union(pci)) | length > 0 or (ds3000_usb_ids | union(usb)) | length > 0'
   notify: ['reboot required']
