@@ -7,7 +7,15 @@
     url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-b40-01.fw
     checksum: sha256:8507536630d75a316d0719d6b95c04b90c36baa5b457ad457c9bacadafcef134
     dest: /lib/firmware/dvb-demod-si2168-b40-01.fw
-  when: '(hauppauge_wintv_hd_usb_ids | union(usb)) | length > 0'
+  when: '(hauppauge_wintv_hd_usb_ids | union(usb)) | length > 0 or (hauppauge_wintv_hd_pci_ids | union(pci)) | length > 0'
+  notify: ['reboot required']
+
+- name: Firmware dvb-demod-si2168-02.fw for Hauppauge WinTV quadHD
+  get_url:
+    url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-02.fw
+    checksum: sha256:5bbcfee4a0dbd55ea9d88d6b7d618afed5937a1f02962f14cdf707e108895cf7
+    dest: /lib/firmware/dvb-demod-si2168-02.fw
+  when: '"14f1:8852" in pci'
 
 - name: Firmware dvb-fe-xc5000-1.6.114.fw for Hauppauge WinTV-HVR-930C
   get_url:
@@ -15,6 +23,14 @@
     checksum: sha256:7104bda8df301fe1bd4c09de1708aeb6d0d8e1f9d55505449fecfad82639235f
     dest: /lib/firmware/dvb-fe-xc5000-1.6.114.fw
   when: '"2040:1605" in usb'
+  notify: ['reboot required']
+
+- name: Firmware dvb-demod-m88rs6000.fw for Hauppauge WinTV HVR-5525
+  get_url:
+    url: https://github.com/OpenELEC/dvb-firmware/raw/master/firmware/dvb-demod-m88rs6000.fw
+    checksum: sha256:9ac84583d83a4222909cb568236b7786e436f27dc050e60a31df404bb1be19dc
+    dest: /lib/firmware/dvb-demod-m88rs6000.fw
+  when: '"14f1:8880" in pci'
 
 - name: Firmware ngenge_18.fw for ngene cards
   get_url:
