@@ -103,10 +103,11 @@ def dpkg_reconfigure(module, pkg, wanted_config):
     tmp.close()
     os.chmod(outsock_path, stat.S_IEXEC)
 
-    cmd = [ 'EDITOR=%s DEBIAN_FRONTEND=editor' % outsock_path ]
-    cmd.append(module.get_bin_path('dpkg-reconfigure', True))
-    cmd.append(pkg)
-    rc, out, err = module.run_command(' '.join(cmd), use_unsafe_shell=True)
+    cmd = [module.get_bin_path('dpkg-reconfigure', True), pkg]
+    rc, out, err = module.run_command(
+        cmd,
+        environ_update={'EDITOR': outsock_path, 'DEBIAN_FRONTEND': 'editor'}
+    )
     os.unlink(outsock_path)
 
     if rc == 0:
