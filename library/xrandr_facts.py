@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 from __future__ import print_function
 import ast
 import binascii
@@ -8,6 +8,7 @@ import re
 import subprocess
 from collections import namedtuple
 from glob import glob
+import tempfile
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -169,6 +170,13 @@ def parse_xrandr_verbose(iterator):
                 else:
                     break
             xorg[screen][connector]["EDID"] = edid_str
+            # parse the EDID
+            with tempfile.NamedTemporaryFile(delete_on_close=False) as f:
+                f.write(edid_str.encode())
+                f.close()
+                vendor, model, mode_lines = parse_edid_data(f.name)
+                xorg[screen][connector]["model"] = model.strip("'")
+                xorg[screen][connector]["vendor"] = vendor
         elif is_connected and "MHz" in line and "Interlace" not in line:
             match = re.match(MODE_REGEX, line)
             if match:
