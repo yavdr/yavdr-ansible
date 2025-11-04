@@ -4,13 +4,26 @@
 {% if xorg.secondary is defined %}
   {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
 {% endif %}
+{% set output_plugin = "softhddevice" if selected_frontend|default("softhddevice")|length == 0 else selected_frontend %}
+{% set softhddevice_output_method = softhddevice_intel_output_method|default("va-api") %}
+{% set use_dri3 = (
+     intel_driver == "intel" and
+     (
+          output_plugin  == "softhdvaapi" or
+          (output_plugin == "softhddevice" and "gl" in softhddevice_output_method)
+     )
+) %}
+
+# selected_frontend: {{ output_plugin }}
+# softhddevice_output_method: {{ softhddevice_output_method }}
+# use_dri3 has value: {{ use_dri3 }}
 
 Section "Device"
   Identifier  "Device0"
   Driver      "{{ intel_driver }}"
   Option      "TearFree" "true"
-{% if selected_frontend is defined and selected_frontend  == "softhdvaapi" and intel_driver == "intel" %}
-    Option      "DRI" "3"
+{% if use_dri3 %}
+  Option      "DRI" "3"
 {% endif %}
 {% if xorg.secondary is defined %}
   Option      "ZaphodHeads" "{{ primary_output }}"
@@ -23,8 +36,8 @@ Section "Device"
   Identifier  "Device1"
   Driver      "{{ intel_driver }}"
   Option      "TearFree" "true"
-{%if selected_frontend is defined and selected_frontend  == "softhdvaapi" and intel_driver == "intel" %}
-    Option      "DRI" "3"
+{% if use_dri3 %}
+  Option      "DRI" "3"
 {% endif %}
   Option      "ZaphodHeads" "{{ secondary_output }}"
   Screen      1  
