@@ -7,16 +7,18 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 from collections import OrderedDict
-from typing import Generator, List, Mapping, Tuple
+from collections.abc import Generator, Mapping
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
 
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'community'}
+ANSIBLE_METADATA = {
+    'metadata_version': '1.1',
+    'status': ['preview'],
+    'supported_by': 'community'
+}
 
 DOCUMENTATION = '''
 ---
@@ -38,14 +40,14 @@ options:
 EXAMPLES = '''
 - name: Unload nouveau module
   rmmod:
-    name: nouveau
+    name : nouveau
 '''
 
 
 def find_dependencies(
         module: str,
-        dependency_map: Mapping[str, List[str]],
-        dependencies: List[str]
+        dependency_map: Mapping[str, list[str]],
+        dependencies: list[str]
 ):
     dependencies.append(module)
     if module in dependency_map:
@@ -54,7 +56,7 @@ def find_dependencies(
     return dependencies
 
 
-def module_dependency_gen() -> Generator[Tuple[str, List[str]], None, None]:
+def module_dependency_gen() -> Generator[tuple[str, list[str]], None, None]:
     with open('/proc/modules') as f:
         for line in f:
             module_name, _, _, dependencies, *_ = line.split()
@@ -89,7 +91,6 @@ def main():
         )
     else:
         is_loaded = True if name in dependency_map else False
-        
 
     # remove module if it is loaded
     if is_loaded:
