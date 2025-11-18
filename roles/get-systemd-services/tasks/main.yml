@@ -1,16 +1,18 @@
 ---
 
-# workaround for https://bugs.launchpad.net/ubuntu/+source/ansible/+bug/1880359
-# TODO: for later ansible versions use ansible.builtin.service_facts (https://docs.ansible.com/ansible/latest/collections/ansible/builtin/service_facts_module.html#service-facts-module)
-- name: check known services
-  ansible.builtin.command: systemctl list-unit-files --no-pager --type service --all
-  register: output
+- name: Populate service facts
+  ansible.builtin.service_facts:
 
-- name: create list of known services
+- name: Print service facts
+  ansible.builtin.debug:
+    var: ansible_facts.services
+    verbosity: 1
+
+- name: Create list of known services
   ansible.builtin.set_fact:
-     known_services: "{{ output.stdout.split('\n') | map('regex_search', '^.*[.]service') | list }}"
+    known_services: "{{ ansible_facts.services | map('extract', ansible_facts.services, 'name') | list }}"
 
-- name: show known services
-  debug:
+- name: Show known services
+  ansible.builtin.debug:
     var: known_services
     verbosity: 1
