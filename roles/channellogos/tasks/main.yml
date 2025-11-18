@@ -11,7 +11,7 @@
     dest: /usr/local/bin/channel_linker
     mode: '0755'
 
-- name: Get current mediaportal channel logos
+- name: Get mediaportal channel logos
   ansible.builtin.git:
     repo: "https://github.com/Jasmeet181/mediaportal-{{ item }}-logos.git"
     dest: "/usr/local/lib/mediaportal-{{ item }}-logos"
@@ -22,3 +22,7 @@
 
 - name: Update channel logo links
   ansible.builtin.command: /usr/local/bin/channel_linker {{ channellogos_languages | map('quote') | join(' ') }}
+  changed_when: true
+
+
+# TODO: use picon logos: https://github.com/picons/picons
