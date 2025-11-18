@@ -1,36 +1,36 @@
 ---
 
-- name: custom grub configuration for timeout and reboot halt
+- name: Custom grub configuration for timeout and reboot halt
   ansible.builtin.template:
     src: templates/50_custom.j2
     dest: /etc/grub.d/50_custom
     mode: '0775'
-  notify: [ 'Update GRUB' ]
+  notify: ['Update GRUB']
 
 # TODO: add special case if plymouth is used
-- name: let the system boot quietly
-  lineinfile:
-      dest: /etc/default/grub
-      state: present
-      regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
-      line: '\1{{ grub.boot_options }} {{ intel_boot_options }}"'
-      backrefs: yes
-  notify: [ 'Update GRUB' ]
+- name: Let the system boot quietly
+  ansible.builtin.lineinfile:
+    dest: /etc/default/grub
+    state: present
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=")'
+    line: '\1{{ grub.boot_options }} {{ intel_boot_options }}"'
+    backrefs: true
+  notify: ['Update GRUB']
 
-- name: set GRUB_TIMEOUT
-  lineinfile:
-      dest: /etc/default/grub
-      state: present
-      regexp: '^(GRUB_TIMEOUT=)'
-      line: 'GRUB_TIMEOUT={{ grub.timeout }}'
-      backrefs: yes
-  notify: [ 'Update GRUB' ]
+- name: Set GRUB_TIMEOUT
+  ansible.builtin.lineinfile:
+    dest: /etc/default/grub
+    state: present
+    regexp: '^(GRUB_TIMEOUT=)'
+    line: 'GRUB_TIMEOUT={{ grub.timeout }}'
+    backrefs: true
+  notify: ['Update GRUB']
 
-- name: set GRUB_TIMEOUT_STYLE
-  lineinfile:
-      dest: /etc/default/grub
-      state: present
-      regexp: '^(GRUB_TIMEOUT_STYLE=)'
-      line: '\1{{ "hidden" if grub.timeout == 0 else "menu" }}'
-      backrefs: yes
-  notify: [ 'Update GRUB' ]
+- name: Set GRUB_TIMEOUT_STYLE
+  ansible.builtin.lineinfile:
+    dest: /etc/default/grub
+    state: present
+    regexp: '^(GRUB_TIMEOUT_STYLE=)'
+    line: '\1{{ "hidden" if grub.timeout == 0 else "menu" }}'
+    backrefs: true
+  notify: ['Update GRUB']

@@ -1,52 +1,53 @@
-- name: create ~/.config
+- name: Create ~/.config
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config"
     state: directory
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
-    mode: 0755
+    mode: '0755'
 
-- name: expand template for ~/.config/headless-session
+- name: Expand template for ~/.config/headless-session
   ansible.builtin.template:
     src: templates/config/headless-session.j2
     dest: "{{ vdr.home }}/.config/headless-session"
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
-    mode: 0755
+    mode: '0755'
 
-- name: expand template for headless-session@.service
+- name: Expand template for headless-session@.service
   ansible.builtin.template:
     src: templates/systemd/headless-session@.service.j2
     dest: /etc/systemd/system/headless-session@.service
+    mode: '0644'
 
-- name: start headless-session@.service for vdr user
+- name: Start headless-session@.service for vdr user
   ansible.builtin.systemd:
     name: "headless-session@{{ vdr.user }}.service"
     state: started
     enabled: true
-    masked: no
+    masked: false
 
-- name: enable services for the user session
+- name: Enable services for the user session
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: started
-    masked: no
-    enabled: yes
+    masked: false
+    enabled: true
     scope: user
-  become: yes
+  become: true
   become_user: vdr
   loop:
     - tmux.service
     - udiskie.service
 
-- name: disable services for the user session
+- name: Disable services for the user session
   ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
-    masked: yes
-    enabled: no
+    masked: true
+    enabled: false
     scope: user
-  become: yes
+  become: true
   become_user: vdr
   loop:
     - detect-second-display.service
@@ -56,4 +57,4 @@
     - pulseaudio.service
     - yavdr-frontend.service
     - wm-exit.service
-  ignore_errors: yes
+  ignore_errors: true

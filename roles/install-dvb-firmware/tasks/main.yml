@@ -1,38 +1,39 @@
 ---
 # file roles/autoinstall-dvb-firmware/tasks/main.yml
 
-- name: install LibreElec dvb-firmware files
+- name: Install LibreElec dvb-firmware files
   block:
-    - name: clone git repository
-      git:
+    - name: Clone git repository
+      ansible.builtin.git:
         repo: "https://github.com/LibreElec/dvb-firmware.git"
         dest: /var/cache/dvb-firmware
-        clone: yes
-        update: yes
+        clone: true
+        update: true
         depth: 1
         force: true
       register: git_dvb_firmware
 
-    - name: copy firwmware files if needed
+    - name: Copy firwmware files if needed
+      when: git_dvb_firmware.changed or always_update_dvb_firmware | default (False)
       block:
-        - name: get firmware files to copy
+        - name: Get firmware files to copy
           ansible.builtin.command: |
             find /var/cache/dvb-firmware/firmware  -type f -regex '.*/*\.\(fw\|bin\)$' -printf '%P\n'
           register: firmware_to_copy
           changed_when: false
 
-        - name: create directories for firmware files
+        - name: Create directories for firmware files
           ansible.builtin.file:
             state: directory
             path: "/var/cache/dvb-firmware/firmware/{{ item }}"
+            mode: '0755'
           loop: "{{ firmware_to_copy.stdout_lines | map('dirname') | unique | list }}"
 
-        - name: copy firmware files to /lib/firmware
-          copy:
+        - name: Copy firmware files to /lib/firmware
+          ansible.builtin.copy:
             src: "/var/cache/dvb-firmware/firmware/{{ item }}"
             dest: /lib/firmware/
             owner: root
             group: root
             mode: "0644"
           loop: "{{ firmware_to_copy.stdout_lines }}"
-      when: git_dvb_firmware.changed or always_update_dvb_firmware | default (False)
