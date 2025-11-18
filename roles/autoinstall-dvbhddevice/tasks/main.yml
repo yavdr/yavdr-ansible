@@ -2,6 +2,7 @@
 # file roles/autoinstall-dvbhddevice/tasks/main.yml
 
 - name: Download Firmware for TT-6400 FF and install vdr-plugin-dvbhddevice
+  when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool'
   block:
     - name: Apt | install vdr-plugin-dvbhddevice and unzip
       ansible.builtin.apt:
@@ -11,22 +12,24 @@
         state: present
       notify: ['Restart VDR']
 
-    - name: ensure /var/cache/firmware exists
+    - name: Ensure /var/cache/firmware exists
       ansible.builtin.file:
         state: directory
         path: '/var/cache/firmware'
-    - name: download TT-6400 FF firmware files
-      get_url:
+        mode: '0755'
+
+    - name: Download TT-6400 FF firmware files
+      ansible.builtin.get_url:
         url: '{{ item.src }}'
         dest: '/var/cache/firmware/{{ item.name }}'
         checksum: '{{ item.checksum }}'
+        mode: '0644'
       loop: "{{ dvbhddevice_firmware }}"
 
-    - name: extract firmware files
-      unarchive:
+    - name: Extract firmware files
+      ansible.builtin.unarchive:
         src: '/var/cache/firmware/{{ item.name }}'
         dest: '/lib/firmware/'
         remote_src: true
       loop: "{{ dvbhddevice_firmware }}"
-      notify: [ 'reboot required' ]
-  when: '"13c2:300a" in pci or "13c2:300b" in pci or force_dvbhddevice|default(False)|bool'
+      notify: ['Reboot required']
