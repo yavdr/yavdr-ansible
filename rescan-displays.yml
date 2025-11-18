@@ -2,11 +2,21 @@
 # file: displays.yml
 # this playbook runs the yavdr-xorg role
 
-- name: rescan displays
+- name: Rescan displays
   hosts: all
   become: true
+
   roles:
     - yavdr-xorg
+  # tasks:
+  #   - name: show preferred refreshrate
+  #     ansible.builtin.debug:
+  #       var: "{{ item }}"
+  #     loop:
+  #       - preferred_outputs
+  #       - preferred_resolutions
+  #       - preferred_refreshrates
 
   handlers:
-    - import_tasks: handlers/main.yml
+    - name: Import handlers
+      ansible.builtin.import_tasks: handlers/main.yml
