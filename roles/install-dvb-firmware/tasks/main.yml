@@ -16,13 +16,13 @@
     - name: copy firwmware files if needed
       block:
         - name: get firmware files to copy
-          command: |
+          ansible.builtin.command: |
             find /var/cache/dvb-firmware/firmware  -type f -regex '.*/*\.\(fw\|bin\)$' -printf '%P\n'
           register: firmware_to_copy
           changed_when: false
 
         - name: create directories for firmware files
-          file:
+          ansible.builtin.file:
             state: directory
             path: "/var/cache/dvb-firmware/firmware/{{ item }}"
           loop: "{{ firmware_to_copy.stdout_lines | map('dirname') | unique | list }}"

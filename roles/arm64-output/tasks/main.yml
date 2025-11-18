@@ -1,28 +1,30 @@
 ---
 # this role is used to configure the output for arm64 boards like the Raspberry Pi 4 and 5
 
-- name: ensure /etc/systemd/system/vdr.service.d/ exists
-  file:
+- name: Ensure /etc/systemd/system/vdr.service.d/ exists
+  ansible.builtin.file:
     path: /etc/systemd/system/vdr.service.d/
     state: directory
+    mode: '0755'
 
-- name: let vdr run on tty7
-  template:
+- name: Let vdr run on tty7
+  ansible.builtin.template:
     src: templates/systemd/console-output.conf.j2
     dest: /etc/systemd/system/vdr.service.d/99-console-output.conf
+    mode: '0755'
   notify: ['Reload Units', 'Restart VDR']
   tags:
     - config
 
-- name: install vdr-plugin-softhddevice-drm-gles
-  apt:
+- name: Install vdr-plugin-softhddevice-drm-gles
+  ansible.builtin.apt:
     name:
       - vdr-plugin-softhddevice-drm-gles
     state: present
   tags:
     - packages
 
-- name: set preferred_frontend to softhddevice-drm-gles
-  set_fact:
+- name: Set preferred_frontend to softhddevice-drm-gles
+  ansible.builtin.set_fact:
     preferred_frontend: softhddevice-drm-gles
     automatically_installed_output_plugin: vdr-plugin-softhddevice-drm-gles

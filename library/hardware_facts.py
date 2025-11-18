@@ -57,17 +57,17 @@ EXAMPLES = '''
     serial: True
     modules: True
     acpi_power_modes: True
-- debug:
+- ansible.builtin.debug:
     var: usb
-- debug:
+- ansible.builtin.debug:
     var: pci
-- debug:
+- ansible.builtin.debug:
     var: modules
-- debug:
+- ansible.builtin.debug:
     var: serial
-- debug:
+- ansible.builtin.debug:
     var: gpus
-- debug:
+- ansible.builtin.debug:
     var: acpi_power_modes
 '''
 

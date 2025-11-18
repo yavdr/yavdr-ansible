@@ -1,7 +1,7 @@
 ---
 
-- name: apt | install pulseaudio, pavucontrol and vdr-plugin-pulsecontrol
-  apt:
+- name: Apt | install pulseaudio, pavucontrol and vdr-plugin-pulsecontrol
+  ansible.builtin.apt:
     name:
       - alsa-base
       - alsa-utils
@@ -15,17 +15,17 @@
     install_recommends: no
 
 - name: create /etc/asound.conf with pulseaudio as default device
-  template:
+  ansible.builtin.template:
     src: templates/alsa/asound.conf.j2
     dest: /etc/asound.conf
 
 - name: "create /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
-  template:
+  ansible.builtin.template:
     src: "dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2"
     dest: "/etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf"
 
 - name: ensure ~/bin exists for vdr user
-  file:
+  ansible.builtin.file:
     path: "{{ vdr.home }}/bin"
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group}}"
@@ -33,13 +33,13 @@
     mode: 0755
 
 - name: create dbus_pulsectl script
-  template:
+  ansible.builtin.template:
     src: "dbus_pulsectl/dbus_pulsectl.py.j2"
     dest: "{{ vdr.home }}/bin/dbus_pulsectl"
     mode: 0755
 
 - name: ensure ~/.config/systemd/user exists for vdr user
-  file:
+  ansible.builtin.file:
     path: "{{ vdr.home }}/.config/systemd/user"
     state: directory
     owner: "{{ vdr.user }}"
@@ -47,7 +47,7 @@
     mode: 0755
 
 - name: create dbus service for dbus_pulsectl
-  template:
+  ansible.builtin.template:
     src: dbus_pulsectl/dbus-pulsectl.service.j2
     dest: "{{ vdr.home }}/.config/systemd/user/dbus-pulsectl.service"
     owner: "{{ vdr.user }}"

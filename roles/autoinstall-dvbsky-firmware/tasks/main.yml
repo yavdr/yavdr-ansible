@@ -1,47 +1,26 @@
 ---
 # file roles/autoinstall-dvbsky-firmware/tasks/main.yml
 
-- name: determine needed firmware files by device ids
-  block:
-    - name: add firmware files for DVBSky if a card has been detected
-      set_fact:
-        dvbsky_firmware_files:
-           - 'dvb-demod-m88ds3103.fw'
-           - 'dvb-demod-m88rs6000.fw'
-           - 'dvb-tuner-si2158-a20-01.fw'
-           - 'dvb-demod-si2168-a20-01.fw'
-           - 'dvb-demod-si2168-a30-01.fw'
-           - 'dvb-demod-si2168-b40-01.fw'
-           - 'dvb-fe-ds300x.fw'
-           - 'dvb-fe-ds3103.fw'
-           - 'dvb-fe-rs6000.fw'
-      when:
-        - '"1ade:3038" in pci'
+- name: Determine needed firmware files by device ids
   when:
     - not dvbsky_firmware_files
+  block:
+    - name: Add firmware files for DVBSky if a card has been detected
+      when:
+        - '"1ade:3038" in pci'
+      ansible.builtin.set_fact:
+        dvbsky_firmware_files:
+          - 'dvb-demod-m88ds3103.fw'
+          - 'dvb-demod-m88rs6000.fw'
+          - 'dvb-tuner-si2158-a20-01.fw'
+          - 'dvb-demod-si2168-a20-01.fw'
+          - 'dvb-demod-si2168-a30-01.fw'
+          - 'dvb-demod-si2168-b40-01.fw'
+          - 'dvb-fe-ds300x.fw'
+          - 'dvb-fe-ds3103.fw'
+          - 'dvb-fe-rs6000.fw'
 
 - name: Download firmware for DVBSky cards and copy required files to /lib/firmware
-  block:
-    - name: download and extract firmware
-      unarchive:
-        src: https://web.archive.org/web/20220131124432if_/http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
-        dest: /tmp/
-        remote_src: yes
-
-    - name: copy firmware file
-      copy:
-         src: "/tmp/dvbsky-firmware/{{ item }}"
-         dest: /lib/firmware/
-         owner: root
-         group: root
-         mode: 0644
-      with_items: '{{ dvbsky_firmware_files }}'
-      notify: ['Trigger Udev']
-
-    - name: Remove temporary files
-      file:
-        path: /tmp/dvbsky-firmware
-        state: absent
   when:
     - dvbsky_firmware_files is defined
     - dvbsky_firmware_files | bool
@@ -49,3 +28,24 @@
     - install
     - autodetect
     - dvbsky
+  block:
+    - name: Download and extract firmware
+      ansible.builtin.unarchive:
+        src: https://web.archive.org/web/20220131124432if_/http://www.dvbsky.net/download/linux/dvbsky-firmware.tar.gz
+        dest: /tmp/
+        remote_src: true
+
+    - name: Copy firmware file
+      ansible.builtin.copy:
+        src: "/tmp/dvbsky-firmware/{{ item }}"
+        dest: /lib/firmware/
+        owner: root
+        group: root
+        mode: '0644'
+      with_items: '{{ dvbsky_firmware_files }}'
+      notify: ['Trigger Udev']
+
+    - name: Remove temporary files
+      ansible.builtin.file:
+        path: /tmp/dvbsky-firmware
+        state: absent

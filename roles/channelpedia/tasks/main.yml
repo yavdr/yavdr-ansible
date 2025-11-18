@@ -4,28 +4,28 @@
 - name: upload channels.conf to channelpedia once a day
   block:
     - name: ensure curl is installed
-      apt:
+      ansible.builtin.apt:
         name: curl
         state: present
 
     - name: expand template for channelpedia.service
-      template:
+      ansible.builtin.template:
         src: templates/channelpedia.service.j2
         dest: /etc/systemd/system/channelpedia.service
 
     - name: expand template for channelpedia.timer
-      template:
+      ansible.builtin.template:
         src: templates/channelpedia.timer.j2
         dest: /etc/systemd/system/channelpedia.timer
 
     - name: create credentials file
-      template:
+      ansible.builtin.template:
         src: templates/channelpedia_credentials.j2
         dest: /root/.channelpedia_credentials
         mode: 0700
 
     - name: start channelpedia timer and service
-      systemd:
+      ansible.builtin.systemd:
         name: '{{ item }}'
         state: started
         enabled: yes

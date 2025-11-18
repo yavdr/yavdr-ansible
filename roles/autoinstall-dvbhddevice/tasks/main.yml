@@ -3,16 +3,16 @@
 
 - name: Download Firmware for TT-6400 FF and install vdr-plugin-dvbhddevice
   block:
-    - name: apt | install vdr-plugin-dvbhddevice and unzip
-      apt:
+    - name: Apt | install vdr-plugin-dvbhddevice and unzip
+      ansible.builtin.apt:
         name:
           - vdr-plugin-dvbhddevice
           - unzip
         state: present
-      notify: [ 'Restart VDR' ]
+      notify: ['Restart VDR']
 
     - name: ensure /var/cache/firmware exists
-      file:
+      ansible.builtin.file:
         state: directory
         path: '/var/cache/firmware'
     - name: download TT-6400 FF firmware files

@@ -1,0 +1,40 @@
+- name: Update xorg, xrandr and drm variables with values from local facts if needed
+  ansible.builtin.set_fact:
+    xorg: '{{ ansible_local.xorg.xorg }}'
+    xrandr: '{{ ansible_local.xrandr.xrandr }}'
+    drm: '{{ ansible_local.drm.drm }}'
+  when:
+    - xrandr is undefined
+    - xorg is undefined
+    - drm is undefined
+
+# TODO: expand template for xorg.conf (or snippets)
+#       with respect for the available graphics card driver
+#       nvidia, noveau, intel, radeon
+
+- name: Nvidia related config
+  when:
+    - nvidia_detected | bool
+  block:
+    - name: Create xorg.conf (for nvidia driver)
+      ansible.builtin.template:
+        src: templates/xorg.conf.j2
+        dest: /etc/X11/xorg.conf
+        backup: true
+        mode: '0755'
+
+- name: Intel xorg config snippet
+  ansible.builtin.template:
+    src: templates/20-intel.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-intel.conf
+    mode: '0755'
+  when:
+    - intel_detected | bool and not nvidia_detected | bool
+
+- name: Amd xorg config snippet
+  ansible.builtin.template:
+    src: templates/20-amd.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-amd.conf
+    mode: '0755'
+  when:
+    - amd_detected | bool and not nvidia_detected | bool

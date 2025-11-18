@@ -4,17 +4,18 @@
 # TODO: install firmware
 
 - name: Install firmware and output plugin for FF sd cards
+  when: '"dvb_ttpci" in modules or force_dvbsddevice|default(False)|bool'
   block:
-    - name: download firmware files
-      get_url:
+    - name: Download firmware files
+      ansible.builtin.get_url:
         url: '{{ item.src }}'
         dest: '/lib/firmware/{{ item.name }}'
         checksum: '{{ item.checksum }}'
+        mode: '0755'
       loop: "{{ dvbsddevice_firmware }}"
       notify: ['reboot required']
 
-    - name: apt | install vdr-plugin-dvbsddevice if module is loaded
-      apt:
+    - name: Apt | install vdr-plugin-dvbsddevice if module is loaded
+      ansible.builtin.apt:
         name: vdr-plugin-dvbsddevice
-      notify: [ 'Restart VDR' ]
-  when: '"dvb_ttpci" in modules or force_dvbsddevice|default(False)|bool'
+      notify: ['Restart VDR']

@@ -1,51 +1,50 @@
 ---
 # file roles/autoinstall-virtualbox-guest/tasks/main.yml
 
-- name: collect facts about installed packages
-  package_facts:
+- name: Collect facts about installed packages
+  ansible.builtin.package_facts:
     manager: "apt"
 
-- name: install virtualbox X11 guest additions
-  block:
-    - name: install packages
-      apt:
-        state: present
-        name:
-          - virtualbox-guest-x11
+- name: Install virtualbox X11 guest additions
   when:
     - ansible_virtualization_type == "virtualbox"
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
-
-- name: install virtualbox guest dkms package
   block:
-    - name: install packages
-      apt:
+    - name: Install packages
+      ansible.builtin.apt:
         state: present
-        name:
-          - dkms
-          - virtualbox-guest-dkms
+        name: virtualbox-guest-x11
+
+- name: Install virtualbox guest dkms package
   when:
     - ansible_virtualization_type == "virtualbox"
     - ansible_virtualization_role == "guest"
     - ansible_distribution == "Ubuntu"
     - ansible_distribution_major_version == "20"
-# TODO: replace by a role to allow proper frontend selection
-
-- name: set xineliboutput as frontend
   block:
-    - name: set xineliboutput as preferred frontend
-      set_fact:
+    - name: Install packages
+      ansible.builtin.apt:
+        state: present
+        name:
+          - dkms
+          - virtualbox-guest-dkms
+
+# TODO: replace by a role to allow proper frontend selection
+- name: Set xineliboutput as frontend
+  when:
+    - ansible_virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
+    - ansible_virtualization_role == "guest"
+  block:
+    - name: Set xineliboutput as preferred frontend
+      ansible.builtin.set_fact:
         preferred_frontend: "xineliboutput"
-    - name: install xinelibouput and vdr-sxfe
-      apt:
+    - name: Install xinelibouput and vdr-sxfe
+      ansible.builtin.apt:
         name:
           - vdr-plugin-xineliboutput
           - xineliboutput-sxfe
         state: present
-    - name: set vdr_output_plugin variable
-      set_fact:
+    - name: Set vdr_output_plugin variable
+      ansible.builtin.set_fact:
         automatically_installed_output_plugin: vdr-plugin-xineliboutput
-  when:
-    - ansible_virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
-    - ansible_virtualization_role == "guest"

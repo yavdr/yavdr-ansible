@@ -1,6 +1,6 @@
 ---
 - name: create kodi.service for the user session
-  template:
+  ansible.builtin.template:
       src: 'templates/kodi.service.j2'
       dest: '{{ vdr.home }}/.config/systemd/user/kodi.service'
       mode: 0644
@@ -8,7 +8,7 @@
       group: '{{ vdr.group }}'
 
 - name: create kodi user directory
-  file:
+  ansible.builtin.file:
       dest: '{{ kodi_config_dir }}/userdata/keymaps'
       state: directory
       owner: '{{ vdr.user }}'
@@ -35,7 +35,7 @@
       force: false
 
 - name: expand template for set-kodi-display
-  template:
+  ansible.builtin.template:
       src: 'templates/set-kodi-display.j2'
       dest: '/usr/bin/set-kodi-display'
       mode: "0755"
@@ -43,13 +43,13 @@
 - name: set flatpak permissions for kodi to access media directories
   block:
       - name: get output for current permissions
-        command: /usr/bin/flatpak --user override --show tv.kodi.Kodi
+        ansible.builtin.command: /usr/bin/flatpak --user override --show tv.kodi.Kodi
         become_user: vdr
         register: kodi_permissions_output
         changed_when: false
 
       - name: determine folders to add to the kodi flatpak configuration
-        set_fact:
+        ansible.builtin.set_fact:
             kodi_permissions_to_add: |
              {{ flatpak_kodi_allowed_dirs | difference(
                    (
@@ -61,7 +61,7 @@
              }}
 
       - name: set kodi flatpak directory access permissions
-        command: '/usr/bin/flatpak --user override --filesystem="{{ item }}" tv.kodi.Kodi'
+        ansible.builtin.command: '/usr/bin/flatpak --user override --filesystem="{{ item }}" tv.kodi.Kodi'
         become_user: vdr
         loop: "{{ kodi_permissions_to_add }}"
         when: kodi_permissions_to_add | length > 0

@@ -15,19 +15,19 @@
 
 
 - name: MariaDB and Plugin | install
-  apt:
+  ansible.builtin.apt:
     name: ['mariadb-server', 'mariadb-plugin-epglv', 'python3-pymysql']
     state: present
 
 - name: copy file | epgd mariadb config
-  template:
+  ansible.builtin.template:
     src: templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2
     dest: /etc/mysql/mariadb.conf.d/99-epgd.cnf
     owner: root
     group: root
 
 - name: create /root/.ssh if it doesn't exist yes
-  file:
+  ansible.builtin.file:
     path: /root/.ssh
     state: directory
     owner: root
@@ -35,7 +35,7 @@
     mode: 0700
 
 - name: copy file | mysqlpasswd
-  template:
+  ansible.builtin.template:
     src: templates/root_.ssh_mysqlpasswd.j2
     dest: /root/.ssh/mysqlpasswd
     owner: root
@@ -44,7 +44,7 @@
     backup: yes
 
 - name: Restart mariadb
-  systemd:
+  ansible.builtin.systemd:
     name: mariadb.service
     state: restarted
     enabled: yes
@@ -76,22 +76,22 @@
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
 - name: create epgd config folder
-  file:
+  ansible.builtin.file:
    path: /etc/epgd
    state: directory
 
 - name: epgd config
-  template:
+  ansible.builtin.template:
     src: templates/etc_epgd_epgd.conf.j2
     dest: /etc/epgd/epgd.conf
 
 - name: epgd | install
-  apt:
+  ansible.builtin.apt:
     name: ['vdr-epg-daemon', 'vdr-plugin-epg2vdr']
     state: present
 
 #- name: epgd | start
-#  systemd:
+#  ansible.builtin.systemd:
 #    name: epgd_service
 #    state: started
 #    enabled: yes

@@ -1,30 +1,32 @@
 ---
 # file roles/autoinstall-atric-usb/tasks/main.yml
 
-- name: install and configure Atric IR-WakeupUSB
+- name: Install and configure Atric IR-WakeupUSB
+  when: '"10c4:876c" in usb'
   block:
-    - name: apt | install lirc-drv-yausbir
-      apt:
+    - name: Apt | install lirc-drv-yausbir
+      ansible.builtin.apt:
         name: lirc-drv-yausbir
         state: present
       tags:
         - packages
 
-    - name: write lirc configuration
-      template:
+    - name: Write lirc configuration
+      ansible.builtin.template:
         src: templates/lirc_options.conf.j2
         dest: /etc/lirc/lirc_options.conf
+        mode: '0644'
       tags:
         - config
         - systemd
 
-    - name: enable lircd, eventlircd, lircd2uinput
-      systemd:
+    - name: Enable lircd, eventlircd, lircd2uinput
+      ansible.builtin.systemd:
         name: '{{ item }}'
-        enabled: yes
+        enabled: true
         state: started
-        masked: no
-        daemon_reload: yes
+        masked: false
+        daemon_reload: true
       loop:
         - eventlircd.service
         - lircd2uinput.service
@@ -32,4 +34,3 @@
       tags:
         - systemd
 
-  when: '"10c4:876c" in usb'

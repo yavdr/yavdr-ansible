@@ -6,8 +6,8 @@
 #    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
 #    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
 
-- name: apt | install libdvd-pkg
-  apt:
+- name: Apt | install libdvd-pkg
+  ansible.builtin.apt:
     name: libdvd-pkg
     state: present
     install_recommends: no
@@ -26,7 +26,7 @@
         src: /lib/udev/rules.d/60-cdrom_id.rules
       register:
         cdrom_udev_rule
-    
+
     - name: write modified udev rule for cdrom_id.rules
       copy:
         content: |

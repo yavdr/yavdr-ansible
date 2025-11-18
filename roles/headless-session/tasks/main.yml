@@ -1,5 +1,5 @@
 - name: create ~/.config
-  file:
+  ansible.builtin.file:
     path: "{{ vdr.home }}/.config"
     state: directory
     owner: "{{ vdr.user }}"
@@ -7,7 +7,7 @@
     mode: 0755
 
 - name: expand template for ~/.config/headless-session
-  template:
+  ansible.builtin.template:
     src: templates/config/headless-session.j2
     dest: "{{ vdr.home }}/.config/headless-session"
     owner: "{{ vdr.user }}"
@@ -15,19 +15,19 @@
     mode: 0755
 
 - name: expand template for headless-session@.service
-  template:
+  ansible.builtin.template:
     src: templates/systemd/headless-session@.service.j2
     dest: /etc/systemd/system/headless-session@.service
 
 - name: start headless-session@.service for vdr user
-  systemd:
+  ansible.builtin.systemd:
     name: "headless-session@{{ vdr.user }}.service"
     state: started
     enabled: true
     masked: no
 
 - name: enable services for the user session
-  systemd:
+  ansible.builtin.systemd:
     name: "{{ item }}"
     state: started
     masked: no
@@ -40,7 +40,7 @@
     - udiskie.service
 
 - name: disable services for the user session
-  systemd:
+  ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
     masked: yes

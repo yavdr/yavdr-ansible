@@ -1,38 +1,40 @@
 ---
 # file roles/autoinstall-atric-usb/tasks/main.yml
 
-- name: install and configure Atric IR-WakeupUSB
+- name: Install and configure Atric IR-WakeupUSB
+  when: '"04d8:f844" in usb'
   block:
-    - name: apt | install lirc-drv-irman
-      apt:
+    - name: Apt - install lirc-drv-irman
+      ansible.builtin.apt:
         name: lirc-drv-irman
         state: present
       tags:
         - packages
 
-    - name: write lirc configuration
-      template:
+    - name: Write lirc configuration
+      ansible.builtin.template:
         src: templates/lirc_options.conf.j2
         dest: /etc/lirc/lirc_options.conf
+        mode: '0755'
       tags:
         - config
         - systemd
 
-    - name: run udevadm trigger to force udev rule to create symlinks
-      shell: udevadm trigger -c add -s tty -w /dev/ttyACM*
+    - name: Run udevadm trigger to force udev rule to create symlinks
+      ansible.builtin.shell: udevadm trigger -c add -s tty -w /dev/ttyACM*
+      register: udev_adm_trigger
+      changed_when: udev_adm_trigger.rc == 0
 
-    - name: enable lircd, eventlircd, lircd2uinput
-      systemd:
+    - name: Enable lircd, eventlircd, lircd2uinput
+      ansible.builtin.systemd:
         name: '{{ item }}'
-        enabled: yes
+        enabled: true
         state: started
-        masked: no
-        daemon_reload: yes
+        masked: false
+        daemon_reload: true
       loop:
         - eventlircd.service
         - lircd2uinput.service
         - lircd.service
       tags:
         - systemd
-
-  when: '"04d8:f844" in usb'

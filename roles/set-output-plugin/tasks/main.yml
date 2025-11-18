@@ -8,8 +8,8 @@
     var: automatically_installed_output_plugin
     verbosity: 1
 
-- name: apt | install the output plugin
-  apt:
+- name: Apt | install the output plugin
+  ansible.builtin.apt:
     state: present
     name: '{{ vdr_output_plugin }}'
 
@@ -24,7 +24,7 @@
     verbosity: 1
 
 - name: set active output plugin
-  set_fact:
+  ansible.builtin.set_fact:
     active_output_plugin: '{{ selected_frontend }}'
 
 - name: show active_output_plugin
@@ -33,7 +33,7 @@
     verbosity: 1
 
 - name: set disabled output plugins
-  set_fact:
+  ansible.builtin.set_fact:
     disabled_output_plugins: '{{ known_output_plugins | difference([active_output_plugin]) | list }}'
   when: active_output_plugin | length > 0
 
@@ -43,7 +43,7 @@
     verbosity: 1
 
 - name: disable unused output plugins
-  command: "vdrctl disable {{ item }}"
+  ansible.builtin.command: "vdrctl disable {{ item }}"
   loop: '{{ disabled_output_plugins }}'
   #ignore_errors: yes
   register: vdrctl
@@ -52,7 +52,7 @@
   when: disabled_output_plugins is defined
 
 - name: enable chosen output plugin
-  command: vdrctl enable {{ active_output_plugin }}
+  ansible.builtin.command: vdrctl enable {{ active_output_plugin }}
   #ignore_errors: yes
   register: vdrctl
   failed_when:
@@ -70,7 +70,7 @@
 #    plugin_name: softhddevice
 #    plugin_options: |
 #      -D
-#      -a pulse 
+#      -a pulse
 #      -w alsa-driver-broken
 #      -v cuvid
 #    packages:
