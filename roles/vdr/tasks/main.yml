@@ -8,51 +8,57 @@
       - vdrctl
       - vdr-plugin-dbus2vdr
     state: present
-    install_recommends: no
-- name: add svdrp and svdrp-disc to /etc/services
-  lineinfile:
+    install_recommends: false
+- name: Add svdrp and svdrp-disc to /etc/services
+  ansible.builtin.lineinfile:
     dest: /etc/services
     state: present
     line: "{{ item }}"
   loop:
     - "svdrp            6419/tcp"
     - "svdrp-disc       6419/udp"
-- name: configure dbus2vdr for vdr instance id "{{ vdr.instance_id | default(0) }}" and user "{{ vdr.user }}"
+
+- name: Configure dbus2vdr for vdr instance id "{{ vdr.instance_id | default(0) }}" and user "{{ vdr.user }}"
   vars:
     vdr_instance_id: "{{ '' if vdr.instance_id | default(0) | int == 0 else vdr.instance_id }}"
   ansible.builtin.template:
     src: dbus2vdr/de.tvdr.vdr.conf.j2
     dest: /etc/dbus-1/system.d/de.tvdr.vdr.conf
-- name: create vdr recdir
+    mode: '0644'
+
+- name: Create vdr recdir
   ansible.builtin.file:
     state: directory
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0775
     dest: '{{ vdr.recdir }}'
+    mode: '0775'
 
-- name: set vdr charset override
+- name: Set vdr charset override
   ansible.builtin.template:
     src: conf.d/02-vdr-charset-override.conf.j2
     dest: /etc/vdr/conf.d/02-vdr-charset-override.conf
+    mode: '0644'
 
-- name: set option to use hide-first-recording-level patch
+- name: Set option to use hide-first-recording-level patch
   ansible.builtin.template:
     src: conf.d/04-vdr-hide-first-recordinglevel.conf.j2
     dest: /etc/vdr/conf.d/04-vdr-hide-first-recordinglevel.conf
+    mode: '0644'
 
-
-- name: set instance id for vdr
+- name: Set instance id for vdr
   ansible.builtin.template:
     src: conf.d/05-vdr-instance.conf.j2
     dest: /etc/vdr/conf.d/05-vdr-instance.conf
+    mode: '0644'
 
-- name: set option to define recordings directory
+- name: Set option to define recordings directory
   ansible.builtin.template:
     src: conf.d/06-vdr-recordings.conf.j2
     dest: /etc/vdr/conf.d/06-vdr-recordings.conf
+    mode: '0644'
 
-- name: create local dir in recdir
+- name: Create local dir in recdir
   ansible.builtin.file:
     state: directory
     owner: '{{ vdr.user }}'
@@ -62,10 +68,11 @@
   when:
     vdr.hide_first_recording_level
 
-- name: set VDR_ID for shells in /etc/profile.d/
+- name: Set VDR_ID for shells in /etc/profile.d/
   ansible.builtin.template:
     src: vdr-dbus-send-vdr-id.sh
     dest: /etc/profile.d/vdr-dbus-send-vdr-id.sh
+    mode: '0755'
   notify: ["reboot required"]
 
 # TODO: set user etc. in /etc/vdr/conf.d/
@@ -73,219 +80,240 @@
   ansible.builtin.apt:
     name: '{{ vdr_plugins }}'
     state: present
-    install_recommends: no
+    install_recommends: false
   notify: ['Restart VDR']
-- name: ensure vdr is stopped
+
+- name: Ensure vdr is stopped
   ansible.builtin.systemd:
     name: vdr.service
     state: stopped
-  notify: [ 'Start VDR' ]
+  notify: ['Start VDR']
 
-- name: "vdr configuration | copy remote.conf if it doesn't exist yet"
-  copy:
+- name: "VDR configuration | copy remote.conf if it doesn't exist yet"
+  ansible.builtin.copy:
     src: remote.conf
     dest: '{{ vdr.confdir }}/remote.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: no
+    mode: '0644'
+    force: false
 
-- name: "vdr configuration | create keymacros.conf"
+- name: "VDR configuration | create keymacros.conf"
   ansible.builtin.template:
     src: keymacros.conf.j2
     dest: '{{ vdr.etc_confdir }}/keymacros.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: yes
+    mode: '0644'
+    force: true
 
-- name: "vdr configuration | create scr.conf"
+- name: "VDR configuration | create scr.conf"
   ansible.builtin.template:
     src: scr.conf.j2
     dest: '{{ vdr.etc_confdir }}/scr.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: yes
+    mode: '0644'
+    force: true
 
-- name: "vdr configuration | create diseqc.conf"
+- name: "VDR configuration | create diseqc.conf"
   ansible.builtin.template:
     src: diseqc.conf.j2
     dest: '{{ vdr.etc_confdir }}/diseqc.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: yes
+    mode: '0644'
+    force: true
 
-- name: "vdr configuration | copy channels.conf if it doesn't exist yet"
-  copy:
+- name: "VDR configuration | copy channels.conf if it doesn't exist yet"
+  ansible.builtin.copy:
     src: '{{ vdr_channels_conf }}'
     dest: '{{ vdr.confdir }}/channels.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: no
+    mode: '0644'
+    force: false
   when: vdr_channels_conf is defined
 
-- name: "vdr configuration | download channels.conf if it doesn't exist yet"
-  get_url:
+- name: "VDR configuration | download channels.conf if it doesn't exist yet"
+  ansible.builtin.get_url:
     url: '{{ vdr_channels_conf_url }}'
     dest: '{{ vdr.confdir }}/channels.conf'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    mode: 0644
-    force: no
+    mode: '0644'
+    force: false
   when: vdr_channels_conf is not defined and vdr_channels_conf_url is defined
 
-- name: "vdr configuration | svdrphosts.conf"
+- name: "VDR configuration | svdrphosts.conf"
   ansible.builtin.template:
     src: templates/svdrphosts.conf.j2
     dest: '{{ vdr.etc_confdir }}/svdrphosts.conf'
-    mode: 0644
+    mode: '0644'
   vars:
     svdrphosts: '{{ vdr_svdrphosts | default(vdr_allowed_hosts) }}'
 
-- name: "vdr configuration | /etc/default/vdr"
+- name: "VDR configuration | /etc/default/vdr"
   ansible.builtin.template:
     src: templates/default_vdr.j2
     dest: /etc/default/vdr
-- name: ensure directory '/etc/vdr/xineliboutput' exists
+    mode: '0644'
+
+- name: Ensure directory '/etc/vdr/xineliboutput' exists
   ansible.builtin.file:
     state: directory
-    mode: 0775
+    mode: '0775'
     dest: '/etc/vdr/plugins/xineliboutput'
 
-- name: "vdr configuration | allowed_hosts.conf for xineliboutput"
+- name: "VDR configuration | allowed_hosts.conf for xineliboutput"
   ansible.builtin.template:
     src: templates/generic_allowed_hosts.conf.j2
     dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
-    mode: 0644
+    mode: '0644'
   vars:
     allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
     vdr_service: xineliboutput
 
-- name: "vdr configuration | xineliboutput.conf host settings"
+- name: "VDR configuration | xineliboutput.conf host settings"
   ansible.builtin.template:
     src: templates/xineliboutput.conf.j2
     dest: /etc/vdr/conf.avail/xineliboutput.conf
-    mode: 0644
+    mode: '0644'
   vars:
     allowed_hosts: '{{ xineliboutput_allowed_hosts | default(vdr_allowed_hosts) }}'
 
-- name: "disable/enable wait-for-dvb@.service for configured devices"
+- name: "Disable/enable wait-for-dvb@.service for configured devices"
   ansible.builtin.systemd:
-    enabled: '{{ "yes" if item in wait_for_dvb_devices|default([]) else "no" }}'
+    enabled: '{{ "yes" if item in wait_for_dvb_devices | default([]) else "no" }}'
     name: 'wait-for-dvb@{{ item }}.service'
-  loop: "{{ range(max_num_dvb_devices|default(16))|list }}"
-- name: ensure directory '/etc/vdr/plugins/vnsiserver' exists
+  loop: "{{ range(max_num_dvb_devices | default(16)) | list }}"
+
+- name: Ensure directory '/etc/vdr/plugins/vnsiserver' exists
   ansible.builtin.file:
     state: directory
-    mode: 0775
     dest: '/etc/vdr/plugins/vnsiserver'
+    mode: '0775'
 
-- name: "vdr configuration | allowed_hosts.conf for vnsiserver"
+- name: "VDR configuration | allowed_hosts.conf for vnsiserver"
   ansible.builtin.template:
     src: templates/generic_allowed_hosts.conf.j2
     dest: '/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf'
-    mode: 0644
+    mode: '0644'
   vars:
     allowed_hosts: '{{ vnsiserver_allowed_hosts | default(vdr_allowed_hosts) }}'
     vdr_service: vnsiserver
-- name: ensure directory '/etc/vdr/plugins' exists
+
+- name: Ensure directory '/etc/vdr/plugins' exists
   ansible.builtin.file:
     state: directory
-    mode: 0775
+    mode: '0775'
     dest: '/etc/vdr/plugins/'
 
-- name: "vdr configuration | streamdevhosts.conf for streamdev-server"
+- name: "VDR configuration | streamdevhosts.conf for streamdev-server"
   ansible.builtin.template:
     src: templates/generic_allowed_hosts.conf.j2
     dest: '/etc/vdr/plugins/streamdevhosts.conf'
-    mode: 0644
+    mode: '0644'
   vars:
     allowed_hosts: '{{ streamdev_server_allowed_hosts | default(vdr_allowed_hosts) }}'
     vdr_service: streamdev-server
-- name: install and configure streamdev-client
+
+- name: Install and configure streamdev-client
   block:
     - name: Apt | install vdr-plugin-streamdev-client
       ansible.builtin.apt:
         state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         name: "vdr-plugin-streamdev-client"
-    - name: set streamdev-client.RemoteIp
-      lineinfile:
+
+    - name: Set streamdev-client.RemoteIp
+      ansible.builtin.lineinfile:
         state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
-        create: yes
-        path : "{{ vdr.home }}/setup.conf"
+        create: true
+        path: "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemoteIp"
         line: "streamdev-client.RemoteIp = {{ streamdev_client_remote_ip }}"
+        mode: '0644'
 
-    - name: set streamdev-client.RemotePort
-      lineinfile:
+    - name: Set streamdev-client.RemotePort
+      ansible.builtin.lineinfile:
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
-        create: yes
-        path : "{{ vdr.home }}/setup.conf"
+        create: true
+        path: "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.RemotePort"
         line: "streamdev-client.RemotePort = {{ streamdev_client_remote_port | default(2004) }}"
+        mode: '0644'
 
-    - name: set streamdev-client.NumProvidedSystems
-      lineinfile:
-        owner: "{{  vdr.user  }}"
-        group: "{{  vdr.group }}"
-        create: yes
-        path : "{{ vdr.home }}/setup.conf"
-        regexp: "^streamdev-client.NumProvidedSystems"
-        line: "streamdev-client.NumProvidedSystems = {{ streamdev_client_num_provided_systems | default(1) }}"
-
-    - name: set streamdev-client.StartClient
-      lineinfile:
+    - name: Set streamdev-client.NumProvidedSystems
+      ansible.builtin.lineinfile:
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
-        create: yes
-        path : "{{ vdr.home }}/setup.conf"
+        create: true
+        path: "{{ vdr.home }}/setup.conf"
+        regexp: "^streamdev-client.NumProvidedSystems"
+        line: "streamdev-client.NumProvidedSystems = {{ streamdev_client_num_provided_systems | default(1) }}"
+        mode: '0644'
+
+    - name: Set streamdev-client.StartClient
+      ansible.builtin.lineinfile:
+        owner: "{{ vdr.user }}"
+        group: "{{ vdr.group }}"
+        create: true
+        path: "{{ vdr.home }}/setup.conf"
         regexp: "^streamdev-client.StartClient"
         line: "streamdev-client.StartClient = {{ '1' if streamdev_client_remote_ip else '0' }}"
-- name: create directory for vdr.service systemd drop-in files
+        mode: '0644'
+
+- name: Create directory for vdr.service systemd drop-in files
   ansible.builtin.file:
     dest: '{{ item }}'
     state: directory
+    mode: '0755'
   loop:
     - "/etc/systemd/system/vdr.service.d/"
 
-- name: systemd-drop-in | start vdr.service after network-online.target
+- name: Systemd-Drop-In | start vdr.service after network-online.target
   ansible.builtin.template:
     src: templates/systemd/network-online.j2
     dest: /etc/systemd/system/vdr.service.d/network-online.conf
+    mode: '0644'
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | load environment file for vdr.service
+- name: Systemd-Drop-In | load environment file for vdr.service
   ansible.builtin.template:
     src: templates/systemd/vdr.service.d/vdr-environ.j2
     dest: /etc/systemd/system/vdr.service.d/load-environ.conf
+    mode: '0644'
   notify: ["Reload Units"]
-- name: create snippet with yavdr commands
+
+- name: Create snippet with yavdr commands
   ansible.builtin.template:
     src: templates/command-hooks/commands.yavdr.conf.j2
     dest: /usr/share/vdr/command-hooks/commands.yavdr.conf
-- name: create helper scripts for reccmds
-  copy:
+    mode: '0644'
+
+- name: Create helper scripts for reccmds
+  ansible.builtin.copy:
     src: reccmds/{{ item }}.sh
     dest: /usr/local/bin/{{ item }}
-    mode: 0755
+    mode: '0755'
   loop:
     - removeindex
     - removemarks
     - removeresume
     - vdr-recrepeat
-- name: create snippet for yavdr reccmds to handle marks-, resume- and index-files
+
+- name: Create snippet for yavdr reccmds to handle marks-, resume- and index-files
   ansible.builtin.template:
     src: reccmds.removemarks.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.removemarks.conf
+    mode: '0644'
 
-- name: create snippet for yavdr reccmds to search repeats using epgsearch
+- name: Create snippet for yavdr reccmds to search repeats using epgsearch
   ansible.builtin.template:
     src: reccmds.searchrepeats.conf.j2
     dest: /usr/share/vdr/command-hooks/reccmds.searchrepeats.conf
+    mode: '0644'
   when: '"vdr-plugin-epgsearch" in vdr_plugins'

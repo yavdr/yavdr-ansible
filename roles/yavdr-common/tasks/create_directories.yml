@@ -1,19 +1,20 @@
-- name: ensure /etc/yavdr exists
-  file:
+- name: Ensure /etc/yavdr exists
+  ansible.builtin.file:
     path: /etc/yavdr
     state: directory
-    mode: 0755
+    mode: '0755'
 
-- name: touch /etc/yavdr/autoinstalled (this file must exist)
-  file:
+- name: Touch /etc/yavdr/autoinstalled (this file must exist)
+  ansible.builtin.file:
     path: /etc/yavdr/autoinstalled
     state: touch
+    mode: '0755'
 
-- name: create media directories
-  file:
+- name: Create media directories
+  ansible.builtin.file:
     dest: '{{ item.value }}'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
     state: directory
     mode: '0777'
-  loop: '{{ media_dirs|dict2items }}'
+  loop: '{{ media_dirs | dict2items }}'

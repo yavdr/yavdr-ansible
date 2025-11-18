@@ -1,176 +1,177 @@
-- name: package_facts | lookup installed packages
-  package_facts:
+- name: Package_facts | lookup installed packages
+  anisble.builtin.package_facts:
     manager: auto
 
-- name: remove cloud-init if necessary
+- name: Remove cloud-init if necessary
+  when: "'cloud-init' in ansible_facts.packages"
   block:
-    - name: "debconf | disable all cloud-init datasources"
+    - name: "Disable all cloud-init datasources"
       debconf:
         name: cloud-init
         question: cloud-init/datasources
-        value: ''
+        value: ""
         vtype: select
       register: cloud_init_debconf
 
-    - name: "command | reconfigure cloud-init package"
-      command: dpkg-reconfigure -f noninteractive cloud-init
-      ignore_errors: yes
-      when:  cloud_init_debconf.changed
+    - name: "Reconfigure cloud-init package"
+      ansible.builtin.command: dpkg-reconfigure -f noninteractive cloud-init
+      ignore_errors: true
+      when: cloud_init_debconf.changed
       # notify: ['rerun required']
 
-    - name: "apt | ensure package cloud-init is not installed"
-      apt:
+    - name: "Apt | ensure package cloud-init is not installed"
+      ansible.builtin.apt:
         name: cloud-init
         state: absent
-  when: "'cloud-init' in ansible_facts.packages"
-- name: apt | ensure packages for tzdata and locales are installed
-  apt:
+- name: Apt | ensure packages for tzdata and locales are installed
+  ansible.builtin.apt:
     state: present
     name:
       - tzdata
       - locales
 
-- name: apt | install language packs
-  apt:
+- name: Apt | install language packs
+  ansible.builtin.apt:
     state: present
-    name: '{{ language_packs }}'
+    name: "{{ language_packs }}"
 
-
-- name: set timezone
-  timezone:
+- name: Set timezone
+  communit.general.timezone:
     name: "{{ timezone }}"
     hwclock: "{{ timezone_hw | default(omit) }}"
   register: tz_setting
 
-- name: debconf | set timezone
+- name: Debconf | set timezone
+  when: tz_setting.changed # TODO: call this block via a handler hook
   block:
-    - name: set timezone area
-      debconf:
+    - name: Set timezone area
+      ansible.builtin.debconf:
         name: tzdata
         question: tzdata/Areas
         value: "{{ timezone | dirname }}"
         vtype: select
       notify: reconfigure_tzdata
 
-    - name: set timezone city
-      debconf:
+    - name: Set timezone city
+      ansible.builtin.debconf:
         name: tzdata
         question: "tzdata/Zones/{{ timezone | dirname }}"
         value: "{{ timezone | basename }}"
         vtype: select
       notify: reconfigure_tzdata
-  when: tz_setting.changed
-
 
 # based on https://serverfault.com/a/981742
 - block:
-   - name: Ensure localisation files for '{{ default_locale }}' are available
-     locale_gen:
-       name: "{{ default_locale }}"
-       state: present
+    - name: Ensure localisation files for '{{ default_locale }}' are available
+      community.general.locale_gen:
+        name: "{{ default_locale }}"
+        state: present
 
-   - name: Ensure localisation files for '{{ generate_locales }}' are available
-     locale_gen:
-       name: "{{ item }}"
-       state: present
-     loop: "{{ generate_locales }}"
+    - name: Ensure localisation files for '{{ generate_locales }}' are available
+      community.general.locale_gen:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ generate_locales }}"
 
-   - name: Get current locale and language configuration
-     command: localectl status
-     register: locale_status
-     changed_when: false
+    - name: Get current locale and language configuration
+      ansible.builtin.command: localectl status
+      register: locale_status
+      changed_when: false
 
-   - name: Parse 'LANG' from current locale and language configuration
-     set_fact:
-       locale_lang: "{{ locale_status.stdout | regex_search('LANG=([^\n]+)', '\\1') | first }}"
+    - name: Parse 'LANG' from current locale and language configuration
+      ansible.builtin.set_fact:
+        locale_lang: "{{ locale_status.stdout | regex_search('LANG=([^\n]+)', '\\1') | first }}"
 
-   - name: Parse 'LANGUAGE' from current locale and language configuration
-     set_fact:
-       locale_language: "{{ locale_status.stdout | regex_search('LANGUAGE=([^\n]+)', '\\1') | default([locale_lang], true) | first }}"
+    - name: Parse 'LANGUAGE' from current locale and language configuration
+      ansible.builtin.set_fact:
+        locale_language: "{{ locale_status.stdout | regex_search('LANGUAGE=([^\n]+)', '\\1') | default([locale_lang], true) | first }}"
 
-   - name: Configure locale to '{{ default_locale }}' and language to '{{ default_locale }}'
-     become: yes
-     command: localectl set-locale LANG={{ default_locale }} LANGUAGE={{ default_locale }}
-     changed_when: locale_lang != default_locale or locale_language != default_locale
-- name: use bash instead of dash
-  debconf:
+    - name: Configure locale to '{{ default_locale }}' and language to '{{ default_locale }}'
+      become: true
+      ansible.builtin.command: localectl set-locale LANG={{ default_locale }} LANGUAGE={{ default_locale }}
+      changed_when: locale_lang != default_locale or locale_language != default_locale
+
+- name: Use bash instead of dash
+  ansible.builtin.debconf:
     name: dash
     question: dash/sh
-    value: 'false'
+    value: "false"
     vtype: select
   notify: reconfigure_dash
 
-- name: flush all handlers
-  meta: flush_handlers
-- name: create vdr group
-  group:
-    gid: '{{ vdr.gid }}'
-    state: present
-    name: '{{ vdr.group }}'
+- name: Flush all handlers
+  ansible.builtin.meta: flush_handlers
 
+- name: Create vdr group
+  ansible.builtin.group:
+    gid: "{{ vdr.gid }}"
+    state: present
+    name: "{{ vdr.group }}"
 
 # TODO: ensure openbox, vdr, xorg etc. are stopped
-- name: create vdr user
-  user:
-    name: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    uid: '{{ vdr.uid }}'
-    home: '{{ vdr.home }}'
-    shell: '/bin/bash'
+- name: Create vdr user
+  ansible.builtin.user:
+    name: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    uid: "{{ vdr.uid }}"
+    home: "{{ vdr.home }}"
+    shell: "/bin/bash"
     state: present
 
-- name: prepare /var/lib/vdr
-  file:
+- name: Prepare /var/lib/vdr
+  ansible.builtin.file:
     path: /var/lib/vdr
     state: directory
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0755'
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
 
-- name: collect dotfiles for newly created user
-  find:
+- name: Collect dotfiles for newly created user
+  ansible.builtin.find:
     file_type: file
-    hidden: yes
-    paths: '{{ vdr.home }}'
-    patterns: '.*'
-    recurse: no
+    hidden: true
+    paths: "{{ vdr.home }}"
+    patterns: ".*"
+    recurse: false
   register: dotfiles
 
-- name: copy dotfiles to /var/lib/vdr unless they already exist
-  copy:
-    src: '{{ item.path }}'
+- name: Copy dotfiles to /var/lib/vdr unless they already exist
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
     dest: /var/lib/vdr/
     remote_src: true
     force: false
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: '0644'
   with_items:
     - "{{ dotfiles.files }}"
 
-- name: "ensure {{ vdr.home }} is a mount-bind from /var/lib/vdr"
-  mount:
+- name: "Ensure {{ vdr.home }} is a mount-bind from /var/lib/vdr"
+  ansible.posix.mount:
     path: "{{ vdr.home }}"
     src: /var/lib/vdr
     opts: bind
     state: mounted
     fstype: none
   when: not (vdr.home | realpath is match("/var/lib/vdr"))
-- name: disable release-upgrade notifications
-  lineinfile:
+
+- name: Disable release-upgrade notifications
+  ansible.builtin.lineinfile:
     path: /etc/update-manager/release-upgrades
-    backrefs: yes
+    backrefs: true
     state: present
-    regexp: '^(Prompt=).*$'
-    line: 'Prompt=never'
-  ignore_errors: yes
-- name: apt | install basic packages
-  apt:
+    regexp: "^(Prompt=).*$"
+    line: "Prompt=never"
+  ignore_errors: true
+- name: Apt | install basic packages
+  ansible.builtin.apt:
     name:
       - anacron
       - acl
       - at
       - bash-completion
-      #- biosdevname  # caution: may change device names after a minimal installation!
+      # - biosdevname  # caution: may change device names after a minimal installation!
       - debconf-utils
       - linux-firmware
       - pciutils
@@ -189,14 +190,15 @@
       - xfsprogs
       - yavdr-i18n
     state: present
-    install_recommends: no
-- name: apt | install extra packages
-  apt:
-    name: '{{ extra_packages }}'
-    state: present
-    install_recommends: no
+    install_recommends: false
 
-- name: apt | install plymouth-theme-yavdr-logo on x86 architectures
-  apt:
+- name: Apt | install extra packages
+  ansible.builtin.apt:
+    name: "{{ extra_packages }}"
+    state: present
+    install_recommends: false
+
+- name: Apt | install plymouth-theme-yavdr-logo on x86 architectures
+  ansible.builtin.apt:
     name: plymouth-theme-yavdr-logo
   when: ansible_architecture is match("x86_.*")

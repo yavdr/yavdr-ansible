@@ -1,164 +1,165 @@
 ---
 # file: roles/yavdr-desktop/tasks/main.yml
 
-- name: create folders for user configuration files
-  file:
+- name: Create folders for user configuration files
+  ansible.builtin.file:
     state: directory
     dest: '{{ item }}'
     mode: '0775'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
-    recurse: yes
+    recurse: true
   loop:
     - '{{ vdr.home }}/.config/systemd/user'
     - '{{ vdr.home }}/.config/openbox'
     - '{{ vdr.home }}/.config/pulse'
     - '{{ vdr.home }}/bin'
 
-- name: expand template for .xinitrc for vdr user
-  template:
-      src: 'templates/.xinitrc.j2'
-      dest: '{{ vdr.home }}/.xinitrc'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: Expand template for .xinitrc for vdr user
+  ansible.builtin.template:
+    src: 'templates/.xinitrc.j2'
+    dest: '{{ vdr.home }}/.xinitrc'
+    mode: '0755'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: "expand template for vdr's .Xresources"
-  template:
-      src: 'templates/.Xresources.j2'
-      dest: '{{ vdr.home }}/.Xresources'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: "Expand template for vdr's .Xresources"
+  ansible.builtin.template:
+    src: 'templates/.Xresources.j2'
+    dest: '{{ vdr.home }}/.Xresources'
+    mode: '0644'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: expand template for openbox autostart
-  template:
-      src: 'templates/openbox/autostart.j2'
-      dest: '{{ vdr.home }}/.config/openbox/autostart'
-      mode: 0755
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: Expand template for openbox autostart
+  ansible.builtin.template:
+    src: 'templates/openbox/autostart.j2'
+    dest: '{{ vdr.home }}/.config/openbox/autostart'
+    mode: '0755'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: expand rc.xml for openbox
-  template:
-      src: 'templates/openbox/rc.xml.j2'
-      dest: '{{ vdr.home }}/.config/openbox/rc.xml'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: Expand rc.xml for openbox
+  ansible.builtin.template:
+    src: 'templates/openbox/rc.xml.j2'
+    dest: '{{ vdr.home }}/.config/openbox/rc.xml'
+    mode: '0644'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: expand rc2.xml for openbox on second display
-  template:
-      src: 'templates/openbox/rc2.xml.j2'
-      dest: '{{ vdr.home }}/.config/openbox/rc2.xml'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: Expand rc2.xml for openbox on second display
+  ansible.builtin.template:
+    src: 'templates/openbox/rc2.xml.j2'
+    dest: '{{ vdr.home }}/.config/openbox/rc2.xml'
+    mode: '0644'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: create yavdr-desktop.target for the user session
-  template:
-      src: 'templates/systemd/user/yavdr-desktop.target.j2'
-      dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
-      mode: 0644
-      owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
+- name: Create yavdr-desktop.target for the user session
+  ansible.builtin.template:
+    src: 'templates/systemd/user/yavdr-desktop.target.j2'
+    dest: '{{ vdr.home }}/.config/systemd/user/yavdr-desktop.target'
+    mode: '0644'
+    owner: '{{ vdr.user }}'
+    group: '{{ vdr.group }}'
 
-- name: disable pulseaudio autospawning
-  lineinfile:
+- name: Disable pulseaudio autospawning
+  ansible.builtin.lineinfile:
     path: '{{ vdr.home }}/.config/pulse/client.conf'
     line: 'autospawn = yes'
-    create: yes
+    create: true
     state: present
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0644'
 
-- name: create wm-exit.service for the session
-  template:
+- name: Create wm-exit.service for the session
+  ansible.builtin.template:
     src: templates/systemd/user/wm-exit.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/wm-exit.service'
-    mode: 0644
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0644'
 
-- name: create detect-second-display.service for the session
-  template:
+- name: Create detect-second-display.service for the session
+  ansible.builtin.template:
     src: templates/systemd/user/detect-second-display.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/detect-second-display.service'
-    mode: 0644
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0644'
 
-- name: create detect-second-diplay script
-  template:
+- name: Create detect-second-diplay script
+  ansible.builtin.template:
     src: templates/bin/detect-second-display.j2
     dest: '{{ vdr.home }}/bin/detect-second-display'
-    mode: 0755
+    mode: '0755'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create switch-displays script
-  template:
+- name: Create switch-displays script
+  ansible.builtin.template:
     src: templates/bin/switch-displays.j2
     dest: '{{ vdr.home }}/bin/switch-displays'
-    mode: 0755
+    mode: '0755'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create openbox-second.service for the session
-  template:
+- name: Create openbox-second.service for the session
+  ansible.builtin.template:
     src: templates/systemd/user/openbox-second.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/openbox-second.service'
-    mode: 0644
+    mode: '0644'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
 
-- name: create irexec configuration for the session
+- name: Create irexec configuration for the session
   block:
-    - name: expand template for irexec.service
-      template:
+    - name: Expand template for irexec.service
+      ansible.builtin.template:
         src: templates/systemd/user/irexec.service.j2
         dest: '{{ vdr.home }}/.config/systemd/user/irexec.service'
-        mode: 0644
+        mode: '0644'
         owner: '{{ vdr.user }}'
         group: '{{ vdr.group }}'
-    - name: expand template for .lircrc
-      template:
+    - name: Expand template for .lircrc
+      ansible.builtin.template:
         src: templates/.lircrc.j2
         dest: '{{ vdr.home }}/.lircrc'
-        mode: 0644
+        mode: '0644'
         owner: '{{ vdr.user }}'
         group: '{{ vdr.group }}'
-        force: no
+        force: false
 
-- name: link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
-  file:
+- name: Link /usr/bin/start-desktop to /var/lib/vdr/plugins/desktop/starter
+  ansible.builtin.file:
     src: /usr/bin/start-desktop
     dest: /var/lib/vdr/plugins/desktop/starter
     state: link
 
-- name: enable and start yavdr-xorg for the vdr user
-  systemd:
-    daemon_reload: yes
+- name: Enable and start yavdr-xorg for the vdr user
+  ansible.builtin.systemd:
+    daemon_reload: true
     name: 'yavdr-xorg'
-    enabled: yes
+    enabled: true
     state: started
 
-- name: enable tmux.service
-  systemd:
+- name: Enable tmux.service
+  ansible.builtin.systemd:
     name: tmux.service
     state: started
-    masked: no
-    enabled: yes
+    masked: false
+    enabled: true
     scope: user
-  become: yes
+  become: true
   become_user: vdr
 
-- name: enable and start udiskie.service
-  systemd:
+- name: Enable and start udiskie.service
+  ansible.builtin.systemd:
     name: 'udiskie.service'
     state: started
-    masked: no
-    enabled: yes
+    masked: false
+    enabled: true
     scope: user
-  become: yes
+  become: true
   become_user: vdr

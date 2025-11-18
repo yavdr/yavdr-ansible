@@ -1,17 +1,18 @@
-- name: "create initramfs hook to copy EDID files"
-  template:
+- name: "Create initramfs hook to copy EDID files"
+  ansible.builtin.template:
     src: templates/include-edid-data.sh.j2
     dest: '/etc/initramfs-tools/hooks/include-edid-data'
-    mode: 0755
-    force: yes
+    mode: '0755'
+    force: true
 
-- name: "create /lib/firmware/edid"
-  file:
+- name: "Create /lib/firmware/edid"
+  ansible.builtin.file:
     state: directory
     dest: /lib/firmware/edid
+    mode: '0755'
 
-- name: "set intel_boot_options variable"
-  set_fact:
+- name: "Set intel_boot_options variable"
+  ansible.builtin.set_fact:
     intel_boot_options: "video={{ drm.primary.drm_connector }}:D {% if drm.secondary is defined and drm.secondary.drm_connector is defined %}video={{ drm.secondary.drm_connector }}:D{% endif %} drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}{% if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}{% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}"
   when: intel_set_boot_edid | bool
   notify: ['Update Initramfs', 'Update GRUB']

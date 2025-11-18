@@ -1,8 +1,8 @@
 ---
 # This role is used to set up the yaVDR remote control configuration.
 
-- name: apt | install packages for remote support
-  apt:
+- name: Apt | install packages for remote support
+  ansible.builtin.apt:
     name:
       - yavdr-remote
       - lirc
@@ -10,37 +10,40 @@
   tags:
     - packages
 
-- name: add systemd drop-in for lircd to use lircd2uinput
-  block:
-    - name: create directory /etc/systemd/system/lircd.service.d/
-      file:
-        path: /etc/systemd/system/lircd.service.d/
-        state: directory
-    - name: expand template for /etc/systemd/system/lircd.service.d/lircd2uinput.conf
-      template:
-        src: templates/lircd.service.d/lircd2uinput.conf.j2
-        dest: /etc/systemd/system/lircd.service.d/lircd2uinput.conf
-      notify: ["Reload Units"]
+- name: Add systemd drop-in for lircd to use lircd2uinput
   tags:
     - config
+  block:
+    - name: Create directory /etc/systemd/system/lircd.service.d/
+      ansible.builtin.file:
+        path: /etc/systemd/system/lircd.service.d/
+        state: directory
+        mode: '0644'
 
-- name: stop, mask and disable lircd.socket, lircd.service, lircmd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
-  systemd:
+    - name: Expand template for /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+      ansible.builtin.template:
+        src: templates/lircd.service.d/lircd2uinput.conf.j2
+        dest: /etc/systemd/system/lircd.service.d/lircd2uinput.conf
+        mode: '0644'
+      notify: ["Reload Units"]
+
+- name: Stop, mask and disable lircd.socket, lircd.service, lircmd.service and lircd-uinput.service # (the default lirc configuration conflicts with eventlircd)
+  tags:
+    - systemd
+  ansible.builtin.systemd:
     name: '{{ item }}'
-    enabled: no
+    enabled: false
     state: stopped
-    masked: yes
+    masked: true
   loop:
     - lircd.service
     - lircd.socket
     - lircmd.service
     - lircd-uinput.service
-  ignore_errors: yes
-  tags:
-    - systemd
+  ignore_errors: true
 
-- name: apt | install eventlircd and lircd2uinput
-  apt:
+- name: Apt | install eventlircd and lircd2uinput
+  ansible.builtin.apt:
     name:
       - eventlircd
       - lircd2uinput
@@ -48,31 +51,33 @@
   tags:
     - packages
 
-- name: configure vdr to read from a lircd-compatible socket
-  template:
+- name: Configure vdr to read from a lircd-compatible socket
+  ansible.builtin.template:
     src: templates/03-vdr-lirc.conf.j2
     dest: /etc/vdr/conf.d/03-vdr-lirc.conf
+    mode: '0644'
   notify: ['Restart VDR']
   tags:
     - config
 
-- name: expand template for /etc/rc_maps.cfg
-  template:
+- name: Expand template for /etc/rc_maps.cfg
+  ansible.builtin.template:
     src: templates/rc_maps.cfg.j2
     dest: /etc/rc_maps.cfg
+    mode: '0644'
   notify: ['Trigger Udev']
   tags:
     - config
 
 
-- name: install dependencies for rc-core-learn.py
-  apt:
+- name: Install dependencies for rc-core-learn.py
+  ansible.builtin.apt:
     pkg:
       - python3-evdev
     state: present
 
-- name: expand template for rc-core-learn.py
-  template:
-    src:  templates/rc-core-learn.py.j2
+- name: Expand template for rc-core-learn.py
+  ansible.builtin.template:
+    src: templates/rc-core-learn.py.j2
     dest: /usr/local/bin/rc-core-learn
-    mode: 0755
+    mode: '0755'

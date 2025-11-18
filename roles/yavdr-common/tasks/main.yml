@@ -1,11 +1,12 @@
 ---
-# file: roles/yavdr-common/tasks/main.yml
 
-- name: basic installation
-  block:
-        - import_tasks: configure_apt.yml
-        - import_tasks: configure_system.yml
-        - import_tasks: create_directories.yml
-        - import_tasks: create_sudoers.yml
-        - import_tasks: standby_support.yml
+- name: Import task files
+  ansible.builtin.import_tasks:
+    file: {{ item }}
+  loop:
+    - configure_apt.yml
+    - configure_system.yml
+    - create_directories.yml
+    - create_sudoers.yml
+    - standby_support.yml
   tags: [install]

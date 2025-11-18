@@ -1,27 +1,30 @@
-- name: install udiskie
-  apt:
+- name: Install udiskie
+  ansible.builtin.apt:
     name:
       - udiskie
 
-- name: create ~/.config/udiskie
-  file:
+- name: Create ~/.config/udiskie
+  ansible.builtin.file:
     name: '{{ vdr.home }}/.config/udiskie'
     state: directory
+    mode: '0755'
 
-- name: expand template for udiskie's config.yml
-  template:
+- name: Expand template for udiskie's config.yml
+  ansible.builtin.template:
     src: templates/udiskie/config.yml.j2
     dest: '{{ vdr.home }}/.config/udiskie/config.yml'
+    mode: '0644'
 
-- name: expand template for mount helper script
-  template:
+- name: Expand template for mount helper script
+  ansible.builtin.template:
     src: templates/udiskie/udiskie_vdr_mount_helper.j2
     dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
-    mode: 0755
+    mode: '0755'
     owner: vdr
     group: vdr
 
-- name: expand template for udiskie vdr commands
-  template:
+- name: Expand template for udiskie vdr commands
+  ansible.builtin.template:
     src: templates/udiskie/umount_all.j2
     dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
+    mode: '0644'

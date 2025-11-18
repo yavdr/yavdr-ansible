@@ -1,75 +1,76 @@
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
 
-- name: "expand template for x-verbose@.service"
-  template:
+- name: "Expand template for x-verbose@.service"
+  ansible.builtin.template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
   notify: ["Reload Units"]
 
-- name: "expand template for xorg-verbose.conf"
-  template:
+- name: "Expand template for xorg-verbose.conf"
+  ansible.builtin.template:
     src: "templates/xorg-verbose.conf.j2"
     dest: "/etc/X11/xorg-verbose.conf"
+    mode: '0644'
 
-- name: "remove intel snippet"
-  file:
+- name: "Remove Intel snippet"
+  ansible.builtin.file:
     path: /etc/X11/xorg.conf.d/20-intel.conf
     state: absent
 
-- name: remove amd snippet
-  file:
+- name: Remove AMD snippet
+  ansible.builtin.file:
     path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
-#- name: Stop VDR
-#  systemd:
-#    name: vdr.service
-#    state: stopped
-#    enabled: yes
-#  notify: ['Start VDR']
+# - name: Stop VDR
+#   ansible.builtin.systemd:
+#     name: vdr.service
+#     state: stopped
+#     enabled: true
+#   notify: ['Start VDR']
 #
-#- name: Stop yavdr-xorg
-#  systemd:
-#    name: 'yavdr-xorg'
-#    state: stopped
-#    enabled: yes
-#  notify: ['Start yavdr-xorg']
+# - name: Stop yavdr-xorg
+#   ansible.builtin.systemd:
+#     name: 'yavdr-xorg'
+#     state: stopped
+#     enabled: true
+#   notify: ['Start yavdr-xorg']
 #
-#- name: Stop xlogin
-#  systemd:
-#    name: 'xlogin@{{ vdr.user }}.service'
-#    state: stopped
-#  notify: ['Start xlogin']
+# - name: Stop xlogin
+#   ansible.builtin.systemd:
+#     name: 'xlogin@{{ vdr.user }}.service'
+#     state: stopped
+#   notify: ['Start xlogin']
 #
-#- name: Stop x
-#  systemd:
-#    name: x@vt7.service
-#    state: stopped
+# - name: Stop x
+#   ansible.builtin.systemd:
+#     name: x@vt7.service
+#     state: stopped
 
-- name: check /etc/yavdr/autoinstalled if a nvidia driver has been installed
-  lineinfile:
+- name: Check /etc/yavdr/autoinstalled if a nvidia driver has been installed
+  ansible.builtin.lineinfile:
     name: /etc/yavdr/autoinstalled
     regexp: '.*nvidia.*'
     state: absent
-  check_mode: yes
+  check_mode: true
   register: nvidia_driver_detected
 
-- name: set_fact | nvidia_driver_installed
-  set_fact:
+- name: Set_fact | nvidia_driver_installed
+  ansible.builtin.set_fact:
     nvidia_driver_installed: '{{ nvidia_driver_detected.changed | bool }}'
 
-- name: unload nouveau driver, replace with nvidia
+- name: Unload nouveau driver, replace with nvidia
   block:
-    - name: unbind vconsole
-      shell: echo 0 > /sys/class/vtconsole/vtcon1/bind
+    - name: Unbind vconsole
+      ansible_builtin.shell: echo 0 > /sys/class/vtconsole/vtcon1/bind
 
-    - name: "wait a little, so noveau isn't used anymore"
-      wait_for:
+    - name: "Wait a little, so noveau isn't used anymore"
+      ansible.builtin.wait_for:
         timeout: 1
 
     # unloading the drivers using the modprobe module does not work for some strange reason...
-    - name: unload kms drivers
+    - name: Unload kms drivers
       rmmod:
         name: '{{ item }}'
       loop:
@@ -78,140 +79,163 @@
         - drm_kms_helper
         - drm
 
-    - name: load nvidia driver
-      modprobe:
+    - name: Load nvidia driver
+      ansible.posix.modprobe:
         name: "nvidia"
         state: present
 
-    - name: "wait a little before starting nvidia-persistenced"
-      wait_for:
+    - name: "Wait a little before starting nvidia-persistenced"
+      ansible_builtin.wait_for:
         timeout: 1
 
-    - name: start nvidia-persistenced
-      systemd:
+    - name: Start nvidia-persistenced
+      ansible.builtin.systemd:
         name: "nvidia-persistenced"
         state: started
         enabled: true
         masked: false
         daemon_reload: true
-      ignore_errors: yes
+      ignore_errors: true
   when:
     - nvidia_detected | bool
     - nvidia_driver_installed | bool
     - '"nouveau" in modules'
 
-- name: "start x-verbose@.service"
-  systemd:
+- name: "Start x-verbose@.service"
+  ansible.builtin.systemd:
     name: "x-verbose@vt7.service"
     state: started
     enabled: false
     masked: false
     daemon_reload: true
 
-- name: "wait a little, so X has some time to start up"
-  wait_for:
+- name: "Wait a little, so X has some time to start up"
+  ansible.builtin.wait_for:
     timeout: 3
 
-- name: "detect xorg configuration"
+- name: "Detect xorg configuration"
   xrandr_facts:
     preferred_refreshrates: '{{ preferred_refreshrates }}'
     preferred_resolutions: '{{ preferred_resolutions }}'
     preferred_outputs: '{{ preferred_outputs }}'
 
-- name: show parsed xrandr data
-  debug:
+- name: Show parsed xrandr data
+  ansible.builtin.debug:
     var: xrandr
 
-- name: show primary display configuration
-  debug:
+- name: Show primary display configuration
+  ansible.builtin.debug:
     var: xorg.primary
 
-- name: show secondary display configuration
-  debug:
+- name: Show secondary display configuration
+  ansible.builtin.debug:
     var: xorg.secondary
   when: xorg.secondary is defined
 
-- name: show drm data (emtpy for nvidia)
-  debug:
+- name: Show drm data (emtpy for some nvidia cards)
+  ansible.builtin.debug:
     var: drm
   when: drm is defined
 
-- name: "stop x-verbose@vt7.service"
-  systemd:
+- name: Show xorg_config data
+  ansible.builtin.debug:
+    var: XorgConfig
+  when: XorgConfig is defined
+
+- name: "Stop x-verbose@vt7.service"
+  ansible.builtin.systemd:
     name: "x-verbose@vt7.service"
     state: stopped
     enabled: false
     masked: true
 
-#- name: "wait a little bit, so X has some time to shut down (needed?)"
-#  wait_for:
-#    timeout: 3
+# - name: "Wait a little bit, so X has some time to shut down (needed?)"
+#   wait_for:
+#     timeout: 3
 
-- name: save results
-  block:
-    - name: ensure facts.d directory exists
-      file:
-        state: directory
-        path: /etc/ansible/facts.d
-
-    - name: write xorg variable as local fact
-      copy:
-        content: '{{ {"xorg": xorg} | to_nice_json }}'
-        dest: /etc/ansible/facts.d/xorg.fact
-
-    - name: write xrandr variable as local fact
-      copy:
-        content: '{{ {"xrandr": xrandr} | to_nice_json }}'
-        dest: /etc/ansible/facts.d/xrandr.fact
-
-    - name: write drm variable as local fact
-      copy:
-        content: '{{ {"drm": drm} | to_nice_json }}'
-        dest: /etc/ansible/facts.d/drm.fact
+- name: Save results
   when:
     - xrandr is defined
     - xorg is defined
     - drm is defined
+    - xorg_config is defined
+  block:
+    - name: Ensure facts.d directory exists
+      ansible.builtin.file:
+        state: directory
+        path: /etc/ansible/facts.d
+        mode: '0755'
 
-- name: update xorg, xrandr and drm variables with values from local facts if needed
-  set_fact:
+    - name: Write xorg variable as local fact
+      ansible.builtin.copy:
+        content: '{{ {"xorg": xorg} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/xorg.fact
+        mode: '0644'
+
+    - name: Write xrandr variable as local fact
+      ansible.builtin.copy:
+        content: '{{ {"xrandr": xrandr} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/xrandr.fact
+        mode: '0644'
+
+    - name: Write drm variable as local fact
+      ansible.builtin.copy:
+        content: '{{ {"drm": drm} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/drm.fact
+        mode: '0644'
+
+    - name: Write xorg_config variable as local fact
+      ansible.builtin.copy:
+        content: '{{ {"xorg_config": XorgConfig} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/xorg_config.fact
+        mode: '0644'
+
+
+- name: Update xorg, xrandr and drm variables with values from local facts if needed
+  ansible.builtin.set_fact:
     xorg: '{{ ansible_local.xorg.xorg }}'
     xrandr: '{{ ansible_local.xrandr.xrandr }}'
     drm: '{{ ansible_local.drm.drm }}'
+    xorg_config: '{{ ansible_local.xorg_config.xorg_config }}'
   when:
     - xrandr is undefined
     - xorg is undefined
     - drm is undefined
+    - xorg_config is undefined
 
-# TODO: expand template for xorg.conf (or snippets)
+# TODO: Expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
 
-- name: nvidia related config
-  block:
-  - name: create xorg.conf (for nvidia driver)
-    template:
-        src: templates/xorg.conf.j2
-        dest: /etc/X11/xorg.conf
-        backup: yes
+- name: Nvidia related config
   when:
     - nvidia_detected | bool
+  block:
+    - name: Create xorg.conf (for nvidia driver)
+      ansible.builtin.template:
+        src: templates/xorg.conf.j2
+        dest: /etc/X11/xorg.conf
+        backup: true
+        mode: '0644'
 
-- name: intel xorg config snippet
-  template:
+- name: Intel xorg config snippet
+  ansible.builtin.template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
+    mode: '0644'
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
-- name: amd xorg config snippet
-  template:
+- name: AMD xorg config snippet
+  ansible.builtin.template:
     src: templates/20-amd.conf.j2
     dest: /etc/X11/xorg.conf.d/20-amd.conf
+    mode: '0644'
   when:
     - amd_detected | bool and not nvidia_detected | bool
 
-- name: server flags config snippet to disable screen blanking
-  template:
+- name: Server flags config snippet to disable screen blanking
+  ansible.builtin.template:
     src: templates/10-serverflags.conf.j2
     dest: /etc/X11/xorg.conf.d/10-serverflags.conf
+    mode: '0644'

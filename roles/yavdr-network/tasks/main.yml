@@ -1,19 +1,19 @@
 ---
 # this playbook sets up network services for a yaVDR installation
 
-- name: apt | install packages for network services
-  apt:
-      name:
-          - avahi-daemon
-          - avahi-utils
-          - autofs
-          #- biosdevname # caution: this may change device names after a minimal installation!
-          - ethtool
-          - nfs-common
-          - vdr-addon-avahi-linker
-          - wakeonlan
-      state: present
-      install_recommends: no
+- name: Apt | install packages for network services
+  ansible.builtin.apt:
+    name:
+      - avahi-daemon
+      - avahi-utils
+      - autofs
+      # - biosdevname # caution: this may change device names after a minimal installation!
+      - ethtool
+      - nfs-common
+      - vdr-addon-avahi-linker
+      - wakeonlan
+    state: present
+    install_recommends: false
 
 # Does this really work? We need a way to check if an interface supports WOL - Python Skript?
 # - name: check WOL capabilities of network interfaces
@@ -21,55 +21,57 @@
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
 
-- name: restart autofs if running
-  systemd:
+- name: Restart autofs if running
+  ansible.builtin.systemd:
     name: autofs
     state: restarted
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
-- name: ensure autofs is running
-  systemd:
+- name: Ensure autofs is running
+  ansible.builtin.systemd:
     name: autofs
     state: started
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
-- name: set video directory for avahi-linker
-  ini_file:
+- name: Set video directory for avahi-linker
+  community.general.ini_file:
     path: /etc/avahi-linker/default.cfg
     section: "targetdirs"
     option: "vdr"
     value: "{{ vdr.recdir }}"
+    mode: '0644'
 
-- name: set vdr instance id for avahi-linker
-  ini_file:
+- name: Set vdr instance id for avahi-linker
+  community.general.ini_file:
     path: /etc/avahi-linker/default.cfg
     section: "options"
     option: "vdr_instance_id"
     value: "{{ vdr.instance_id | default(0) }}"
+    mode: '0644'
 
-- name: restart avahi-linker if running
-  systemd:
+- name: Restart avahi-linker if running
+  ansible.builtin.systemd:
     name: avahi-linker
     state: restarted
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
-- name: ensure avahi-linker is started
-  systemd:
+- name: Ensure avahi-linker is started
+  ansible.builtin.systemd:
     name: avahi-linker
     state: started
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
-- name: ensure additional services for avahi-linker are active
-  systemd:
-    name: '{{ item }}'
-    state: started
-    enabled: yes
-    masked: no
-  loop:
-    - vdr-net-monitor
-    - vdr-update-monitor
-    - prevent-umount-on-pause
+# - name: Ensure additional services for avahi-linker are active
+#   ansible.builtin.systemd:
+#     name: '{{ item }}'
+#     state: started
+#     enabled: true
+#     masked: false
+#   loop:
+#     - vdr-net-monitor
+#     - vdr-update-monitor
+# - uprevent-umount-on-pause

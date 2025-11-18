@@ -1,7 +1,7 @@
 ---
 # file: roles/yavdr-xorg/tasks/setup-xorg.yml
-- name: create directories for systemd drop-in files
-  file:
+- name: Create directories for systemd drop-in files
+  ansible.builtin.file:
     dest: '{{ item }}'
     state: directory
   loop:
@@ -10,39 +10,39 @@
     - "/etc/systemd/system/user@{{ vdr.uid }}.service.d/"
     - "/etc/X11/xorg.conf.d/"
 
-- name: systemd-drop-in | add dependency to X-server for vdr.service
-  template:
+- name: Systemd-Drop-In | add dependency to X-server for vdr.service
+  ansible.builtin.template:
     src: templates/vdr-xorg.conf
     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | start x@.service after plymouth.service
-  template:
+- name: Systemd-Drop-In | start x@.service after plymouth.service
+  ansible.builtin.template:
     src: templates/x@service.d/plymouth.conf.j2
     dest: /etc/systemd/system/x@.service.d/plymouth.conf
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | start x@.service before xlogin@.service
-  template:
+- name: Systemd-Drop-In | start x@.service before xlogin@.service
+  ansible.builtin.template:
     src: templates/x@service.d/xlogin.conf.j2
     dest: /etc/systemd/system/x@.service.d/xlogin.conf
   notify: ["Reload Units"]
 
-- name: systemd-drop-in | user@{{ vdr.uid }}.service depends on x@vt7.service
-  template:
+- name: Systemd-Drop-In | user@{{ vdr.uid }}.service depends on x@vt7.service
+  ansible.builtin.template:
     src: templates/user@666.service.d/x-dependency.conf.j2
     dest: '/etc/systemd/system/user@{{ vdr.uid }}.service.d/x-dependency.conf'
   notify: ["Reload Units"]
 
-- name: vdr-config | create softhddevice.conf if it doesn't exist yet
-  lineinfile:
+- name: VDR-config | create softhddevice.conf if it doesn't exist yet
+  ansible.builtin.lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
-    create: yes
+    create: true
     state: present
     line: '[softhddevice]'
 
-- name: vdr-config | start softhddevice detached and set audio to pulseaudio
-  lineinfile:
+- name: VDR-config | start softhddevice detached and set audio to pulseaudio
+  ansible.builtin.lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     line: '{{ item }}'
   loop:
@@ -50,25 +50,25 @@
     - '-w alsa-driver-broken'
     # - '-a pulse' # do we need this with our existing asound.conf?
 
-- name: vdr-config | set intel video output method for softhddevice
-  lineinfile:
+- name: VDR-config | set intel video output method for softhddevice
+  ansible.builtin.lineinfile:
     path: /etc/vdr/conf.avail/softhddevice.conf
     state: present
     regexp: "^-v .*"
     line: "-v {{ softhddevice_intel_output_method | default('va-api') }}"
   when: (intel_detected and not nvidia_detected)
 
-- name: add a login shell for the user vdr
-  user:
+- name: Add a login shell for the user vdr
+  ansible.builtin.user:
     name: '{{ vdr.user }}'
     shell: '/bin/bash'
     state: present
     uid: '{{ vdr.uid }}'
     groups: '{{ vdr.group }}'
-    append: yes
+    append: true
 
-- name: apt | install packages for xorg
-  apt:
+- name: Apt | install packages for xorg
+  ansible.builtin.apt:
     name:
       - yavdr-xorg
       - edid-decode
@@ -80,47 +80,36 @@
       - xdg-utils
     state: present
 
-- name: apt | install intel xorg driver
-  apt:
+- name: Apt | install intel xorg driver
+  ansible.builtin.apt:
     name:
       - xserver-xorg-video-intel
     state: present
   when: intel_driver == 'intel'
 
-- name: set the vdr instance id for yavdr-frontend
+- name: Set the vdr instance id for yavdr-frontend
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: vdr.id
     int_value: "{{ vdr.instance_id | default(0) }}"
 
-- name: yavdr-frontend | set attach on startup to "{{ yavdr_frontend.attach_on_startup }}"
+- name: YaVDR frontend | set attach on startup to "{{ yavdr_frontend.attach_on_startup }}"
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: vdr.attach_on_startup
     str_value: "{{ yavdr_frontend.attach_on_startup }}"
 
-- name: apt | install packages for Intel IGP
-  apt:
+- name: Apt | install packages for Intel IGP
+  ansible.builtin.apt:
     name:
       - i965-va-driver-shaders
       - intel-media-va-driver-non-free
     state: present
   when: intel_detected | bool and not nvidia_detected | bool
 
-- name: add ppa:oibaf/graphics-drivers for up to date mesa drivers
-  apt_repository:
-    repo: ppa:oibaf/graphics-drivers
-  when: amd_detected | bool and not nvidia_detected | bool
-  register: oibaf_ppa
 
-- name: update package lists and all packages after adding ppa:oibaf/graphics-drivers
-  apt:
-    upgrade: dist
-    update_cache: yes
-  when: oibaf_ppa.changed
-
-- name: apt | install packages for AMD GPUs
-  apt:
+- name: Apt | install packages for AMD GPUs
+  ansible.builtin.apt:
     name:
       - mesa-vdpau-drivers
       - mesa-va-drivers
@@ -128,23 +117,24 @@
   when: amd_detected | bool and not nvidia_detected | bool
 
 - name: Install yaVDR Media (e.g. Backgrounds)
-  apt:
+  ansible.builtin.apt:
     name: yavdr-media
 
-- name: command | write keyboard configuration to /etc/X11/xorg.conf.d/00-keyboard.conf
-  command: write-x11-keyboard-config
+- name: Command | write keyboard configuration to /etc/X11/xorg.conf.d/00-keyboard.conf
+  ansible.builtin.command: write-x11-keyboard-config
   args:
     creates: /etc/X11/xorg.conf.d/00-keyboard.conf
   # NOTE: write-x11-keyboard-config is in the xlogin package
   # Ubuntu's systemd is patched, so it does not create the file automatically
 
-- name: add snippet to ignore eventlircd devices in xorg
-  template:
+- name: Add snippet to ignore eventlircd devices in xorg
+  ansible.builtin.template:
     src: templates/xorg-ignore-eventlircd.conf.j2
     dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
+    mode: '0640'
 
-- name: apt | install desktop programs
-  apt:
+- name: Apt | install desktop programs
+  ansible.builtin.apt:
     name:
       - xterm
       - firefox
