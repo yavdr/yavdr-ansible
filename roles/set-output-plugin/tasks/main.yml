@@ -1,10 +1,10 @@
-- name: show vdr_output_plugin
-  debug:
+- name: Show vdr_output_plugin
+  ansible.builtin.debug:
     var: vdr_output_plugin
     verbosity: 1
 
-- name: show automatically_installed_output_plugin
-  debug:
+- name: Show automatically_installed_output_plugin
+  ansible.builtin.debug:
     var: automatically_installed_output_plugin
     verbosity: 1
 
@@ -13,53 +13,53 @@
     state: present
     name: '{{ vdr_output_plugin }}'
 
-- name: show selected_frontend
-  debug:
+- name: Show selected_frontend
+  ansible.builtin.debug:
     var: selected_frontend
     verbosity: 1
 
-- name: show preferred_frontend
-  debug:
+- name: Show preferred_frontend
+  ansible.builtin.debug:
     var: preferred_frontend
     verbosity: 1
 
-- name: set active output plugin
+- name: Set active output plugin
   ansible.builtin.set_fact:
     active_output_plugin: '{{ selected_frontend }}'
 
-- name: show active_output_plugin
-  debug:
+- name: Show active_output_plugin
+  ansible.builtin.debug:
     msg: 'active_output_plugin is: {{ active_output_plugin }}'
     verbosity: 1
 
-- name: set disabled output plugins
+- name: Set disabled output plugins
   ansible.builtin.set_fact:
     disabled_output_plugins: '{{ known_output_plugins | difference([active_output_plugin]) | list }}'
   when: active_output_plugin | length > 0
 
-- name: show disabled_output_plugins
-  debug:
+- name: Show disabled_output_plugins
+  ansible.builtin.debug:
     var: q('list', disabled_output_plugins)
     verbosity: 1
 
-- name: disable unused output plugins
+- name: Disable unused output plugins
   ansible.builtin.command: "vdrctl disable {{ item }}"
   loop: '{{ disabled_output_plugins }}'
-  #ignore_errors: yes
+  # ignore_errors: true
   register: vdrctl
   failed_when:
     - vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
   when: disabled_output_plugins is defined
 
-- name: enable chosen output plugin
+- name: Enable chosen output plugin
   ansible.builtin.command: vdrctl enable {{ active_output_plugin }}
-  #ignore_errors: yes
+  # ignore_errors: true
   register: vdrctl
   failed_when:
     - vdrctl.rc != 0 and 'is already linked to' not in vdrctl.stderr
   when: active_output_plugin | length > 0
 
-#known_frontends:
+# known_frontends:
 #  xineliboutput_sxfe:
 #    plugin_name: xineliboutput
 #    plugin_options: ""

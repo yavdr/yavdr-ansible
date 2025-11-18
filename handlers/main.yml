@@ -1,100 +1,100 @@
 - name: Reconfigure unattended upgrades with dpkg
-  command: '/usr/sbin/dpkg-reconfigure --frontend noninteractive unattended-upgrades'
+  ansible.builtin.command: '/usr/sbin/dpkg-reconfigure --frontend falseninteractive unattended-upgrades'
 
 - name: Trigger Udev
-  command: 'udevadm trigger '
+  ansible.builtin.command: 'udevadm trigger'
 
 - name: Reload Units
-  systemd:
-    daemon_reload: yes
+  ansible.builtin.systemd:
+    daemon_reload: true
 
 - name: Restart Samba
-  systemd:
+  ansible.builtin.systemd:
     name: smbd.service
     state: restarted
-    enabled: yes
-    #masked: no
+    enabled: true
+    #masked: false
   register: samba_reload
 
 - name: Restart vdr-addon-lifeguard-ng
-  systemd:
+  ansible.builtin.systemd:
     name: vdr-addon-lifeguard-ng.service
     state: restarted
-    enabled: yes
+    enabled: true
   register: lifeguard_reload
 
 - name: Restart NFS Kernel Server
-  systemd:
+  ansible.builtin.systemd:
     name: nfs-server.service
     state: restarted
-    enabled: yes
-    #masked: no
+    enabled: true
+    #masked: false
   register: nfs_reload
 
 - name: Restart sundtek.service
-  systemd:
+  ansible.builtin.systemd:
     name: sundtek.service
     state: restarted
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
 - name: Restart VDR
-  systemd:
+  ansible.builtin.systemd:
     name: vdr.service
     state: restarted
-    enabled: yes
-    daemon_reload: yes
+    enabled: true
+    daemon_reload: true
   register: vdr_restart
 
 - name: Stop VDR
-  systemd:
+  ansible.builtin.systemd:
     name: vdr.service
     state: stopped
-    enabled: yes
+    enabled: true
   register: vdr_stop
 
 - name: Start VDR
-  systemd:
+  ansible.builtin.systemd:
     name: vdr.service
     state: started
-    enabled: yes
-    daemon_reload: yes
+    enabled: true
+    daemon_reload: true
   register: vdr_start
 
 - name: Start yavdr-xorg
-  systemd:
-    daemon_reload: yes
+  ansible.builtin.systemd:
+    daemon_reload: true
     name: 'yavdr-xorg'
-    enabled: yes
+    enabled: true
     state: started
   register: yavdr_xorg_start
 
 
 - name: Stop xlogin
-  systemd:
+  ansible.builtin.systemd:
     name: xlogin@vdr.service
     state: stopped
-    enabled: yes
+    enabled: true
   register: xlogin_stop
 
 - name: Start xlogin
-  systemd:
-    daemon_reload: yes
+  ansible.builtin.systemd:
+    daemon_reload: true
     name: 'xlogin@{{ vdr.user }}'
-    enabled: yes
+    enabled: true
     state: started
   register: xlogin_start
 
 - name: Stop x
-  systemd:
+  ansible.builtin.systemd:
     name: x@vt7.service
     state: stopped
   register: x_stop
 
 - name: reboot required
-  debug:
+  ansible.builtin.debug:
     msg: PLEASE REBOOT YOUR SYSTEM.
 
 - name: rerun required
-  debug:
+  ansible.builtin.debug:
     msg: PLEASE REBOOT YOUR SYSTEM AND RUN THIS PLAYBOOK AGAIN.

@@ -1,19 +1,20 @@
 ---
 
 - name: Install kodi as flatpak
+  when: kodi_as_flatpak
   block:
-    - name: ensure flatpak is installed
+    - name: Ensure flatpak is installed
       ansible.builtin.apt:
         name: flatpak
         state: present
     - name: Add the flathub flatpak repository remote to the user installation
-      flatpak_remote:
+      community.general.flatpak_remote:
         name: flathub
         state: present
         flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
 
-    - name: flatpak | install kodi packages
-      flatpak:
+    - name: Flatpak | install kodi packages
+      community.general.flatpak:
         name: "tv.kodi.Kodi"
         state: present
         remote: flathub
@@ -23,49 +24,48 @@
       register: flatpak_update_output
       changed_when: "'app/' in flatpak_update_output.stdout"
 
-    - name: remove unused flatpaks
+    - name: Remove unused flatpaks
       ansible.builtin.command: flatpak uninstall --unused --noninteractive
       register: flatpak_uninstall_output
       changed_when: "'Uninstalling' in flatpak_uninstall_output.stdout"
 
-    - name: check if the nvidia version matches if the module has been loaded
-      shell: |
+    - name: Check if the nvidia version matches if the module has been loaded
+      ansible.builtin.shell: |
        test -f /proc/driver/nvidia/version || exit 0
        installed_version=$(grep -m1 -Po '\d+\.\d+' /proc/driver/nvidia/version)
        version_part=$(sed 's/\./-/g' <<< "$installed_version")
        grep -q "^nvidia-${version_part}" < <(flatpak list) && exit 0 || exit 1
       args:
         executable: /usr/bin/bash
-      register:  flatpak_nvidia_mismatch
+      register: flatpak_nvidia_mismatch
       failed_when: flatpak_nvidia_mismatch.rc > 1
       changed_when: flatpak_nvidia_mismatch.rc == 1
       notify: "rerun required"
-  when: kodi_as_flatpak
 
 
 - name: Install kodi as debian package
-  block:
-  - name: Apt | install kodi packages
-    ansible.builtin.apt:
-      name:
-        - kodi
-        - kodi-pvr-vdr-vnsi
-        - python3-lxml
-      state: present
-      install_recommends: no
-
-  - name: Apt | install kodi-send (team-xbmc PPA)
-    ansible.builtin.apt:
-      name: "kodi-eventclients-kodi-send"
-      state: present
-      install_recommends: no
-    register: team_xbmc_ppa
-    ignore_errors: True
-
-  - name: Apt | install kodi-send (fallback)
-    ansible.builtin.apt:
-      name: "kodi-eventclients-xbmc-send" # fallback to old xbmc-send package
-      state: present
-      install_recommends: no
-    when: team_xbmc_ppa.failed
   when: not kodi_as_flatpak
+  block:
+    - name: Apt | install kodi packages
+      ansible.builtin.apt:
+        name:
+          - kodi
+          - kodi-pvr-vdr-vnsi
+          - python3-lxml
+        state: present
+        install_recommends: false
+
+    - name: Apt | install kodi-send (team-xbmc PPA)
+      ansible.builtin.apt:
+        name: "kodi-eventclients-kodi-send"
+        state: present
+        install_recommends: false
+      register: team_xbmc_ppa
+      ignore_errors: true
+
+    - name: Apt | install kodi-send (fallback)
+      ansible.builtin.apt:
+        name: "kodi-eventclients-xbmc-send" # fallback to old xbmc-send package
+        state: present
+        install_recommends: false
+      when: team_xbmc_ppa.failed

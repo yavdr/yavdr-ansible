@@ -1,21 +1,23 @@
 ---
 
-- name: install nfs server packages
+- name: Install nfs server packages
   ansible.builtin.apt:
     name:
       - nfs-kernel-server
       - nfs-common
     state: present
-    install_recommends: no
+    install_recommends: false
 
-- name: create /etc/exports
+- name: Create /etc/exports
   ansible.builtin.template:
     src: templates/nfs-exports.j2
     dest: /etc/exports
-  notify: [ 'Restart NFS Kernel Server' ]
+    mode: '0644'
+  notify: ['Restart NFS Kernel Server']
 
-- name: populate /etc/avahi/services
+- name: Populate /etc/avahi/services
   ansible.builtin.template:
     src: templates/avahi/service.j2
     dest: '/etc/avahi/services/yavdr-{{ item.key }}.service'
-  loop: '{{ media_dirs|dict2items }}'
+    mode: '0644'
+  loop: '{{ media_dirs | dict2items }}'

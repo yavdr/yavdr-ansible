@@ -1,13 +1,13 @@
 ---
-- name: create kodi.service for the user session
+- name: Create kodi.service for the user session
   ansible.builtin.template:
       src: 'templates/kodi.service.j2'
       dest: '{{ vdr.home }}/.config/systemd/user/kodi.service'
-      mode: 0644
+      mode: '0644'
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
 
-- name: create kodi user directory
+- name: Create kodi user directory
   ansible.builtin.file:
       dest: '{{ kodi_config_dir }}/userdata/keymaps'
       state: directory
@@ -16,8 +16,8 @@
       mode: "0775"
       recurse: true
 
-- name: copy Lircmap.xml if it does not exist yet
-  copy:
+- name: Copy Lircmap.xml if it does not exist yet
+  ansible.builtin.copy:
       dest: '{{ kodi_config_dir }}/userdata/Lircmap.xml'
       src: 'files/userdata/Lircmap.xml'
       owner: '{{ vdr.user }}'
@@ -25,8 +25,8 @@
       mode: "0664"
       force: false
 
-- name: copy remote.xml if it does not exist yet
-  copy:
+- name: Copy remote.xml if it does not exist yet
+  ansible.builtin.copy:
       dest: '{{ kodi_config_dir }}/userdata/keymaps/remote.xml'
       src: 'files/userdata/keymaps/remote.xml'
       owner: '{{ vdr.user }}'
@@ -34,21 +34,23 @@
       mode: "0664"
       force: false
 
-- name: expand template for set-kodi-display
+- name: Expand template for set-kodi-display
   ansible.builtin.template:
       src: 'templates/set-kodi-display.j2'
       dest: '/usr/bin/set-kodi-display'
       mode: "0755"
 
-- name: set flatpak permissions for kodi to access media directories
+- name: Set flatpak permissions for kodi to access media directories
+  when: kodi_as_flatpak
   block:
-      - name: get output for current permissions
+      - name: Get output for current permissions
         ansible.builtin.command: /usr/bin/flatpak --user override --show tv.kodi.Kodi
+        become: true
         become_user: vdr
         register: kodi_permissions_output
         changed_when: false
 
-      - name: determine folders to add to the kodi flatpak configuration
+      - name: Determine folders to add to the kodi flatpak configuration
         ansible.builtin.set_fact:
             kodi_permissions_to_add: |
              {{ flatpak_kodi_allowed_dirs | difference(
@@ -60,9 +62,9 @@
                    ).split(';') | select() | default([])) | list
              }}
 
-      - name: set kodi flatpak directory access permissions
+      - name: Set kodi flatpak directory access permissions
         ansible.builtin.command: '/usr/bin/flatpak --user override --filesystem="{{ item }}" tv.kodi.Kodi'
+        become: true
         become_user: vdr
         loop: "{{ kodi_permissions_to_add }}"
         when: kodi_permissions_to_add | length > 0
-  when: kodi_as_flatpak
