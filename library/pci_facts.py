@@ -17,7 +17,7 @@ EXAMPLES = '''
 - name: get detailled pci device infos
   pci_facts:
 
-- debug:
+- ansible.builtin.debug:
     var: pci_devices
 '''
 
