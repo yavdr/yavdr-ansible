@@ -7,7 +7,6 @@
   - [[#yavdr07yml][yavdr07.yml]]
   - [[#yavdr07-headlessyml][yavdr07-headless.yml]]
   - [[#yavdr07-arm64yml][yavdr07-arm64.yml]]
-  - [[#yavdr07-rpiyml][yavdr07-rpi.yml]]
 - [[#hosts][Hosts]]
 - [[#group-variables][Group Variables]]
   - [[#ppas][PPAs]]
@@ -21,7 +20,6 @@
   - [[#channellogos][Channellogos]]
   - [[#system-pre-configuration][System pre-configuration]]
   - [[#serial-ir][Serial IR]]
-  - [[#rpi-specific-variables][RPI specific variables]]
 - [[#roles][Roles]]
   - [[#check-known-services][check known services]]
   - [[#stop-vdr][stop vdr]]
@@ -70,7 +68,6 @@
   - [[#install-sundtek][install-sundtek]]
   - [[#channel-logos][channel logos]]
   - [[#arm64-output][arm64-output]]
-  - [[#rpi][rpi]]
   - [[#channelpedia-upload][channelpedia upload]]
   - [[#template-test][template-test]]
   - [[#wakeup][wakeup]]
@@ -237,21 +234,6 @@ export ANSIBLE_PIPELINING=1
 ansible-playbook yavdr07-arm64.yml -b -i 'localhost_inventory' --connection=local --tags="all"
 #+END_SRC
 
-#+BEGIN_SRC shell :tangle install-yavdr-rpi.sh :shebang "#!/usr/bin/env bash"
-set -e
-
-if (( $EUID != 0 )); then
-    echo "This script must be run using sudo -H or as root"
-    exit
-fi
-
-. scripts/install-packages.sh
-
-# speed up playbook execution
-export ANSIBLE_PIPELINING=1
-
-ansible-playbook yavdr07-rpi.yml -b -i 'localhost_inventory' --connection=local --tags="all"
-#+END_SRC
 * Playbooks
 ** yavdr07.yml
 The ~yavdr07.yml~ playbook sets up a fully-featured yaVDR installation:
@@ -380,7 +362,7 @@ Please note that kodi is not available at the moment.
     - yavdr-common
     - collect-facts              # query system facts
     - vdr
-    - arm64-output                        # install rpihddevice and let vdr run on tty7
+    - arm64-output               # install appropriate output plugin and let vdr run on tty7
     - lifeguardng                # install and configure vdr-addon-lifeguard-ng
     - headless-session           # set up a headless systemd user session, e.g. for udiskie
     - yavdr-remote
@@ -412,56 +394,7 @@ Please note that kodi is not available at the moment.
   handlers:
     - import_tasks: handlers/main.yml
 #+end_src
-** yavdr07-rpi.yml
-VDR-only setup for Raspberry Pi 2 and 3. At least 1 GB of RAM is recommended.
-Please note that kodi is not available at the moment.
-#+begin_src yaml :tangle yavdr07-rpi.yml :padline no
----
-# file: yavdr07-rpi.yml
-# this playbook set up a yaVDR 0.7 installation on a Raspberry Pi 2 or 3
-# please note that kodi is not available at the moment
 
-- name: set up a headless yaVDR server
-  hosts: all
-  become: true
-  environment:
-    LANG: "{{ default_locale | default('c.UTF-8') }}"
-  roles:
-    - yavdr-common
-    - collect-facts              # query system facts
-    - vdr
-    - rpi                        # install rpihddevice and let vdr run on tty7
-    - lifeguardng                # install and configure vdr-addon-lifeguard-ng
-    - headless-session           # set up a headless systemd user session, e.g. for udiskie
-    - yavdr-remote
-    - yavdr-network
-    #- samba-install
-    #- samba-config
-    #- nfs-server
-    - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
-    - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
-    - install-dvb-firmware       # download and install all firmware files from the LibreElec dvb-firmware git repository
-    # - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
-    - autoinstall-firmware       # download and install firmware files for dvb devices
-    - autoinstall-hardware-irmp  # install yavdr-hardware-irmp if a matching usb device is detected
-    - autoinstall-hauppauge-pvr  # install vdr-plugin-pvrinput if a matching card is found
-    - autoinstall-imonlcd        # install vdr-plugin-imonlcd if a matchind display is connected
-    - autoinstall-imonvfd        # install vdr-plugin-imonvfd if a matchind display is connected
-    - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
-    - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
-    - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
-    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
-    #- epgd                      # install vdr-epg-daemon
-    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    #- wakeup
-    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
-                                 # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
-                                  # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
-  tags:
-    - always
-  handlers:
-    - import_tasks: handlers/main.yml
-#+end_src
 * Hosts
 This playbook can either be used to run the installation on the localhost or any other PC in the network that can be accessed via ssh. Simply add the host names or IP addresses to the hosts file in the respective section:
 
@@ -486,9 +419,6 @@ repositories:
   - '{{ ppa_owner }}/{{branch}}-main'
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
-
-# set to True to add the repository ppa:/kelebek333/nvidia-legacy for nvidia-legacy drivers (340, 390) and disable the ABI version check by the X-Server to use those old drivers
-nvidia_legacy: False
 
 #+END_SRC
 ** Locales and Timezone
@@ -549,11 +479,10 @@ vdr_plugins:
   - vdr-plugin-devstatus
   - vdr-plugin-markad-ng
 
-# set the name of the output plugin (as used by vdrctl) - this defaults to softhddevice on x64 platforms and rpihddevice on Raspberry Pi 2 and 3
+# set the name of the output plugin (as used by vdrctl) - this defaults to softhddevice on x64 platforms
 # selected_frontend: softhddevice
 
-# set the package name of the output plugin - this defaults to vdr-plugin-softhddevice on x64 platforms and vdr-plugin-rpihddevice on Raspberry Pi 2 and 3
-# vdr_output_plugin: vdr-plugin-softhddevice-cuvid
+# set the package name of the output plugin - this defaults to vdr-plugin-softhddevice on x64 platforms
 
 # IP (range) filter for vdr and plugins (this must be an array):
 # vdr_allowed_hosts:
@@ -719,25 +648,7 @@ lifeguard_tcp:
 #
 serial_ir_device: ttyS0
 #+END_SRC
-** RPI specific variables
-#+BEGIN_SRC yaml :tangle group_vars/all :mkdirp yes
 
-# Key for the MPEG2-Decoder
-#rpi_decode_mpg2: 0xdeadbeef
-
-# Key for the wvc1-Decoder
-#rpi_decode_wvc1: 0xdeadbeef
-
-# Pin for the GPIO remote receiver
-# rpi_ir_gpio_pin: 24
-
-# Pin for the GPIO remote sender (needs additional lirc configuration,
-# which is at the moment beyond the scope of this playbook)
-# rpi_ir_gpio_pin_tx: 13
-
-# Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
-# rpi_gpu_mem = 256
-#+END_SRC
 * Roles
 ** check known services
 #+begin_src yaml :tangle roles/get-systemd-services/tasks/main.yml
@@ -776,7 +687,7 @@ dependencies:
     state: stopped
   notify: ['Start VDR']
   when: '"vdr.service" in known_services'
-    
+
 #+end_src
 ** stop xorg
 *** meta
@@ -799,7 +710,7 @@ xorg_services:
 
   - service_name: 'x@.service'
     instance_name: 'x@vt7.service'
- 
+
 #+end_src
 *** main.yml
 #+begin_src yaml :tangle roles/stop-xorg/tasks/main.yml :mkdirp yes :padline no
@@ -865,17 +776,12 @@ You can set a list of package repositories which provide the necessary packages.
 #+BEGIN_SRC yaml :tangle roles/yavdr-common/defaults/main.yml :mkdirp yes :padline yes
 branch: experimental
 ppa_owner: 'ppa:yavdr'
-nvidia_legacy: False
 
 # add the following PPAs
 repositories:
   - '{{ ppa_owner }}/{{branch}}-main'
   - '{{ ppa_owner }}/{{branch}}-vdr'
   - '{{ ppa_owner }}/{{branch}}-kodi'
-
-rpi_repositories:
-  - '{{ ppa_owner }}/{{branch}}-main'
-  - '{{ ppa_owner }}/{{branch}}-vdr'
 
 #+END_SRC
 
@@ -1060,23 +966,6 @@ yavdr-common executes the following tasks:
   tags:
     - ppa
   when: ansible_architecture is match("x86_.*") or ansible_architecture == "aarch64"
-
-- name: add PPAs for Raspberry Pi
-  apt_repository:
-      repo: '{{ item }}'
-      state: present
-      update_cache: no
-  loop: "{{ rpi_repositories|flatten(levels=1) }}"
-  tags:
-    - ppa
-  when: ansible_architecture == 'armv7l'
-
-- name: add nvidia legacy PPA
-  apt_repository:
-      repo: 'ppa:kelebek333/nvidia-legacy'
-      state: present
-      update_cache: no
-  when: nvidia_legacy
 
 - name: run apt-get dist-upgrade
   apt:
@@ -3451,7 +3340,7 @@ if __name__ == '__main__':
     group: "{{ vdr.group }}"
 
     # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?
-    
+
 #+END_SRC
 *** templates
 #+BEGIN_SRC conf :tangle roles/pulseaudio/templates/alsa/asound.conf.j2 :mkdirp yes :padline no
@@ -3473,7 +3362,7 @@ ctl.!default {
 #+END_SRC
 *** dbus_pulsectl
 This script allows to change the pulseaudio output device via dbus.
-#+begin_src xml :tangle roles/pulseaudio/templates/dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2 :mkdirp yes :padline no 
+#+begin_src xml :tangle roles/pulseaudio/templates/dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2 :mkdirp yes :padline no
 <!DOCTYPE busconfig PUBLIC
  "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
@@ -4031,7 +3920,7 @@ Section "Device"
 	Identifier  "Card1"
 	Driver      "amdgpu"
         Option      "TearFree" "true"
-	Option      "DRI3" "true"        
+	Option      "DRI3" "true"
 	Option      "DRI" "3"
         Option      "VariableRefresh" "true
 	BusID       "PCI:10:0:1"
@@ -5008,7 +4897,7 @@ Section "Device"
   Option      "VariableRefresh" "true"
 {% if xorg.secondary is defined %}
   Option      "ZaphodHeads" "{{ primary_output }}"
-  Screen      0  
+  Screen      0
 {% endif %}
 EndSection
 
@@ -5019,7 +4908,7 @@ Section "Device"
   Option      "TearFree" "true"
   Option      "VariableRefresh" "true"
   Option      "ZaphodHeads" "{{ secondary_output }}"
-  Screen      1  
+  Screen      1
 EndSection
 
 Section "ServerLayout"
@@ -5109,12 +4998,6 @@ EndSection
 #+BEGIN_SRC  jinja2 :tangle roles/yavdr-xorg/templates/xorg-verbose.conf.j2
 {{ ansible_managed | comment }}
 
-{% if nvidia_legacy | default(False) %}
-Section "ServerFlags"
-    Option "IgnoreABI" "true"
-EndSection
-{% endif %}
-
 Section "Device"
         Identifier "nvidia"
         Driver  "nvidia"
@@ -5142,12 +5025,6 @@ Section "ServerLayout"
     #InputDevice    "Mouse0" "CorePointer"
     Option         "Xinerama" "0"
 EndSection
-
-{% if nvidia_legacy | default(False) %}
-Section "ServerFlags"
-    Option "IgnoreABI" "true"
-EndSection
-{% endif %}
 
 Section "InputClass"
     Identifier "exclude eventlircd devices"
@@ -5260,12 +5137,6 @@ Section "ServerLayout"
     InputDevice    "Keyboard0" "CoreKeyboard"
     InputDevice    "Mouse0" "CorePointer"
 EndSection
-
-{ % if nvidia_legacy | default(False) % }
-Section "ServerFlags"
-    Options "IgnoreABI" "true"
-EndSection
-{ % endif % }
 
 Section "InputDevice"
     # generated from default
@@ -7923,7 +7794,7 @@ vdr_output_plugin: '{{ automatically_installed_output_plugin | default("vdr-plug
 #    plugin_name: softhddevice
 #    plugin_options: |
 #      -D
-#      -a pulse 
+#      -a pulse
 #      -w alsa-driver-broken
 #      -v cuvid
 #    packages:
@@ -9103,87 +8974,7 @@ TTYReset=no
 TTYVHangup=yes
 ExecStartPre=/usr/bin/chvt 7
 #+end_src
-** rpi
-This role installs =vdr-plugin-rpihddevice= and configures the output to use =tty7=. A Systemd User session allows to use =udiskie= and other programs within a systemd user session. Please note that =kodi= is not supported at the moment on the Raspberry Pi platform since it requires a special build.
-*** tasks
-#+BEGIN_SRC yaml :tangle roles/rpi/tasks/main.yml :mkdirp yes :padline no
----
-# this role is used to configure the output for a raspberry pi 2 or 3
 
-- name: ensure /etc/systemd/system/vdr.service.d/ exists
-  file:
-    path: /etc/systemd/system/vdr.service.d/
-    state: directory
-
-- name: let vdr run on tty7
-  template:
-    src: templates/rpi.conf.j2
-    dest: /etc/systemd/system/vdr.service.d/99-rpi.conf
-  notify: ['Reload Units', 'Restart VDR']
-  tags:
-    - config
-
-- name: install vdr-plugin-rpihddevice
-  apt:
-    name:
-      - libraspberrypi-dev
-      - vdr-plugin-rpihddevice
-    state: present
-  tags:
-    - packages
-
-- name: set preferred_frontend to rpihddevice
-  set_fact:
-    preferred_frontend: rpihddevice
-    automatically_installed_output_plugin: vdr-plugin-rpihddevice
-
-# Note: this needs to be in config.txt, because the early firmware loader ingores include directives
-- name: set gpu_mem firmware option
-  lineinfile:
-    path: /boot/firmware/config.txt
-    regexp: '^gpu_mem='
-    line: "gpu_mem={{ rpi_gpu_mem | default(256) | int if 16 <= rpi_gpu_mem | default(256) | int <= 512 else 256 }}"
-    state: present
-
-- name: set firmware options for decoder keys, rpi ir receiver
-  template:
-    src: templates/usercfg.txt.j2
-    dest: /boot/firmware/usercfg.txt
-  notify: ['reboot required']
-#+END_SRC
-*** templates
-#+BEGIN_SRC jinja2 :tangle roles/rpi/templates/rpi.conf.j2 :mkdirp yes :padline no
-{{ ansible_managed | comment }}
-[Unit]
-Conflicts=getty@tty7.service
-
-[Service]
-StandardInput=tty-force
-StandardOutput=journal
-TTYPath=/dev/tty7
-TTYReset=no
-TTYVHangup=yes
-ExecStartPre=/usr/bin/chvt 7
-#+END_SRC
-
-#+BEGIN_SRC jinja2 :tangle roles/rpi/templates/usercfg.txt.j2 :mkdirp yes :padline no
-{{ansible_managed | comment }}
-# Place "config.txt" changes (dtparam, dtoverlay, disable_overscan, etc.) in
-# this file. Please refer to the README file for a description of the various
-# configuration files on the boot partition.
-{% if rpi_decode_mpg2 is defined %}
-decode_MPG2={{ rpi_decode_mpg2 }}
-{% endif %}
-{% if rpi_decode_wvc1 is defined %}
-decode_WVC1={{ rpi_decode_wvc1 }}
-{% endif %}
-{% if rpi_ir_gpio_pin is defined %}
-dtoverlay=gpio-ir,gpio_pin={{ rpi_ir_gpio_pin }}{% if rpi_gpio_in_pullup|default(False)|bool %},gpio_in_pullup=up{% endif %}
-{% endif %}
-{% if rpi_ir_gpio_pin_tx is defined %}
-dtoverlay=gpio-ir-tx,gpio_pin={{ rpi_ir_gpio_pin_tx }}
-{% endif %}
-#+END_SRC
 ** channelpedia upload
 This role requires three variables to be set (otherwise it won't do anything):
 - channelpedia_url :: the url the data will be uploaded to

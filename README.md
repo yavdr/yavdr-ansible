@@ -58,11 +58,6 @@ If you want a headless vdr server run:
 sudo -H ./install-yavdr-headless.sh
 ```
 
-If you want to set up yavdr on a Raspberry Pi 2 or 3, run:
-```shell
-sudo -H ./install-yavdr-rpi.sh
-```
-On the Raspberry Pi a reboot is required to change the memory split and make the hardware decoder keys work. The Playbook will prompt you to do so.
 ## First Steps after the installation:
 
 ### Wait for local dvb adapters
