@@ -1,40 +1,41 @@
 ---
 # file roles/channelpedia/tasks/main.yml
 
-- name: upload channels.conf to channelpedia once a day
-  block:
-    - name: ensure curl is installed
-      ansible.builtin.apt:
-        name: curl
-        state: present
-
-    - name: expand template for channelpedia.service
-      ansible.builtin.template:
-        src: templates/channelpedia.service.j2
-        dest: /etc/systemd/system/channelpedia.service
-
-    - name: expand template for channelpedia.timer
-      ansible.builtin.template:
-        src: templates/channelpedia.timer.j2
-        dest: /etc/systemd/system/channelpedia.timer
-
-    - name: create credentials file
-      ansible.builtin.template:
-        src: templates/channelpedia_credentials.j2
-        dest: /root/.channelpedia_credentials
-        mode: 0700
-
-    - name: start channelpedia timer and service
-      ansible.builtin.systemd:
-        name: '{{ item }}'
-        state: started
-        enabled: yes
-        masked: no
-      loop:
-        - channelpedia.service
-        - channelpedia.timer
-
+- name: Upload channels.conf to channelpedia once a day
   when:
     - channelpedia_url is defined
     - channelpedia_username is defined
     - channelpedia_password is defined
+  block:
+    - name: Ensure curl is installed
+      ansible.builtin.apt:
+        name: curl
+        state: present
+
+    - name: Expand template for channelpedia.service
+      ansible.builtin.template:
+        src: templates/channelpedia.service.j2
+        dest: /etc/systemd/system/channelpedia.service
+        mode: '0644'
+
+    - name: Expand template for channelpedia.timer
+      ansible.builtin.template:
+        src: templates/channelpedia.timer.j2
+        dest: /etc/systemd/system/channelpedia.timer
+        mode: '0644'
+
+    - name: Create credentials file
+      ansible.builtin.template:
+        src: templates/channelpedia_credentials.j2
+        dest: /root/.channelpedia_credentials
+        mode: '0700'
+
+    - name: Start channelpedia timer and service
+      ansible.builtin.systemd:
+        name: '{{ item }}'
+        state: started
+        enabled: true
+        masked: false
+      loop:
+        - channelpedia.service
+        - channelpedia.timer

@@ -1,15 +1,16 @@
-- name: get information about usb and pci hardware and loaded kernel modules
+- name: Get information about usb and pci hardware and loaded kernel modules
   hardware_facts:
-    usb: True
-    pci: True
-    serial: True
-    modules: True
-    gpus: True
-    acpi_power_modes: True
+    usb: true
+    pci: true
+    serial: true
+    modules: true
+    gpus: true
+    acpi_power_modes: true
   tags:
     - always
 
-- ansible.builtin.debug:
+- name: Show collected hardware facts
+  ansible.builtin.debug:
     var: '{{ item }}'
     verbosity: 1
   loop:
@@ -24,16 +25,17 @@
     - amd_detected
     - virtualbox_detected
 
-- name: get detailed PCI device information
+- name: Get detailed PCI device information
   pci_facts:
   tags:
     - always
 
-- ansible.builtin.debug:
+- name: Show PCI devices
+  ansible.builtin.debug:
     var: pci_devices
     verbosity: 1
 
-- name: known vdr output plugins
+- name: Set known vdr output plugins
   ansible.builtin.set_fact:
     vdr_output_plugins:
       - softhddevice

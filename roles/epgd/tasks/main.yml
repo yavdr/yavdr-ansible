@@ -1,17 +1,17 @@
 ---
 # file: roles/epgd/tasks/main.yml
 
-#Installing mariadb, epg-daemon and epg2vdr.
-#bind-address is set to 0.0.0.0 --> 99-epgd.cnf.
-#The root SQL password is only stored (NONE), because the epgd-tool
-#is expecting it. But it is not really used,
-#because the connection is established via a socket without a password.
-#Normal users must use sudo if they want to access mysql as root.
-#TODO:
-    # - Create channelmap if channels.conf is present.
-    #   (the script already exists at mld.)
-    # - because skindesigner-logos delivers only svg-logos, logoSuffix svg should be the preset --> vdr-epg-daemon / lib / parameters.c
-    # - customize epgd-tool for mariadb
+# Installing mariadb, epg-daemon and epg2vdr.
+# bind-address is set to 0.0.0.0 --> 99-epgd.cnf.
+# The root SQL password is only stored (NONE), because the epgd-tool
+# is expecting it. But it is not really used,
+# because the connection is established via a socket without a password.
+# Normal users must use sudo if they want to access mysql as root.
+# TODO:
+# - Create channelmap if channels.conf is present.
+#   (the script already exists at mld.)
+# - because skindesigner-logos delivers only svg-logos, logoSuffix svg should be the preset --> vdr-epg-daemon / lib / parameters.c
+# - customize epgd-tool for mariadb
 
 
 - name: MariaDB and Plugin | install
@@ -19,46 +19,47 @@
     name: ['mariadb-server', 'mariadb-plugin-epglv', 'python3-pymysql']
     state: present
 
-- name: copy file | epgd mariadb config
+- name: Copy file | epgd mariadb config
   ansible.builtin.template:
     src: templates/etc_mysql_mariadb.conf.d_99-epgd.cnf.j2
     dest: /etc/mysql/mariadb.conf.d/99-epgd.cnf
     owner: root
     group: root
+    mode: '0644'
 
-- name: create /root/.ssh if it doesn't exist yes
+- name: Create /root/.ssh if it doesn't exist yes
   ansible.builtin.file:
     path: /root/.ssh
     state: directory
     owner: root
     group: root
-    mode: 0700
+    mode: '0700'
 
-- name: copy file | mysqlpasswd
+- name: Copy file | mysqlpasswd
   ansible.builtin.template:
     src: templates/root_.ssh_mysqlpasswd.j2
     dest: /root/.ssh/mysqlpasswd
     owner: root
     group: root
-    mode: 0600
-    backup: yes
+    mode: '0600'
+    backup: true
 
 - name: Restart mariadb
   ansible.builtin.systemd:
     name: mariadb.service
     state: restarted
-    enabled: yes
-    masked: no
+    enabled: true
+    masked: false
 
 - name: Create a new database for epgd
-  mysql_db:
+  community.mysql.mysql_db:
     name: "{{ epgd_dbname }}"
     encoding: utf8
     state: present
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
 - name: Create User for epgd database
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ epgd_dbuser }}"
     password: "{{ epgd_dbpass }}"
     host: '%'
@@ -67,7 +68,7 @@
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
 - name: Create User for epgd database
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ epgd_dbuser }}"
     password: "{{ epgd_dbpass }}"
     host: 'localhost'
@@ -75,24 +76,26 @@
     state: present
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
-- name: create epgd config folder
+- name: Create epgd config folder
   ansible.builtin.file:
-   path: /etc/epgd
-   state: directory
+    path: /etc/epgd
+    state: directory
+    mode: '0755'
 
-- name: epgd config
+- name: Create epgd config
   ansible.builtin.template:
     src: templates/etc_epgd_epgd.conf.j2
     dest: /etc/epgd/epgd.conf
+    mode: '0644'
 
-- name: epgd | install
+- name: Install epgd
   ansible.builtin.apt:
     name: ['vdr-epg-daemon', 'vdr-plugin-epg2vdr']
     state: present
 
-#- name: epgd | start
-#  ansible.builtin.systemd:
-#    name: epgd_service
-#    state: started
-#    enabled: yes
-#    masked: no
+# - name: epgd | start
+#   ansible.builtin.systemd:
+#     name: epgd_service
+#     state: started
+#     enabled: true
+#     masked: false

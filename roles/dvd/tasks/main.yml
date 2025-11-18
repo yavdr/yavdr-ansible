@@ -1,34 +1,35 @@
 ---
 # file: roles/dvd/tasks/main.yml
 
-#- name: preconfigure libdvd-pkg
-#  shell: |
-#    echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
-#    echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
+# - name: preconfigure libdvd-pkg
+#   shell: |
+#     echo 'libdvd-pkg libdvd-pkg/post-invoke_hook-install boolean true' | debconf-set-selections
+#     echo 'libdvd-pkg libdvd-pkg/build boolean true' | debconf-set-selections
 
 - name: Apt | install libdvd-pkg
   ansible.builtin.apt:
     name: libdvd-pkg
     state: present
-    install_recommends: no
+    install_recommends: false
 
-- name: reconfigure libdvd-pkg
+- name: Reconfigure libdvd-pkg
   dpkg_reconfigure:
     pkg: libdvd-pkg
     answers: |
      libdvd-pkg/post-invoke_hook-install: boolean true
      libdvd-pkg/build: boolean true
 
-- name: change udev rule to allow KODI to eject optical disks
+- name: Change udev rule to allow KODI to eject optical disks
   block:
-    - name: read udev rule for cdrom_id.rules
-      slurp:
+    - name: Read udev rule for cdrom_id.rules
+      ansible.builtin.slurp:
         src: /lib/udev/rules.d/60-cdrom_id.rules
       register:
         cdrom_udev_rule
 
-    - name: write modified udev rule for cdrom_id.rules
-      copy:
+    - name: Write modified udev rule for cdrom_id.rules
+      ansible.builtin.copy:
         content: |
           {{ cdrom_udev_rule.content | b64decode | regex_replace('--lock-media ', '') }}
         dest: /etc/udev/rules.d/60-cdrom_id.rules
+        mode: '0644'
