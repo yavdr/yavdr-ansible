@@ -1,8 +1,10 @@
 - name: Reconfigure unattended upgrades with dpkg
   ansible.builtin.command: '/usr/sbin/dpkg-reconfigure --frontend falseninteractive unattended-upgrades'
+  changed_when: true
 
 - name: Trigger Udev
   ansible.builtin.command: 'udevadm trigger'
+  changed_when: true
 
 - name: Reload Units
   ansible.builtin.systemd:
@@ -13,7 +15,7 @@
     name: smbd.service
     state: restarted
     enabled: true
-    #masked: false
+    # masked: false
   register: samba_reload
 
 - name: Restart vdr-addon-lifeguard-ng
@@ -28,7 +30,7 @@
     name: nfs-server.service
     state: restarted
     enabled: true
-    #masked: false
+    # masked: false
   register: nfs_reload
 
 - name: Restart sundtek.service
@@ -91,10 +93,10 @@
     state: stopped
   register: x_stop
 
-- name: reboot required
+- name: Reboot required
   ansible.builtin.debug:
     msg: PLEASE REBOOT YOUR SYSTEM.
 
-- name: rerun required
+- name: Re-run required
   ansible.builtin.debug:
     msg: PLEASE REBOOT YOUR SYSTEM AND RUN THIS PLAYBOOK AGAIN.
