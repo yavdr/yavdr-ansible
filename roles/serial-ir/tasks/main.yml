@@ -1,7 +1,7 @@
 ---
 # file: roles/serial-ir/tasks/main.yml
-- name: check if serial_ir_device is not empty and does not match devices defined in serial_ir_data
-  fail:
+- name: Check if serial_ir_device is not empty and does not match devices defined in serial_ir_data
+  ansible.builtin.fail:
     msg: "The serial device  {{ serial_ir_device }} is not defined in serial_ir_data"
   when: serial_ir_device|length > 0 and serial_ir_device not in serial_ir_data
 
@@ -9,17 +9,20 @@
   ansible.builtin.apt:
     name: setserial
 
-- name: load serial_ir on startup
+- name: Load serial_ir on startup
   ansible.builtin.template:
     src: roles/serial-ir/templates/modules-load.d/serial_ir.conf.j2
     dest: /etc/modules-load.d/serial_ir.conf
+    mode: '0644'
 
-- name: serial_ir module options
+- name: Set serial_ir module options
   ansible.builtin.template:
     src: roles/serial-ir/templates/modprobe.d/serial_ir.conf.j2
     dest: /etc/modprobe.d/serial_ir.conf
+    mode: '0644'
 
-- name: setserial options
+- name: Set setserial options
   ansible.builtin.template:
     src: roles/serial-ir/templates/serial.conf.j2
     dest: /etc/serial.conf
+    mode: '0644'

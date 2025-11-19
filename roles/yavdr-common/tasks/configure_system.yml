@@ -6,7 +6,7 @@
   when: "'cloud-init' in ansible_facts.packages"
   block:
     - name: "Disable all cloud-init datasources"
-      debconf:
+      ansible.builtin.debconf:
         name: cloud-init
         question: cloud-init/datasources
         value: ""
@@ -36,7 +36,7 @@
     name: "{{ language_packs }}"
 
 - name: Set timezone
-  communit.general.timezone:
+  community.general.timezone:
     name: "{{ timezone }}"
     hwclock: "{{ timezone_hw | default(omit) }}"
   register: tz_setting
@@ -61,7 +61,8 @@
       notify: reconfigure_tzdata
 
 # based on https://serverfault.com/a/981742
-- block:
+- name: Configure locale
+  block:
     - name: Ensure localisation files for '{{ default_locale }}' are available
       community.general.locale_gen:
         name: "{{ default_locale }}"
@@ -86,7 +87,7 @@
       ansible.builtin.set_fact:
         locale_language: "{{ locale_status.stdout | regex_search('LANGUAGE=([^\n]+)', '\\1') | default([locale_lang], true) | first }}"
 
-    - name: Configure locale to '{{ default_locale }}' and language to '{{ default_locale }}'
+    - name: Set locale to '{{ default_locale }}' and language to '{{ default_locale }}'
       become: true
       ansible.builtin.command: localectl set-locale LANG={{ default_locale }} LANGUAGE={{ default_locale }}
       changed_when: locale_lang != default_locale or locale_language != default_locale

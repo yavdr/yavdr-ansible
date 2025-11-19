@@ -1,30 +1,30 @@
 ---
-- name: install required packages
+- name: Install required packages
   ansible.builtin.apt:
     name:
       - tmux
 
-- name: create ~/.config/systemd/user
+- name: Create ~/.config/systemd/user
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config/systemd/user"
     state: directory
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
-    mode: 0755
+    mode: '0755'
 
-- name: make vdr.user owner of ~/.config
+- name: Make vdr.user owner of ~/.config
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config"
     state: directory
     recurse: true
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
-    mode: 0755
+    mode: '0755'
 
-- name: create tmux.service for the session
+- name: Create tmux.service for the session
   ansible.builtin.template:
     src: 'templates/systemd/user/tmux.service.j2'
     dest: '{{ vdr.home }}/.config/systemd/user/tmux.service'
-    mode: 0644
+    mode: '0644'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'

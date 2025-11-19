@@ -1,14 +1,15 @@
 ---
 # file roles/wakeup/tasks/main.yml
 
-- name: install package {{ wakeup_addon_packages[wakeup_method] }}
+- name: Install package {{ wakeup_addon_packages[wakeup_method] }}
   ansible.builtin.apt:
     name: "{{ wakeup_addon_packages[wakeup_method] }}"
     state: present
 
 # we expand all templates so that any add-on can be disabled if needed
-- name: expand template for each wakeup add-on config file
+- name: Expand template for each wakeup add-on config file
   ansible.builtin.template:
     src: "{{ item.value | basename }}.j2"
     dest: "{{ item.value }}"
+    mode: '0644'
   loop: "{{ wakeup_addon_confs | dict2items }}"

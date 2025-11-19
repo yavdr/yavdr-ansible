@@ -45,41 +45,16 @@
 - name: Disable unused output plugins
   ansible.builtin.command: "vdrctl disable {{ item }}"
   loop: '{{ disabled_output_plugins }}'
-  # ignore_errors: true
   register: vdrctl
   failed_when:
     - vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
+  changed_when: true # TODO: check file/symlink
   when: disabled_output_plugins is defined
 
 - name: Enable chosen output plugin
   ansible.builtin.command: vdrctl enable {{ active_output_plugin }}
-  # ignore_errors: true
   register: vdrctl
   failed_when:
     - vdrctl.rc != 0 and 'is already linked to' not in vdrctl.stderr
+  changed_when: true # TODO: check file/symlink
   when: active_output_plugin | length > 0
-
-# known_frontends:
-#  xineliboutput_sxfe:
-#    plugin_name: xineliboutput
-#    plugin_options: ""
-#    packages:
-#      - vdr-plugin-xineliboutput
-#      - xineliboutput-sxfe
-#  softhddevice_cuvid:
-#    plugin_name: softhddevice
-#    plugin_options: |
-#      -D
-#      -a pulse
-#      -w alsa-driver-broken
-#      -v cuvid
-#    packages:
-#      - vdr-plugin-softhddevice-cuvid
-#  softhddevice:
-#    plugin_name: softhddevice
-#    plugin_options: |
-#      -D
-#      -a pulse
-#      -w alsa-driver-broken
-#    packages:
-#      - vdr-plugin-softhddevice
