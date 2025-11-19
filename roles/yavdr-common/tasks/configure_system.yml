@@ -91,14 +91,6 @@
       ansible.builtin.command: localectl set-locale LANG={{ default_locale }} LANGUAGE={{ default_locale }}
       changed_when: locale_lang != default_locale or locale_language != default_locale
 
-- name: Use bash instead of dash
-  ansible.builtin.debconf:
-    name: dash
-    question: dash/sh
-    value: "false"
-    vtype: select
-  notify: reconfigure_dash
-
 - name: Flush all handlers
   ansible.builtin.meta: flush_handlers
 
