@@ -1,0 +1,58 @@
+---
+# file: apply-display-config.yml
+# this playbook runs the yavdr-xorg role
+
+- name: Set display configuration
+  hosts: localhost
+  become: true
+  tasks:
+    - name: Show config data
+      ansible.builtin.debug:
+        var: xorg_config
+      when: xorg_config is defined
+
+    - name: Get hardware facts
+      hardware_facts:
+        usb: false
+        pci: false
+        serial: false
+        modules: false
+        gpus: true
+        acpi_power_modes: false
+
+    - name: Show detected gpu vendors
+      ansible.builtin.debug:
+        var: "{{ item }}"
+      loop:
+        - nvidia_detected
+        - intel_detected
+        - amd_detected
+        - virtualbox_detected
+
+    - name: write display config
+      ansible.builtin.include_role:
+        name: write-display-config
+
+    - name: Stop vdr
+      ansible.builtin.service:
+        name: vdr
+        state: stopped
+
+    - name: Stop yavdr-xorg
+      ansible.builtin.service:
+        name: yavdr-xorg
+        state: stopped
+
+    - name: Start yavdr-xorg
+      ansible.builtin.service:
+        name: yavdr-xorg
+        state: started
+
+    - name: Start vdr
+      ansible.builtin.service:
+        name: vdr
+        state: started
+
+  handlers:
+    - name: import handlers
+      ansible.builtin.import_tasks: handlers/main.yml
