@@ -3,7 +3,7 @@
 # this playbook set up a yaVDR 0.7 installation on a Raspberry Pi 4 or 5
 # please note that kodi is not available at the moment
 
-- name: set up a headless yaVDR server
+- name: Set up a headless yaVDR server
   hosts: all
   become: true
   environment:
@@ -12,14 +12,14 @@
     - yavdr-common
     - collect-facts              # query system facts
     - vdr
-    - arm64-output                        # install rpihddevice and let vdr run on tty7
+    - arm64-output               # install appropriate output plugin and let vdr run on tty7
     - lifeguardng                # install and configure vdr-addon-lifeguard-ng
     - headless-session           # set up a headless systemd user session, e.g. for udiskie
     - yavdr-remote
     - yavdr-network
-    #- samba-install
-    #- samba-config
-    #- nfs-server
+    # - samba-install
+    # - samba-config
+    # - nfs-server
     - autoinstall-atric-usb      # preconfigure lircd for Atric IR-WakeupUSB receiver
     - autoinstall-dvbsddevice    # install vdr-plugin-dvbsddevice if a matching card is detected
     - install-dvb-firmware       # download and install all firmware files from the LibreElec dvb-firmware git repository
@@ -32,14 +32,18 @@
     - autoinstall-satip          # install vdr-plugin-satip if a Sat>IP server has been found
     - autoinstall-targavfd       # install vdr-plugin-targavfd if display is connected
     - autoinstall-yausbir        # preconfigure lircd for yaUsbIR receiver
-    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
-    #- epgd                      # install vdr-epg-daemon
-    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
-    #- wakeup
-    #- channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
+    - set-output-plugin          # ensures that only one output plugin is active
+                                 # (a manual override is possible by setting selected_frontend
+                                 # to the name of the wanted output plugin)
+    # - epgd                      # install vdr-epg-daemon
+    # - channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    # - wakeup
+    # - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
                                  # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
   tags:
     - always
   handlers:
-    - import_tasks: handlers/main.yml
+    - name: Import handlers
+      ansible.builtin.import_tasks:
+        ansible.builtin.file: handlers/main.yml
