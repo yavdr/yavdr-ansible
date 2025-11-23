@@ -1,12 +1,25 @@
 ---
 
-- name: Import task files
+- name: Apt configuration
   ansible.builtin.import_tasks:
-    file: {{ item }}
-  loop:
-    - configure_apt.yml
-    - configure_system.yml
-    - create_directories.yml
-    - create_sudoers.yml
-    - standby_support.yml
+    file: configure_apt.yml
+
+- name: System configuration
+  ansible.builtin.import_tasks:
+    file: configure_system.yml
+  tags: [install]
+
+- name: Create directories
+  ansible.builtin.import_tasks:
+    file: create_directories.yml
+  tags: [install]
+
+- name: Create sudoers configuration
+  ansible.builtin.import_tasks:
+    file: create_sudoers.yml
+  tags: [install]
+
+- name: Standby Support configuration
+  ansible.builtin.import_tasks:
+    file: standby_support.yml
   tags: [install]

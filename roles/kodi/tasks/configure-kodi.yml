@@ -53,7 +53,7 @@
       - name: Determine folders to add to the kodi flatpak configuration
         ansible.builtin.set_fact:
             kodi_permissions_to_add: |
-             {{ flatpak_kodi_allowed_dirs | difference(
+             {{ kodi_allowed_dirs_flatpak | difference(
                    (
                      kodi_permissions_output.stdout_lines |
                      select('match', '^filesystems=') |
@@ -64,7 +64,18 @@
 
       - name: Set kodi flatpak directory access permissions
         ansible.builtin.command: '/usr/bin/flatpak --user override --filesystem="{{ item }}" tv.kodi.Kodi'
+        register: result
+        changed_when: result.rc == 0
         become: true
         become_user: vdr
         loop: "{{ kodi_permissions_to_add }}"
         when: kodi_permissions_to_add | length > 0
+
+      - name: Remove kodi flatpak directory access permissions
+        ansible.builtin.command: '/usr/bin/flatpak --user override --nofilesystem="{{ item }}" tv.kodi.Kodi'
+        register: result
+        changed_when: result.rc == 0
+        become: true
+        become_user: vdr
+        loop: "{{ kodi_restricted_dirs_flatpak }}"
+        when: kodi_restricted_dirs_flatpak

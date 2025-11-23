@@ -1,5 +1,5 @@
 - name: Package_facts | lookup installed packages
-  anisble.builtin.package_facts:
+  ansible.builtin.package_facts:
     manager: auto
 
 - name: Remove cloud-init if necessary
@@ -50,7 +50,7 @@
         question: tzdata/Areas
         value: "{{ timezone | dirname }}"
         vtype: select
-      notify: reconfigure_tzdata
+      notify: Reconfigure_tzdata
 
     - name: Set timezone city
       ansible.builtin.debconf:
@@ -58,7 +58,7 @@
         question: "tzdata/Zones/{{ timezone | dirname }}"
         value: "{{ timezone | basename }}"
         vtype: select
-      notify: reconfigure_tzdata
+      notify: Reconfigure_tzdata
 
 # based on https://serverfault.com/a/981742
 - name: Configure locale

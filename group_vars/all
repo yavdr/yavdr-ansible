@@ -5,15 +5,12 @@
 ansible_host: localhost
 ansible_connection: local
 
-branch: experimental
-ppa_owner: 'ppa:yavdr'
 # add the following PPAs
 repositories:
-  - '{{ ppa_owner }}/{{branch}}-main'
-  - '{{ ppa_owner }}/{{branch}}-vdr'
-  - '{{ ppa_owner }}/{{branch}}-kodi'
+  - "ppa:seahawk1986-hotmail/resolute-main"
+  - "ppa:seahawk1986-hotmail/vdr-2.7.7"
 
-timezone: 'Europe/Berlin'
+timezone: "Europe/Berlin"
 # timezone_hw can be set to 'UTC' or 'local' to set the preferred hardware clock
 # timezone. This variable is optional, the default behavior is to let systemd
 # set the hw clock to UTC # and sync it with the time aquired via NTP.
@@ -21,10 +18,11 @@ timezone: 'Europe/Berlin'
 # environments and systemd-timesyncd won't sync the current time to the hardware
 # clock if it is set to local time.
 # timezone_hw: 'UTC'  # or 'local'
-default_locale: 'de_DE.UTF-8'
-generate_locales:  # see entries in /etc/locale.gen
-  - 'de_DE.UTF-8'
-  - 'en_US.UTF-8'
+default_locale: "de_DE.UTF-8"
+generate_locales: # see entries in /etc/locale.gen
+  - "de_DE.UTF-8"
+  - "en_US.UTF-8"
+
 language_packs:
   - language-pack-de
   - language-pack-en
@@ -40,9 +38,9 @@ vdr:
   confdir: /var/lib/vdr
   recdir: /srv/vdr/video
   hide_first_recording_level: false
-  safe_dirnames: true  # escape characters (useful for windows clients and FAT/NTFS file systems)
-  override_vdr_charset: ""  # set the desired charset, e.g. "ISO-8859-9"
-  instance_id: 0  # set the vdr instance id (see parameter "-i" in man 1 vdr)
+  safe_dirnames: true # escape characters (useful for windows clients and FAT/NTFS file systems)
+  override_vdr_charset: "" # set the desired charset, e.g. "ISO-8859-9"
+  instance_id: 0 # set the vdr instance id (see parameter "-i" in man 1 vdr)
 
 # wait for dvb devices by adapter number
 # NOTE: This only works for devices that are discoverable by udev, not userspace drivers like sundtek tuners!
@@ -97,14 +95,16 @@ media_dirs:
   pictures: /srv/picture
   files: /srv/files
   backups: /srv/backups
-  recordings: '{{ vdr.recdir }}'
+  recordings: "{{ vdr.recdir }}"
+
 nfs:
-  insecure: false  # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
+  insecure: false # set to true for OS X clients or if you plan to use libnfs as unprivileged user (e.g. KODI)
 samba:
   workgroup: YAVDR
-  windows_compatible: '{{ vdr.safe_dirnames }}'  # set to true to disable unix extensions, enable follow symlinks and wide links
+  windows_compatible: "{{ vdr.safe_dirnames }}" # set to true to disable unix extensions, enable follow symlinks and wide links
+
 # install kodi as flatpak instead of a debian package
-kodi_as_flatpak: False
+kodi_as_flatpak: True
 # additional packages you want to install
 extra_packages:
   - htop
@@ -117,20 +117,10 @@ extra_packages:
 # choose which channellogos to download from the github.com/Jasmeet181 mediaportal-*-logos repositories
 # currently suported langugages/regions are: de, uk
 #
-#channellogo_languages:
-#  - au
-#  - be
-#  - cz
+#channellogos_languages:
 #  - de
-#  - es
-#  - ie
-#  - il
-#  - it
-#  - nordic
-#  - nz
-#  - ru
 #  - uk
-#  - us
+
 frontend: vdr
 
 # vdr shutdown command - SHUTDOWNCMD variable in /etc/default/vdr
@@ -193,25 +183,10 @@ lifeguard_processes: []
 # check for active tcp connections of local processes
 # syntax: <processname> [:] <port>
 lifeguard_tcp:
-  - vdr 3000  # don't shutdown if there is an active streamdev connection
+  - vdr 3000 # don't shutdown if there is an active streamdev connection
 # Serial device to configure for a homebrew receiver.
 # Choose one of the devices predefined in the variable serial_ir_data in roles/serial-ir/defaults/main.yml
 # ttyS0 (COM1), ttyS1 (COM2), ttyS2(COM3) or ttyS3 (COM4)
 # or customize the variable as needed
 #
 serial_ir_device: ttyS0
-# Key for the MPEG2-Decoder
-#rpi_decode_mpg2: 0xdeadbeef
-
-# Key for the wvc1-Decoder
-#rpi_decode_wvc1: 0xdeadbeef
-
-# Pin for the GPIO remote receiver
-# rpi_ir_gpio_pin: 24
-
-# Pin for the GPIO remote sender (needs additional lirc configuration,
-# which is at the moment beyond the scope of this playbook)
-# rpi_ir_gpio_pin_tx: 13
-
-# Set the memory for the GPU core - rpihddevice needs 256 MB, which is the default value set by the playbook
-# rpi_gpu_mem = 256

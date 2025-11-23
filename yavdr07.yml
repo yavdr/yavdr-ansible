@@ -2,15 +2,15 @@
 # file: yavdr07.yml
 # this playbook sets up a complete yaVDR 0.7 installation
 
-- name: set up yaVDR
+- name: Set up yaVDR
   hosts: all
   become: true
   environment:
     LANG: "{{ default_locale | default('c.UTF-8') }}"
 
   pre_tasks:
-    - name: update all packages if the action doesn't happen locally
-      apt:
+    - name: Update all packages if the action doesn't happen locally
+      ansible.builtin.apt:
         name: "*"
         state: latest
         update_cache: true
@@ -48,10 +48,10 @@
     - install-dvb-firmware       # download and install all firmware files from the LibreElec dvb-firmware git repository
     # - autoinstall-dvbsky-firmware # download and install required firmware files for dvbsky cards
     - autoinstall-firmware       # download and install firmware files for dvb devices
-    #- install-sundtek            # install and configure sundtek drivers
-    #- serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
-    #- epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
-    #- channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
+    # - install-sundtek            # install and configure sundtek drivers
+    # - serial-ir                  # configure a serial port for "homebrew" ir receivers (e.g. Atric V5)
+    # - epgd                       # install vdr-epg-daemon (and vdr-plugin-epg2vdr)
+    # - channelpedia               # upload channels.conf to channelpedia (see role description in Manual)
     - channellogos               # use channellogos provided by https://github.com/Jasmeet181/mediaportal-*-logos
                                  # set the variable channellogos_languages to a list of the langues you want (see group_vars/all)
                                   # and link them to /var/lib/channellogos/ - this needs at least 300 MB of storage
@@ -60,7 +60,9 @@
                                  # to play and eject optical media
     - wakeup                     # set up wakeup methods for rtc etc.
     - grub-config                # configure grub
-    - set-output-plugin  # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend to the name of the wanted output plugin)
+    - set-output-plugin          # ensures that only one output plugin is active (a manual override is possible by setting selected_frontend
+                                 # to the name of the wanted output plugin)
 
   handlers:
-    - import_tasks: handlers/main.yml
+    - name: Import handlers
+      ansible.builtin.import_tasks: handlers/main.yml

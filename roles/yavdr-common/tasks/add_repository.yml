@@ -1,0 +1,33 @@
+---
+
+- name: Show PPA name
+  ansible.builtin.debug:
+    msg: "working on {{ item }}"
+
+- name: Get PPA info
+  launchpad_ppa_info:
+    ppa: '{{ item }}'
+  register: ppa_info_result
+
+- name: Define filename like add-apt-repository
+  ansible.builtin.set_fact:
+    ppa_filename: "{{ ppa_info_result.owner }}-ubuntu-{{ ppa_info_result.name | replace('.', '_') }}-{{ ansible_distribution_release }}.sources"
+
+- name: "Show filename {{ ppa_filename }}"
+  ansible.builtin.debug:
+    var: ppa_filename
+
+- name: "Manage PPA repository (deb822_repository) {{ item }}"
+  become: true
+  ansible.builtin.deb822_repository:
+    state: present
+    name: "{{ ppa_info_result.owner }}-ubuntu-{{ ppa_info_result.name | replace('.', '_') }}-{{ ansible_distribution_release }}"
+    types: [deb]
+    uris: ["https://ppa.launchpadcontent.net/{{ ppa_info_result.owner }}/{{ ppa_info_result.name }}/ubuntu"]
+    suites: ["{{ ansible_distribution_release }}"]
+    components: [main]
+    signed_by: "{{ ppa_info_result.signing_key_url }}"
+
+- name: Update package list
+  ansible.builtin.apt:
+    update_cache: true

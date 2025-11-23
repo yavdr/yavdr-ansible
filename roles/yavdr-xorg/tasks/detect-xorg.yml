@@ -61,9 +61,13 @@
     nvidia_driver_installed: '{{ nvidia_driver_detected.changed | bool }}'
 
 - name: Unload nouveau driver, replace with nvidia
+  when:
+    - nvidia_detected | bool
+    - nvidia_driver_installed | bool
+    - '"nouveau" in modules'
   block:
     - name: Unbind vconsole
-      ansible_builtin.shell: echo 0 > /sys/class/vtconsole/vtcon1/bind
+      ansible.builtin.shell: "echo 0 > /sys/class/vtconsole/vtcon1/bind"
 
     - name: "Wait a little, so noveau isn't used anymore"
       ansible.builtin.wait_for:
@@ -80,12 +84,12 @@
         - drm
 
     - name: Load nvidia driver
-      ansible.posix.modprobe:
+      community.general.modprobe:
         name: "nvidia"
         state: present
 
     - name: "Wait a little before starting nvidia-persistenced"
-      ansible_builtin.wait_for:
+      ansible.builtin.wait_for:
         timeout: 1
 
     - name: Start nvidia-persistenced
@@ -96,10 +100,6 @@
         masked: false
         daemon_reload: true
       ignore_errors: true
-  when:
-    - nvidia_detected | bool
-    - nvidia_driver_installed | bool
-    - '"nouveau" in modules'
 
 - name: "Start x-verbose@.service"
   ansible.builtin.systemd:

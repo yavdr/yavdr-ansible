@@ -1,55 +1,62 @@
-- name: install udiskie
+- name: Install udiskie
   ansible.builtin.apt:
     name:
-      - policykit-1
+      # - policykit-1
       - udiskie
     state: present
 
-- name: create ~/.config/udiskie
+- name: Create ~/.config/udiskie
   ansible.builtin.file:
     name: '{{ vdr.home }}/.config/udiskie'
     state: directory
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0755'
 
-- name: expand template for udiskie's config.yml
+- name: Expand template for udiskie's config.yml
   ansible.builtin.template:
     src: templates/config.yml.j2
     dest: '{{ vdr.home }}/.config/udiskie/config.yml'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0644'
 
 
-- name: create ~/.config/systemd/user
+- name: Create ~/.config/systemd/user
   ansible.builtin.file:
     name: '{{ vdr.home }}/.config/systemd/user'
     state: directory
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0755'
 
-- name: expand template for udiskie's systemd unit
+- name: Expand template for udiskie's systemd unit
   ansible.builtin.template:
     src: templates/udiskie.service.j2
     dest: '{{ vdr.home }}/.config/systemd/user/udiskie.service'
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0644'
 
-- name: create ~/bin
+- name: Create ~/bin
   ansible.builtin.file:
     name: '{{ vdr.home }}/bin'
     state: directory
     owner: '{{ vdr.user }}'
     group: '{{ vdr.group }}'
+    mode: '0755'
 
-- name: expand template for mount helper script
+- name: Expand template for mount helper script
   ansible.builtin.template:
     src: templates/udiskie_vdr_mount_helper.j2
     dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
-    mode: 0755
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
+    mode: '0755'
 
-- name: expand template for udiskie vdr commands
+- name: Expand template for udiskie vdr commands
   ansible.builtin.template:
     src: templates/umount_all.j2
     dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
+    mode: '0644'
+
