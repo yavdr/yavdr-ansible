@@ -1,0 +1,115 @@
+{{ ansible_managed | comment }}
+
+{% set primary_output = xrandr['Screen 0:'][xorg_config.primary.connector] %}
+{% if xorg_config.secondary is defined %}
+  {% set secondary_output = xrandr['Screen 0:'][xorg_config.secondary.connector] %}
+{% endif %}
+
+Section "ServerLayout"
+    Identifier     "Layout0"
+    Screen         0  "Screen0" 0 0
+{% if xorg_config.secondary is defined %}
+    Screen         1  "Screen1" RightOf "Screen0"
+{% endif %}
+    #InputDevice    "Keyboard0" "CoreKeyboard"
+    #InputDevice    "Mouse0" "CorePointer"
+    Option         "Xinerama" "0"
+EndSection
+
+Section "InputClass"
+    Identifier "exclude eventlircd devices"
+    MatchTag   "eventlircd"
+    Option     "Ignore"    "True"
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor0"
+    VendorName     "{{ primary_output.vendor }}"
+    ModelName      "{{ primary_output.model }}"
+    Option         "DPMS"
+    Option         "ExactModeTimingsDVI" "True"
+EndSection
+
+Section "Device"
+    Identifier     "Device0"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    Option         "NoLogo"              "true"
+{% if xorg.primary.bus_id is defined %}
+    BoardName      "{{ xorg.primary.gpu_name }}"
+    BusID          "{{ xorg.primary.bus_id }}"
+{% else %}
+    BoardName      "Unknown"
+{% endif %}
+{% if nvidia_force_dpi | default(0) > 0  %}
+    Option         "UseEdidDpi" "FALSE"
+    Option         "DPI" "{{ nvidia_force_dpi }} x {{ nvidia_force_dpi }}"
+{% endif %}
+    Screen          0
+    Option         "ConnectedMonitor" "{{ primary_output.connector }}{% if xorg_config.secondary is defined %}, {{ secondary_output.connector }}{% endif %}"
+    Option         "CustomEDID" "{{ primary_output.connector }}:/etc/X11/edid.{{ primary_output.connector }}.bin{% if xorg_config.secondary is defined %};{{ secondary_output.connector }}:/etc/X11/edid.{{ secondary_output.connector }}.bin{% endif %}"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen0"
+    Device         "Device0"
+    Monitor        "Monitor0"
+    DefaultDepth    24
+    Option         "nvidiaXineramaInfoOrder" "{{ primary_output.connector }}"
+    Option         "UseDisplayDevice" "{{ primary_output.connector }}"
+    Option         "metamodes" "{{ primary_output.connector }}: {{ primary_output.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "AllowIndirectGLXProtocol" "off"
+    Option         "TripleBuffer" "on"
+    Option         "SLI" "Off"
+    Option         "MultiGPU" "Off"
+    Option         "BaseMosaic" "off"
+    SubSection     "Display"
+        Depth       24
+    EndSubSection
+EndSection
+
+{% if xorg.secondary is defined %}
+Section "Device"
+    Identifier     "Device1"
+    Driver         "nvidia"
+    VendorName     "NVIDIA Corporation"
+    Option  "NoLogo"              "true"
+{% if xorg.secondary.bus_id is defined %}
+    BoardName      "{{ xorg.primary.gpu_name }}"
+    BusID          "{{ xorg.primary.bus_id }}"
+{% else %}
+    BoardName      "Unknown"
+{% endif %}
+    Screen          1
+EndSection
+
+Section "Monitor"
+    Identifier     "Monitor1"
+    VendorName     "{{ secondary_output.vendor }}"
+    ModelName      "{{ secondary_output.model }}"
+EndSection
+
+Section "Screen"
+    Identifier     "Screen1"
+    Device         "Device1"
+    Monitor        "Monitor1"
+    DefaultDepth    24
+    Option         "nvidiaXineramaInfoOrder" "{{ secondary_output.connector }}"
+    Option         "ConnectedMonitor" "{{ secondary_output.connector }}"
+    Option         "UseDisplayDevice" "{{ secondary_output.connector }}"
+    Option         "CustomEDID" "{{ secondary_output.connector }}:/etc/X11/edid.{{ secondary_output.connector }}.bin"
+    Option         "metamodes" "{{ secondary_output.connector }}: {{ secondary_output.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "AllowIndirectGLXProtocol" "off"
+    Option         "TripleBuffer" "on"
+    Option         "SLI" "Off"
+    Option         "MultiGPU" "Off"
+    Option         "BaseMosaic" "off"
+    SubSection     "Display"
+        Depth       24
+    EndSubSection
+EndSection
+{% endif %}
+
+Section "Extensions"
+    Option         "Composite" "Disable"
+EndSection
