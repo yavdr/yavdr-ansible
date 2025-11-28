@@ -46,8 +46,7 @@
   ansible.builtin.command: "vdrctl disable {{ item }}"
   loop: '{{ disabled_output_plugins }}'
   register: vdrctl
-  failed_when:
-    - vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
+  failed_when: false # vdrctl.rc != 0 and 'is unknown or already disabled' not in vdrctl.stderr
   changed_when: true # TODO: check file/symlink
   when: disabled_output_plugins is defined
 

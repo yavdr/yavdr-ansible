@@ -6,4 +6,4 @@
     state: stopped
   notify: Stop '{{ item.service_name | replace(".service", "", 1) | default(omit) }}' # TODO: check if this works as intended
   loop: '{{ xorg_services }}'
-  when: item.instance_name in known_services
+  when: item.instance_name in known_services | default([])
