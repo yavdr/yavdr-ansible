@@ -145,6 +145,12 @@
     force: false
   when: vdr_channels_conf is not defined and vdr_channels_conf_url is defined
 
+- name: Touch the channels.conf
+  ansible.builtin.file:
+    path: "{{ vdr.confdir }}/channels.conf"
+    state: touch
+    mode: '0744'
+
 - name: "VDR configuration | svdrphosts.conf"
   ansible.builtin.template:
     src: templates/svdrphosts.conf.j2
