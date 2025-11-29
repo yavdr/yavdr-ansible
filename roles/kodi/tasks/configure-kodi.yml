@@ -3,18 +3,17 @@
   ansible.builtin.template:
       src: 'templates/kodi.service.j2'
       dest: '{{ vdr.home }}/.config/systemd/user/kodi.service'
-      mode: '0644'
       owner: '{{ vdr.user }}'
       group: '{{ vdr.group }}'
+      mode: '0644'
 
 - name: Create kodi user directory
   ansible.builtin.file:
       dest: '{{ kodi_config_dir }}/userdata/keymaps'
       state: directory
       owner: '{{ vdr.user }}'
-      group: '{{ vdr.group }}'
       mode: "0775"
-      recurse: true
+      group: '{{ vdr.group }}'
 
 - name: Copy Lircmap.xml if it does not exist yet
   ansible.builtin.copy:
