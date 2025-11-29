@@ -11,8 +11,15 @@
     dest: /lib/firmware/edid
     mode: '0755'
 
-- name: "Set intel_boot_options variable"
+- name: "Set kms_boot_options variable"
   ansible.builtin.set_fact:
-    intel_boot_options: "video={{ drm.primary.drm_connector }}:D {% if drm.secondary is defined and drm.secondary.drm_connector is defined %}video={{ drm.secondary.drm_connector }}:D{% endif %} drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}{% if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}{% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}"
-  when: intel_set_boot_edid | bool
+    kms_boot_options: >
+      "video={{ drm.primary.drm_connector }}:D
+      {% if drm.secondary is defined and drm.secondary.drm_connector is defined %}
+      video={{ drm.secondary.drm_connector }}:D{% endif %}
+      drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}
+      {% if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined
+      %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}
+      {% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}"
+  when: kms_set_boot_edid | bool
   notify: ['Update Initramfs', 'Update GRUB']
