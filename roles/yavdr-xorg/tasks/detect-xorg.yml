@@ -155,12 +155,15 @@
 #   wait_for:
 #     timeout: 3
 
-- name: Save results
-  when:
-    - xrandr is defined
-    - xorg is defined
-    - drm is defined
-    - xorg_config is defined
+- name: Show result of xorg_facts
+  ansible.builtin.debug:
+    msg: |
+      xrandr={{ xrandr | default('undefined') }}
+      xorg={{ xorg | default('undefined') }}
+      drm={{ drm | default('undefined') }}
+      xorg_config={{ xorg_config | default('undefined') }}
+
+- name: Save results of xorg_facts module
   block:
     - name: Ensure facts.d directory exists
       ansible.builtin.file:
@@ -170,25 +173,25 @@
 
     - name: Write xorg variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xorg": xorg} | to_nice_json }}'
+        content: '{{ {"xorg": xorg | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg.fact
         mode: '0644'
 
     - name: Write xrandr variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xrandr": xrandr} | to_nice_json }}'
+        content: '{{ {"xrandr": xrandr | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xrandr.fact
         mode: '0644'
 
     - name: Write drm variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"drm": drm} | to_nice_json }}'
+        content: '{{ {"drm": drm | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/drm.fact
         mode: '0644'
 
     - name: Write xorg_config variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xorg_config": XorgConfig} | to_nice_json }}'
+        content: '{{ {"xorg_config": XorgConfig | default({}) } | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg_config.fact
         mode: '0644'
 
