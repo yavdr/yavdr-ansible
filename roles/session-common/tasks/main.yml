@@ -4,19 +4,19 @@
     name:
       - tmux
 
-- name: Create ~/.config/systemd/user
-  ansible.builtin.file:
-    path: "{{ vdr.home }}/.config/systemd/user"
-    state: directory
-    owner: "{{ vdr.user }}"
-    group: "{{ vdr.group }}"
-    mode: '0755'
 
 - name: Make vdr.user owner of ~/.config
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config"
     state: directory
-    recurse: true
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: '0755'
+
+- name: Create ~/.config/systemd/user
+  ansible.builtin.file:
+    path: "{{ vdr.home }}/.config/systemd/user"
+    state: directory
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
     mode: '0755'
