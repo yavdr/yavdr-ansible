@@ -72,52 +72,80 @@ EXAMPLES = '''
 '''
 
 import glob
-import json
 import os
-import sys
-import usb.core
-from collections import namedtuple
+from collections.abc import Generator
+from typing import Any, NamedTuple, cast
+import usb.core # pyright: ignore[reportMissingTypeStubs]
 from itertools import chain
+from pathlib import Path
 
-import kmodpy
-from ansible.module_utils.basic import *
+import kmodpy # pyright: ignore[reportMissingTypeStubs]
+from ansible.module_utils.basic import AnsibleModule # pyright: ignore[reportMissingTypeStubs]
 
 
-PCIDevice = namedtuple("PCIDevice", 'idVendor idProduct idClass pciPath')
+class PCIDevice(NamedTuple):
+    idVendor: int
+    idProduct: int
+    idClass: int
+    pciPath: str
 
-vendor_dict = {
+
+
+vendor_dict: dict[int, str] = {
     0x10de: 'nvidia',
     0x8086: 'intel',
     0x1002: 'amd',
     0x80ee: 'virtualbox',
+    0x15ad: 'vmware'
     }
 
-def get_pci_devices():
-    for device in chain(glob.glob('/sys/devices/pci*/*:*:*/'), glob.glob('/sys/devices/pci*/*:*:*/*:*:*/')):
+def get_pci_devices() -> Generator[PCIDevice, Any, None]:
+    for device in chain(Path('/sys/devices/').glob('pci*/*:*:*/'), Path('/sys/devices/').glob('pci*/*:*:*/*:*:*/')):
+    # for device in chain(glob.glob('/sys/devices/pci*/*:*:*/'),
+    #                     glob.glob('/sys/devices/pci*/*:*:*/*:*:*/')):
         try:
-            with open(os.path.join(device, 'device')) as d:
-                product_id = int(d.read().strip(), 16)
-            with open(os.path.join(device, 'vendor')) as d:
-                vendor_id = int(d.read().strip(), 16)
-            with open(os.path.join(device, 'class')) as d:
-                class_id = int(d.read().strip(), 16)
-            yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id, pciPath=device)
+            product_id = int((device / 'device').read_text().strip(), 16)
+            vendor_id = int((device / 'vendor').read_text().strip(), 16)
+            class_id = int((device / 'class').read_text().strip(), 16)
+            # with open(os.path.join(device, 'device')) as d:
+            #     product_id = int(d.read().strip(), 16)
+            # with open(os.path.join(device, 'vendor')) as d:
+            #     vendor_id = int(d.read().strip(), 16)
+            # with open(os.path.join(device, 'class')) as d:
+            #     class_id = int(d.read().strip(), 16)
+            yield PCIDevice(idVendor=vendor_id, idProduct=product_id, idClass=class_id, pciPath=device._str)
         except IOError:
             pass
 
-def format_device_list(iterator):
-    return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in iterator]
+def format_device_list(pci_devices: list[PCIDevice]) -> list[str]:
+    if pci_devices:
+        return ["{:04x}:{:04x}".format(d.idVendor, d.idProduct) for d in pci_devices]
+    return []
 
-def format_gpu_device_list(iterator):
-    def get_entries(iterator):
-        for d in iterator:
-            if d.idClass == 0x030000:
-                yield {"VendorName": vendor_dict.get(d.idVendor, "unknown"),
-                       "VendorID": d.idVendor, "ProductID": d.idProduct}
-    return [entry for entry in get_entries(iterator)]
+def format_usb_device_list(usb_devices: list[usb.core.Device]) -> list[str]:
+    return ["{:04x}:{:04x}".format(cast(int, d.idVendor), cast(int, d.idProduct)) for d in usb_devices] # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+
+class GPU(NamedTuple):
+    VendorName: str
+    VendorID: int
+    ProductID: int
+
+def format_gpu_device_list(pci_devices: Generator[PCIDevice, None, None]) -> list[GPU]:
+    return [
+        GPU(
+            vendor_dict.get(gpu.idVendor, "unknown"),
+            gpu.idVendor,
+            gpu.idProduct
+        ) for gpu in pci_devices if gpu.idClass == 0x030000
+    ]
+    # def get_entries(iterator: Generator[PCIDevice, Any, None]) -> Generator[GPU, Any, None]:
+    #     for d in iterator:
+    #         if d.idClass == 0x030000:
+    #             yield GPU(VendorName= vendor_dict.get(d.idVendor, "unknown"), VendorID= d.idVendor, ProductID= d.idProduct)
+    # return list(get_entries(iterator))
 
 
-def get_serial_data(name):
+def get_serial_data(name: str) -> tuple[int, int]:
     """
     get the I/O and IRQ numbers for the serial port
     using the /sys/class/tty/ttyS<X>/ device nodes
@@ -128,14 +156,14 @@ def get_serial_data(name):
         port = int(f.read().rstrip(), base=16)
     return port, irq
 
-def get_serial_devices():
-    devices = {}
+def get_serial_devices() -> dict[str, dict[str, str|int]]:
+    devices: dict[str, dict[str, int|str]] = {}
     p = '/sys/class/tty/'
     for d in sorted(glob.glob(os.path.join(p, 'ttyS[0-9]*'))):
         port, irq = get_serial_data(d)
         if port and irq:
             # TODO: check if a serial receiver is attached
-            devices[os.path.basename(d)] = {'port': '0x{:x}'.format(port), 'irq': irq}
+            devices[os.path.basename(d)] = {'port': f'0x{port:x}', 'irq': irq}
     return devices
 
 
@@ -178,22 +206,25 @@ def main():
     serial_devices = []
     acpi_power_modes = []
 
+    pci_device_list: list[PCIDevice] = list(get_pci_devices())
+
     if collect_usb:
-        usb_devices = format_device_list(usb.core.find(find_all=True))
+        usb_devices_raw: list[usb.core.Device] = list(d for d in cast(Generator[usb.core.Device, None, None], usb.core.find(find_all=True)) if d) # pyright: ignore[reportUnknownMemberType]
+        usb_devices = format_usb_device_list(usb_devices_raw)
 
     if collect_pci:
-        pci_devices = format_device_list(get_pci_devices())
+        pci_devices = format_device_list(pci_device_list)
 
     if collect_modules:
         k = kmodpy.Kmod()
-        modules = [m[0] for m in k.loaded()]
+        modules: list[str] = [m[0] for m in k.loaded()]
 
     if collect_gpus:
         gpus = format_gpu_device_list(get_pci_devices())
-        nvidia_detected = any((True for gpu in gpus if gpu['VendorName'] == 'nvidia'))
-        intel_detected = any((True for gpu in gpus if gpu['VendorName'] == 'intel'))
-        amd_detected = any((True for gpu in gpus if gpu['VendorName'] == 'amd'))
-        virtualbox_detected = any((True for gpu in gpus if gpu['VendorName'] == 'virtualbox'))
+        nvidia_detected = any((True for gpu in gpus if gpu.VendorName == 'nvidia'))
+        intel_detected = any((True for gpu in gpus if gpu.VendorName == 'intel'))
+        amd_detected = any((True for gpu in gpus if gpu.VendorName == 'amd'))
+        virtualbox_detected = any((True for gpu in gpus if gpu.VendorName.lower() in ('virtualbox', 'vmware')))
 
     if collect_serial:
         serial_devices = get_serial_devices()
@@ -201,18 +232,18 @@ def main():
     if collect_acpi_power_modes:
         acpi_power_modes = list_acpi_power_modes()
 
-    data = {'usb': usb_devices,
+    data: dict[str, Any] = {'usb': usb_devices,
             'pci': pci_devices,
             'modules': modules,
             'gpus': gpus,
-            'serial': serial_devices,
+            'serial_ports': serial_devices,
             'acpi_power_modes': acpi_power_modes,
             'nvidia_detected': nvidia_detected,
             'intel_detected': intel_detected,
             'amd_detected': amd_detected,
             'virtualbox_detected': virtualbox_detected,
     }
-    module.exit_json(changed=False, ansible_facts=data, msg=data)
+    module.exit_json(changed=False, ansible_facts=data, msg=data) # pyright: ignore[reportUnknownMemberType]
 
 
 if __name__ == '__main__':
