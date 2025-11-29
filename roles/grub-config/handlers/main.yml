@@ -4,11 +4,13 @@
   ansible.builtin.command: "update-initramfs -u"
   failed_when: ('error' in initramfs_register_update.stderr)
   register: initramfs_register_update
+  changed_when: initramfs_register_update.rc == 0
 
 - name: Update GRUB
   ansible.builtin.command: update-grub
   failed_when: ('error' in grub_register_update.stderr)
   register: grub_register_update
+  changed_when: grub_register_update.rc == 0
 
   # TODO: Do we need to use grub-set-default?
   # https://github.com/yavdr/yavdr-utils/blob/master/events/actions/update-grub
