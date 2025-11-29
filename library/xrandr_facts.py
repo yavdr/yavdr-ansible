@@ -534,7 +534,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
                 bus_id = None
 
             def create_entry(
-                display_dict: dict[str, XrandrMonitor],
+                display_dict: dict[str, Any],
                 name: str,
                 connector: str,
                 resolution: str,
@@ -548,7 +548,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
                     "resolution": resolution,
                     "refreshrate": refreshrate,
                     "edid": f"/etc/X11/edid.{connector}.bin",
-                    "mode": "{resolution}_{refreshrate}",
+                    "mode": f"{resolution}_{refreshrate}",
                     "vendor": vendor,
                     "model": model,
                     "modelines": modelines,
