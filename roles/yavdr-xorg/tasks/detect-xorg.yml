@@ -5,6 +5,7 @@
   ansible.builtin.template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
+    mode: '0644'
   notify: ["Reload Units"]
 
 - name: "Expand template for xorg-verbose.conf"
@@ -68,6 +69,7 @@
   block:
     - name: Unbind vconsole
       ansible.builtin.shell: "echo 0 > /sys/class/vtconsole/vtcon1/bind"
+      changed_when: true # TOOD better check
 
     - name: "Wait a little, so noveau isn't used anymore"
       ansible.builtin.wait_for:
@@ -99,7 +101,7 @@
         enabled: true
         masked: false
         daemon_reload: true
-      ignore_errors: true
+      failed_when: false
 
 - name: "Start x-verbose@.service"
   ansible.builtin.systemd:
@@ -203,22 +205,39 @@
     - drm is undefined
     - xorg_config is undefined
 
+- name: Check if nvidia-smi is installed
+  ansible.builtin.command: nvidia-smi
+  register: nvidia_smi
+  changed_when: false
+  failed_when: false
+
+- name: Set nvidia_driver_detected variable
+  ansible.builtin.set_fact:
+    nvidia_driver_installed: "{{ nvidia_smi.rc == 0 | bool | default('false') }}"
+
+
 # TODO: Expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
 
-- name: Nvidia related config
+- name: Create xorg.conf (for nvidia driver)
+  ansible.builtin.template:
+    src: templates/xorg.conf.j2
+    dest: /etc/X11/xorg.conf
+    backup: true
+    mode: '0644'
   when:
-    - nvidia_detected | bool
-  block:
-    - name: Create xorg.conf (for nvidia driver)
-      ansible.builtin.template:
-        src: templates/xorg.conf.j2
-        dest: /etc/X11/xorg.conf
-        backup: true
-        mode: '0644'
+    - nvidia_detected | bool and nvidia_driver_installed
 
-- name: Intel xorg config snippet
+- name: Create nouveau xorg config snippet
+  ansible.builtin.template:
+    src: templates/20-intel.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-intel.conf
+    mode: '0644'
+  when:
+    - nvidia_detected | bool and not nvidia_driver_installed
+
+- name: Create Intel xorg config snippet
   ansible.builtin.template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
@@ -226,7 +245,7 @@
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
-- name: AMD xorg config snippet
+- name: Create AMD xorg config snippet
   ansible.builtin.template:
     src: templates/20-amd.conf.j2
     dest: /etc/X11/xorg.conf.d/20-amd.conf

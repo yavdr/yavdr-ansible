@@ -1,9 +1,14 @@
 ---
 # file: roles/yavdr-xorg/tasks/main.yml
-- import_tasks: setup-xorg.yml
-  tags: [install,update]
-- import_tasks: detect-xorg.yml
-  tags: [xorg.detect,install]
-- import_tasks: intel.yml
-  tags: [xorg.detect,install]
+- name: Import setup-xorg.yml
+  ansible.builtin.import_tasks: setup-xorg.yml
+  tags: [install, update]
+
+- name: Detect and apply Xorg configuration
+  ansible.builtin.import_tasks: detect-xorg.yml
+  tags: [xorg.detect, install]
+
+- name: KMS Settings
+  ansible.builtin.import_tasks: kms.yml
+  tags: [xorg.detect, install]
   when: intel_detected | bool and not nvidia_detected | bool
