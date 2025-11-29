@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 DOCUMENTATION = '''
 ---
-module: hardware_facts
+module: satip_facts
 short_description: "check if at least one SAT>IP server responds on the network"
 description:
      - This script sends a multicast message and awaits responses by Sat>IP servers.
