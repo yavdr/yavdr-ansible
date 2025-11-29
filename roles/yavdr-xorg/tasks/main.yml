@@ -11,4 +11,4 @@
 - name: KMS Settings
   ansible.builtin.import_tasks: kms.yml
   tags: [xorg.detect, install]
-  when: intel_detected | bool and not nvidia_detected | bool
+  when: intel_detected | bool or (nvidia_detected | bool and not nvidia_driver_detected) or amd_detected
