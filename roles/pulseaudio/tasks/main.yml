@@ -14,6 +14,20 @@
     state: present
     install_recommends: false
 
+- name: Ensure /var/lib/vdr/plugins/pulsecontrol/ exists
+  ansible.builtin.file:
+    name: /var/lib/vdr/plugins/pulsecontrol
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: '0755'
+
+- name: Create /var/lib/vdr/plugins/pulsecontrol/startup.script
+  ansible.builtin.file:
+    name: /var/lib/vdr/plugins/pulsecontrol/startup.script
+    state: touch
+    mode: '0755'
+
 - name: Create /etc/asound.conf with pulseaudio as default device
   ansible.builtin.template:
     src: templates/alsa/asound.conf.j2
