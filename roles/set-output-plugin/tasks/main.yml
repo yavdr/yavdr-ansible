@@ -1,14 +1,28 @@
-- name: Show vdr_output_plugin
-  ansible.builtin.debug:
-    var: vdr_output_plugin
-    verbosity: 1
 
 - name: Show automatically_installed_output_plugin
   ansible.builtin.debug:
     var: automatically_installed_output_plugin
-    verbosity: 1
+    verbosity: 0
 
-- name: Apt | install the output plugin
+- name: Show preferred_frontend
+  ansible.builtin.debug:
+    var: preferred_frontend
+    verbosity: 0
+
+- name: Set actual vdr output plugin
+  ansible.builtin.set_fact:
+    vdr_output_plugin: '{{ automatically_installed_output_plugin | default("vdr-plugin-softhddevice") }}'
+
+- name: Set selected_frontend
+  ansible.builtin.set_fact:
+    selected_frontend: '{{ preferred_frontend | default("") }}'
+
+- name: Show vdr_output_plugin
+  ansible.builtin.debug:
+    var: vdr_output_plugin
+    verbosity: 0
+
+- name: "Apt | install the output plugin {{ vdr_output_plugin }}"
   ansible.builtin.apt:
     state: present
     name: '{{ vdr_output_plugin }}'
@@ -16,12 +30,7 @@
 - name: Show selected_frontend
   ansible.builtin.debug:
     var: selected_frontend
-    verbosity: 1
-
-- name: Show preferred_frontend
-  ansible.builtin.debug:
-    var: preferred_frontend
-    verbosity: 1
+    verbosity: 0
 
 - name: Set active output plugin
   ansible.builtin.set_fact:
@@ -30,7 +39,7 @@
 - name: Show active_output_plugin
   ansible.builtin.debug:
     msg: 'active_output_plugin is: {{ active_output_plugin }}'
-    verbosity: 1
+    verbosity: 0
 
 - name: Set disabled output plugins
   ansible.builtin.set_fact:
@@ -40,7 +49,7 @@
 - name: Show disabled_output_plugins
   ansible.builtin.debug:
     var: q('list', disabled_output_plugins)
-    verbosity: 1
+    verbosity: 0
 
 - name: Disable unused output plugins
   ansible.builtin.command: "vdrctl disable {{ item }}"
@@ -50,7 +59,7 @@
   changed_when: true # TODO: check file/symlink
   when: disabled_output_plugins is defined
 
-- name: Enable chosen output plugin
+- name: "Enable chosen output plugin {{ active_output_plugin }}"
   ansible.builtin.command: vdrctl enable {{ active_output_plugin }}
   register: vdrctl
   failed_when:
