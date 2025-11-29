@@ -14,9 +14,12 @@
       register: cloud_init_debconf
 
     - name: "Reconfigure cloud-init package"
-      ansible.builtin.command: dpkg-reconfigure -f noninteractive cloud-init
-      ignore_errors: true
-      when: cloud_init_debconf.changed
+      ansible.builtin.command:
+        cmd: dpkg-reconfigure -f noninteractive cloud-init
+      when: cloud_init_debconf.changed # noqa: no-handler
+      failed_when: false
+      register: cloud_init_reconfigure
+      changed_when: cloud_init_reconfigure.rc == 0
       # notify: ['Re-run required']
 
     - name: "Apt | ensure package cloud-init is not installed"
