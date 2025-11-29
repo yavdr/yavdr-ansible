@@ -1,12 +1,12 @@
 
 - name: Show automatically_installed_output_plugin
   ansible.builtin.debug:
-    var: automatically_installed_output_plugin
+    var: automatically_installed_output_plugin | default("not set")
     verbosity: 0
 
 - name: Show preferred_frontend
   ansible.builtin.debug:
-    var: preferred_frontend
+    var: preferred_frontend | default("not set")
     verbosity: 0
 
 - name: Set actual vdr output plugin
@@ -48,7 +48,7 @@
 
 - name: Show disabled_output_plugins
   ansible.builtin.debug:
-    var: q('list', disabled_output_plugins)
+    var: disabled_output_plugins | default([])
     verbosity: 0
 
 - name: Disable unused output plugins
