@@ -225,15 +225,16 @@
     vdr_service: streamdev-server
 
 - name: Install and configure streamdev-client
+  when: streamdev_client_remote_ip | length > 0
   block:
     - name: Apt | install vdr-plugin-streamdev-client
       ansible.builtin.apt:
-        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
+        state: "present"
         name: "vdr-plugin-streamdev-client"
 
     - name: Set streamdev-client.RemoteIp
       ansible.builtin.lineinfile:
-        state: '{{ "present" if streamdev_client_remote_ip else "absent" }}'
+        state: "present"
         owner: "{{ vdr.user }}"
         group: "{{ vdr.group }}"
         create: true
