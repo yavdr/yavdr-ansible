@@ -8,7 +8,12 @@
   ansible.builtin.import_tasks: detect-xorg.yml
   tags: [xorg.detect, install]
 
+- name: Debug | show kms_set_boot_edid
+  ansible.builtin.debug:
+    var: kms_set_boot_edid
+    verbosity: 0
+
 - name: KMS Settings
-  ansible.builtin.import_tasks: kms.yml
+  ansible.builtin.include_tasks: kms.yml
   tags: [xorg.detect, install]
-  when: intel_detected | bool or (nvidia_detected | bool and not nvidia_driver_detected) or amd_detected
+  when: kms_set_boot_edid
