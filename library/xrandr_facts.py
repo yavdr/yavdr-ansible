@@ -215,9 +215,9 @@ def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, 
                 ]
                 pixel_clk = pixel_clk[:-3]
 
+                h_width = h_start = h_end = h_total = _h_skew = h_clock = '?'
                 while True:
                     line = next(iterator).strip()
-                    h_width = h_start = h_end = h_total = _h_skew = h_clock = ''
                     if line.startswith("h:"):
                         (
                             _,
@@ -257,8 +257,11 @@ def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, 
                             xorg[screen][connector].preferred_refreshrate = rrate
                         if current:
                             xorg[screen][connector].current = mode_name
-                        modeline = f'Modeline "{mode_name}" {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
-                        xorg[screen][connector].modelines[mode_name] = modeline
+                        try:
+                            modeline = f'Modeline "{mode_name}" {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
+                            xorg[screen][connector].modelines[mode_name] = modeline
+                        except NameError:
+                            pass
                         break
     return xorg
 
