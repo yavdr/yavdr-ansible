@@ -19,11 +19,11 @@
 - name: "Set kms_boot_options variable"
   ansible.builtin.set_fact:
     kms_boot_options: >
-      "video={{ drm.primary.drm_connector }}:D
-      {% if drm.secondary is defined and drm.secondary.drm_connector is defined %}
-      video={{ drm.secondary.drm_connector }}:D{% endif %}
+      "video={{ drm.primary.drm_connector }}:D{%
+        if drm.secondary is defined and drm.secondary.drm_connector is defined
+      %},{{ drm.secondary.drm_connector }}:D{% endif %}
       drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}{%
-      if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined
+        if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined
       %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}
       {% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}"
   when: kms_set_boot_edid | bool
