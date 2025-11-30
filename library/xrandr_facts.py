@@ -215,7 +215,6 @@ def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, 
                 ]
                 pixel_clk = pixel_clk[:-3]
 
-                h_width = h_start = h_end = h_total = _h_skew = h_clock = '?'
                 while True:
                     line = next(iterator).strip()
                     if line.startswith("h:"):
@@ -236,33 +235,32 @@ def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, 
                         ) = line.split()
                         h_clock = h_clock[:-3]
 
-                    if line.startswith("v:"):
-                        _, _, v_height, _, v_start, _, v_end, _, v_total, _, v_clock = (
-                            line.split()
-                        )
-                        refresh_rate = ast.literal_eval(v_clock[:-2])
-                        rrate = int(round(refresh_rate))
-                        # if (
-                        #     xorg[screen][connector].modes.get(match_resolution)
-                        #     is None
-                        # ):
-                        #     xorg[screen][connector].modes[match_resolution] = []
-                        xorg[screen][connector].modes[match_resolution].add(rrate)
-                        mode_name = f"{match_resolution}_{rrate}"
-                        if preferred:
-                            xorg[screen][connector].preferred = mode_name
-                            xorg[screen][
-                                connector
-                            ].preferred_resolution = match_resolution
-                            xorg[screen][connector].preferred_refreshrate = rrate
-                        if current:
-                            xorg[screen][connector].current = mode_name
-                        try:
-                            modeline = f'Modeline "{mode_name}" {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
-                            xorg[screen][connector].modelines[mode_name] = modeline
-                        except NameError:
-                            pass
-                        break
+                        line = next(iterator).strip()
+
+                        if line.startswith("v:"):
+                            _, _, v_height, _, v_start, _, v_end, _, v_total, _, v_clock = (
+                                line.split()
+                            )
+                            refresh_rate = ast.literal_eval(v_clock[:-2])
+                            rrate = int(round(refresh_rate))
+                            # if (
+                            #     xorg[screen][connector].modes.get(match_resolution)
+                            #     is None
+                            # ):
+                            #     xorg[screen][connector].modes[match_resolution] = []
+                            xorg[screen][connector].modes[match_resolution].add(rrate)
+                            mode_name = f"{match_resolution}_{rrate}"
+                            if preferred:
+                                xorg[screen][connector].preferred = mode_name
+                                xorg[screen][
+                                    connector
+                                ].preferred_resolution = match_resolution
+                                xorg[screen][connector].preferred_refreshrate = rrate
+                            if current:
+                                xorg[screen][connector].current = mode_name
+                                modeline = f'Modeline "{mode_name}" {pixel_clk} {h_width} {h_start} {h_end} {h_total} {v_height} {v_start} {v_end} {v_total} {" ".join(flags)}'
+                                xorg[screen][connector].modelines[mode_name] = modeline
+                            break
     return xorg
 
 
