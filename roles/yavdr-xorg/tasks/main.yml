@@ -8,6 +8,12 @@
   ansible.builtin.import_tasks: detect-xorg.yml
   tags: [xorg.detect, install]
 
+- name: Install mesa vdpau drivers
+  ansible.builtin.apt:
+    name: mesa-vdpau-drivers
+    state: present
+  when: nvidia_detected and not nvidia_driver_installed or amd_detected
+
 - name: Debug | show kms_set_boot_edid
   ansible.builtin.debug:
     var: kms_set_boot_edid
