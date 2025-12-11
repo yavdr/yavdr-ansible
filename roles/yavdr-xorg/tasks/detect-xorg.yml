@@ -1,6 +1,31 @@
 ---
 # file: roles/yavdr-xorg/tasks/detect-xorg.yml
 
+- name: Stop VDR
+  ansible.builtin.systemd:
+    name: vdr.service
+    state: stopped
+    enabled: true
+  notify: ['Start VDR']
+
+- name: Stop yavdr-xorg
+  ansible.builtin.systemd:
+    name: 'yavdr-xorg'
+    state: stopped
+    enabled: true
+  notify: ['Start yavdr-xorg']
+
+- name: Stop xlogin
+  ansible.builtin.systemd:
+    name: 'xlogin@{{ vdr.user }}.service'
+    state: stopped
+  notify: ['Start xlogin']
+
+- name: Stop x
+  ansible.builtin.systemd:
+    name: x@vt7.service
+    state: stopped
+
 - name: "Expand template for x-verbose@.service"
   ansible.builtin.template:
     src: "templates/systemd/system/x-verbose@.service.j2"
@@ -24,30 +49,6 @@
     path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
-# - name: Stop VDR
-#   ansible.builtin.systemd:
-#     name: vdr.service
-#     state: stopped
-#     enabled: true
-#   notify: ['Start VDR']
-#
-# - name: Stop yavdr-xorg
-#   ansible.builtin.systemd:
-#     name: 'yavdr-xorg'
-#     state: stopped
-#     enabled: true
-#   notify: ['Start yavdr-xorg']
-#
-# - name: Stop xlogin
-#   ansible.builtin.systemd:
-#     name: 'xlogin@{{ vdr.user }}.service'
-#     state: stopped
-#   notify: ['Start xlogin']
-#
-# - name: Stop x
-#   ansible.builtin.systemd:
-#     name: x@vt7.service
-#     state: stopped
 
 - name: Check /etc/yavdr/autoinstalled if a nvidia driver has been installed
   ansible.builtin.lineinfile:
