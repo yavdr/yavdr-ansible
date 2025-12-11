@@ -5,10 +5,10 @@ import binascii
 import csv
 import re
 import subprocess
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Generator, NamedTuple, cast
+from typing import Any, NamedTuple, cast
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -127,7 +127,7 @@ class XrandrMonitor:
     mode: str = ""
     model: str = ""
     modes: defaultdict[str, set[int]] = field(default_factory=lambda: defaultdict(set))
-    modelines: dict[str, str] = field(default_factory=dict)
+    modelines: dict[str, str] = field(default_factory=dict[str, str])
     refreshrate: int = 0
     resolution: str = ""
     vendor: str = ""
