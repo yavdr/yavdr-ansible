@@ -94,7 +94,7 @@ import stat
 LAUNCHPAD_API = "https://api.launchpad.net/1.0/~{owner}/+archive/ubuntu/{repo}"
 
 
-def http_get(url, module):
+def http_get(url: str, module: AnsibleModule):
     try:
         with urllib.request.urlopen(url, timeout=30) as r:
             return r.read().decode("utf-8")
@@ -102,7 +102,7 @@ def http_get(url, module):
         module.fail_json(msg=f"Failed HTTP GET {url}: {e}")
 
 
-def get_ppa_info(owner, repo, module):
+def get_ppa_info(owner, repo, module: AnsibleModule):
     url = LAUNCHPAD_API.format(owner=owner, repo=repo)
     text = http_get(url, module)
     try:
@@ -116,7 +116,7 @@ def get_ppa_info(owner, repo, module):
     return fp
 
 
-def run_gpg_recv_and_export(fingerprint, module):
+def run_gpg_recv_and_export(fingerprint: str, module: AnsibleModule):
     """
     Create a temporary GNUPGHOME, receive key from keyserver.ubuntu.com,
     export ASCII-armored and binary forms, return (armor_str, binary_bytes).
@@ -280,7 +280,7 @@ def build_sources_content(
 
 
 def main():
-    module = AnsibleModule(
+    module: AnsibleModule = AnsibleModule(
         argument_spec=dict(
             repo=dict(type="str", required=True),
             state=dict(type="str", choices=["present", "absent"], default="present"),
