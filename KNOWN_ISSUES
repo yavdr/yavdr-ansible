@@ -1,0 +1,140 @@
+# PPAs
+The names of files for source entries in `/etc/apt/sources.list.d/` created by `add-apt-repository` and ansible's deb822 module differ: https://github.com/ansible/ansible/issues/86243
+
+This can lead to problems when updating packages after adding a repository twice.
+
+The custom add_ppa module should hopefully work like add-apt-repository and avoid conflicts
+
+# Systemd
+On slow systems, systemd units can time out when starting. You can give them more time by adding an override like this:
+```conf
+[Service]
+StartTimeoutSec=infinite
+```
+
+# VDR
+## Plugins
+### vdr-plugin-restfulapi
+If plugins invalidate device pointers, the plugin will crash when dereferencing an obsolete pointer.
+
+### vdr-plugin-softhddrm/vaapi
+FTBS - needs patches
+
+### vdr-plugin-softhddevice
+Package `mesa-vdpau-drivers` needs to be installed if no nvidia driver is available
+
+# Networking
+
+## ntfy Server for vdr-plugin-eventpub
+Best to integrate it with the nginx server and https certificate
+
+## Name Resolution
+
+By default local name resolution seems to be disabled in Ubuntu 26.04 (which can affect e.g. the vdr-addon-avahi-linker).
+To search certain domains when not using an FQDN, you can add them to the netplan configuration under the `nameservers` list - e.g. for `fritz.box` in `/etc/netplan/00-installer-config.yaml`:
+
+```yml
+
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    enp0s3:
+      dhcp4: true
+      dhcp6: true
+      match:
+        macaddress: 08:00:27:02:a6:c8
+      set-name: enp0s3
+      nameservers:
+        search: [fritz.box]
+  version: 2
+```
+
+Run `the following command to update the actual configuration of systemd-resolved:
+```shell
+sudo netplan apply
+```
+
+Possible way to do this without the need for a device-specific config: https://wiki.archlinux.org/title/Systemd-resolved#systemd-resolved_does_not_resolve_hostnames_without_suffix
+
+
+If you are using systemd-networkd, you might want the domain supplied by the DHCP server or IPv6 Router Advertisement to be used as a search domain. This is disabled by default, to enable it add to the interface's .network file (/etc/systemd/networkd.conf might also work)
+```ini
+[Network]
+UseDomains=true
+```
+You can check what systemd-resolved has for each interface with:
+```shell
+$ resolvectl domain
+```
+
+## NFS
+The kernel deprecates the `intr` option for NFS, so this needs to be replaced by something like `timeo=600,retrans=2` to prevents endless lockups on timeouts
+This affects the vdr-addon-avahi-linker, which uses autofs to mount the remote NFS shares in the background.
+
+## avahi-linker
+Error when the trying to update recording directories via dbus2vdr while vdr is not ready
+
+# Background services
+## vdr-addon-lifeguard
+crashes on exit - test with new package
+
+## udiskie
+```
+Dez 01 18:48:28 resolute-legacy udiskie[1610]: Traceback (most recent call last):
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/dbus.py", line 225, in callback
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     return handler(object_path, *unpack_variant(parameters))
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/udisks2.py", line 941, in _job_completed
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     self.trigger('job_failed', device, action, message)
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/udisks2.py", line 768, in trigger
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     super().trigger(event, device, *args)
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/common.py", line 44, in trigger
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     handler(*args)
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     ~~~~~~~^^^^^^^
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/async_.py", line 107, in runner
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:     return ensure_future(func(*args, **kwargs))
+Dez 01 18:48:28 resolute-legacy udiskie[1610]:                          ~~~~^^^^^^^^^^^^^^^^^
+Dez 01 18:48:28 resolute-legacy udiskie[1610]: TypeError: DeviceCommand.__call__() takes 2 positional arguments but 4 were given
+```
+
+[Source code](https://github.com/coldfix/udiskie/blob/1199864718ca277a0324fa08a1e230424e331f58/udiskie/prompt.py#L207)
+
+[Bug Report](https://github.com/coldfix/udiskie/issues/324#issuecomment-3638677906)
+
+# Output
+
+## Alsa
+The alsa packages contains the `90-alsa-restore.rules` file that generates warnings regarding to the `alsa-restore_std` label. See Bug on Launchpad #215475 - this might be resolved with a later alsa version.
+
+## nvidia cards
+Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
+
+```xserver-xorg-video-nouveau```
+```firmware-nvidia-graphics```
+```vdpau-driver-all```
+
+Problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
+https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have the necessary files
+
+## intel cards
+There might be some trial and error involved to find a working combination of driver, glx version and softhddevice output method.
+For old IGPs (e.g. Haswell Generation), using the `intel` driver and `vaapi` works usually best.
+
+For a 13th generation Core i3, `vaapi-glx` works best.
+
+The modesetting driver seems to be limited to a single display.
+
+# GUI Software and Configuration
+
+## Openbox
+The `rc.xml` points to a menu file in `/var/lib/vdr/openbox.xml` that doesn't exist in recent openbox packages
+
+# yavdr-frontend
+## vdr-sxfe
+vdr-sxfe isn't started successfully after vdr starts - still unclear why this happens
+## stopping yavdr-frontend befor the X-Server
+This could be done using the command `frontend-dbus-send quit` in the `ExecStop=` Part of `x@vt7.service`
+
+# KODI
+The shutdown menu allows to shutdown the system - can we block this with an inhibitor?
