@@ -1,0 +1,26 @@
+{{ ansible_managed | comment }}
+
+enable_nfs: {{ lifeguard_enable_nfs }}
+enable_samba: {{ lifeguard_enable_samba }}
+enable_ssh: {{ lifeguard_enable_ssh }}
+
+# ping hostnames or IP addresses (which are faster to lookup than hostnames)
+# Caution: pinging hosts can be quite slow!
+hosts:
+{% if lifeguard_hosts | length == 0 %}
+  #- vdr-client
+{% endif %}
+{% for host in lifeguard_hosts %}
+"  - {{ item }}"
+{% endfor %}
+
+# check for logged in users
+{% set user = {"user": lifeguard_users} %}
+{{ user | to_nice_yaml }}
+
+{% set process_names = {"process_names": lifeguard_processes %}
+{{ process_names | to_nice_yaml }}
+
+# check for established tcp connections for the given process name on the given ports
+{% set tcp_connections = {"tcp_connections": lifeguard_tcp} %}
+{{ tcp_connections | to_nice_yaml }}
