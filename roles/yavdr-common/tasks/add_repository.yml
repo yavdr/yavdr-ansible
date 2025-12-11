@@ -11,22 +11,30 @@
 
 - name: Define filename like add-apt-repository
   ansible.builtin.set_fact:
-    ppa_filename: "{{ ppa_info_result.owner }}-ubuntu-{{ ppa_info_result.name | replace('.', '_') }}-{{ ansible_distribution_release }}.sources"
+    ppa_filename: "{{ ppa_info_result.owner }}-ubuntu-{{ ppa_info_result.name | replace('.', '_') }}-{{ ansible_distribution_release }}"
 
 - name: "Show filename {{ ppa_filename }}"
   ansible.builtin.debug:
     var: ppa_filename
 
-- name: "Manage PPA repository (deb822_repository) {{ item }}"
-  become: true
-  ansible.builtin.deb822_repository:
+- name: "Add PPA repository (add-apt-repository-like) {{ item }}"
+  add_ppa:
     state: present
-    name: "{{ ppa_info_result.owner }}-ubuntu-{{ ppa_info_result.name | replace('.', '_') }}-{{ ansible_distribution_release }}"
-    types: [deb]
-    uris: ["https://ppa.launchpadcontent.net/{{ ppa_info_result.owner }}/{{ ppa_info_result.name }}/ubuntu"]
-    suites: ["{{ ansible_distribution_release }}"]
-    components: [main]
-    signed_by: "{{ ppa_info_result.signing_key_url }}"
+    repo: "{{ item }}"
+    inline_key: true
+    deb_src: false
+
+# - name: "Manage PPA repository (deb822_repository) {{ item }}"
+#   become: true
+#   less_stupid_deb822_repository:
+#     state: present
+#     name: "{{ ppa_filename }}"
+#     mangle_name: false
+#     types: [deb]
+#     uris: ["https://ppa.launchpadcontent.net/{{ ppa_info_result.owner }}/{{ ppa_info_result.name }}/ubuntu"]
+#     suites: ["{{ ansible_distribution_release }}"]
+#     components: [main]
+#     signed_by: "{{ ppa_info_result.signing_key_url }}"
 
 - name: Update package list
   ansible.builtin.apt:
