@@ -1,0 +1,68 @@
+---
+
+- name: Add Mozilla repository
+  ansible.builtin.deb822_repository:
+    name: mozilla
+    state: '{{ "present" if firefox_as_deb else "absent" }}'
+    types: [deb]
+    uris: "https://packages.mozilla.org/apt"
+    suites: [mozilla]
+    components: [main]
+    signed_by: "https://packages.mozilla.org/apt/repo-signing-key.gpg"
+    enabled: true
+
+- name: Remove Mozilla repository pinning if unused
+  ansible.builtin.file:
+    path: /etc/apt/preferences.d/mozilla
+    state: "{{ 'touch' if firefox_as_deb else 'absent' }}"
+    mode: '0644'
+
+- name: Pin the firefox package from Mozilla's repository
+  ansible.builtin.copy:
+    src: files/apt_mozilla
+    dest: /etc/apt/preferences.d/mozilla
+    mode: '0644'
+  when: firefox_as_deb
+
+- name: Remove firefox snap if unused
+  community.general.snap:
+    name: firefox
+    state: absent
+  when: firefox_as_deb
+
+- name: Refresh packages
+  ansible.builtin.apt:
+    name: firefox
+    state: present
+    update_cache: true
+
+
+- name: Configure firefox for nvidia GPUs
+  when: nvidia_driver_detected or firefox_nvidia | default(False)
+  block:
+    - name: Install nvidia-vaapi-driver
+      ansible.builtin.apt:
+        name: nvidia-vaapi-driver
+        state: present
+
+    - name: Add necessary Environment Variables
+      ansible.builtin.copy:
+        src: files/firefox_vaapi.sh
+        dest: /etc/profile.d/firefox_vaapi.sh
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Create autoconfig.js for firefox
+      ansible.builtin.copy:
+        src: files/autoconfig.js
+        dest: /usr/lib/firefox/defaults/pref/autoconfig.js
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Set global user.js
+      ansible.builtin.template:
+        src: templates/firefox.cfg.j2
+        dest: /usr/lib/firefox/defaults/firefox.cfg
+        mode: '0644'

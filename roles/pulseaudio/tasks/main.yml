@@ -11,6 +11,7 @@
       - python3-pulsectl
       - python3-dasbus
       - yavdr-pasuspend
+      - yavdr-pulse-dbusctl
     state: present
     install_recommends: false
 
@@ -34,7 +35,7 @@
     dest: /etc/asound.conf
     mode: '0644'
 
-- name: "Create /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
+- name: "Create/Update /etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf to configure access to dbus_pulsectl"
   ansible.builtin.template:
     src: "dbus_pulsectl/org.yavdr.dbus_pulsectl.conf.j2"
     dest: "/etc/dbus-1/system.d/org.yavdr.dbus_pulse_ctl.conf"
@@ -48,12 +49,6 @@
     state: directory
     mode: '0755'
 
-- name: Create dbus_pulsectl script
-  ansible.builtin.template:
-    src: "dbus_pulsectl/dbus_pulsectl.py.j2"
-    dest: "{{ vdr.home }}/bin/dbus_pulsectl"
-    mode: '0755'
-
 - name: Ensure ~/.config/systemd/user exists for vdr user
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config/systemd/user"
@@ -61,13 +56,4 @@
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
     mode: '0755'
-
-- name: Create dbus service for dbus_pulsectl
-  ansible.builtin.template:
-    src: dbus_pulsectl/dbus-pulsectl.service.j2
-    dest: "{{ vdr.home }}/.config/systemd/user/dbus-pulsectl.service"
-    owner: "{{ vdr.user }}"
-    group: "{{ vdr.group }}"
-    mode: '0644'
-
     # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?
