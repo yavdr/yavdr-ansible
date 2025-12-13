@@ -21,6 +21,20 @@
 #   register: wol
 #   with_items: '{% for interface in ansible_interfaces if interface != 'lo' and interface != 'bond0' %}'
 
+- name: Make local domain name resolution work with systemd-networkd
+  community.general.ini_file:
+    path: /etc/systemd/networkd.conf
+    section: network
+    option: UseDomains
+    value: 'yes'
+    backup: true
+    mode: '0644'
+
+- name: Restart systemd-networkd.service
+  ansible.builtin.systemd:
+    name: systemd-networkd.service
+    state: restarted
+
 - name: Restart autofs if running
   ansible.builtin.systemd:
     name: autofs
