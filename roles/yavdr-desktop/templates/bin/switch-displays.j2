@@ -2,8 +2,12 @@
 source <(systemctl --user show-environment)
 [[ "$DISPLAY" =~ \.1$ ]] && DISPLAY="${DISPLAY%.1}.0" || DISPLAY="${DISPLAY%.0}.1"
 
+#check if osd2web.service is available
+systemctl --user status osd2web.service >/dev/null 2>&1
+has_osd2web=$?
+
 frontend-dbus-send stop
-systemctl --user stop osd2web
+(( has_osd2web == 0 )) && systemctl --user stop osd2web.service
 frontend-dbus-send setDisplay "$DISPLAY"
-systemctl --user start osd2web
+(( has_osd2web == 0 )) && systemctl --user start osd2web.service
 frontend-dbus-send start
