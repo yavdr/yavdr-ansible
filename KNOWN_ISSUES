@@ -49,6 +49,8 @@ network:
   version: 2
 ```
 
+<!-- This is the solution that made it into the playbook because it doesn't require to differentiate network adapters: -->
+
 Run `the following command to update the actual configuration of systemd-resolved:
 ```shell
 sudo netplan apply
@@ -107,6 +109,10 @@ Dez 01 18:48:28 resolute-legacy udiskie[1610]: TypeError: DeviceCommand.__call__
 ## Alsa
 The alsa packages contains the `90-alsa-restore.rules` file that generates warnings regarding to the `alsa-restore_std` label. See Bug on Launchpad #215475 - this might be resolved with a later alsa version.
 
+## pulseaudio
+
+When upgrading from previous yavdr-ansible version, make sure to delete `{{ vdr.home }}/.config/systemd/user/dbus-pulsectl.service` to allow the systemd unit installed by dbus-pulsectl to start the correct python script.
+
 ## nvidia cards
 Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
 
@@ -115,7 +121,7 @@ Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. Th
 ```vdpau-driver-all```
 
 Problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
-https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have the necessary files
+https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have some extracted necessary files. So far I have not been successful in making VDPAU with those work.
 
 ## intel cards
 There might be some trial and error involved to find a working combination of driver, glx version and softhddevice output method.
@@ -138,3 +144,29 @@ This could be done using the command `frontend-dbus-send quit` in the `ExecStop=
 
 # KODI
 The shutdown menu allows to shutdown the system - can we block this with an inhibitor?
+
+## Firefox
+<!-- TODO: this was implemented in the role "firefox" - needs still to be tested with a system that has an nvidia card (GT1030 or better) -->
+By default there is no Hardware acceleration for Nvidia GPUs in Firefox. For GPUs that support NVDEC and an nvidia-driver > 470 it is possible to use
+[nvidia-vaapi-driver](https://github.com/elFarto/nvidia-vaapi-driver) as a workaround.
+
+To use this: install firefox from Mozilla's debian repository: https://support.mozilla.org/en-US/kb/install-firefox-linux#w_install-firefox-deb-package-for-debian-based-distributions-recommended
+It' recommended to uninstall the snap version to avoid mixups: `sudo snap remove firefox`
+
+Install the package `nvidia-vaapi-driver` from this PPA: https://launchpad.net/~ubuntuhandbook1/+archive/ubuntu/nvidia-vaapi
+
+```shell
+sudo add-apt-repository ppa:ubuntuhandbook1/nvidia-vaapi
+sudo apt install nvidia-vaapi-driver
+```
+
+Set the necessary environment variables - e.g. at the end of the `/var/lib/vdr/.bashrc`:
+```shell
+LIBVA_DRIVER_NAME=nvidia
+MOZ_DISABLE_RDD_SANDBOX=1
+CUDA_DISABLE_PERF_BOOST=1
+```
+
+Adapt the firefox configuration as described in https://github.com/elFarto/nvidia-vaapi-driver?tab=readme-ov-file#firefox
+
+After a reboot firefox should be able to use hardware acceleration - you can check this on the `about:support` page in Firefox - a GT1030 should support hardware-decoding for H264, VP9 and HEVC.
