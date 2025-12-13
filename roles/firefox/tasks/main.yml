@@ -34,11 +34,12 @@
   ansible.builtin.apt:
     name: firefox
     state: present
+    allow_downgrade: true
     update_cache: true
 
 
 - name: Configure firefox for nvidia GPUs
-  when: nvidia_driver_detected or firefox_nvidia | default(False)
+  when: nvidia_driver_installed and firefox_nvidia | default(True)
   block:
     - name: Install nvidia-vaapi-driver
       ansible.builtin.apt:
@@ -53,16 +54,16 @@
         owner: root
         group: root
 
-    - name: Create autoconfig.js for firefox
-      ansible.builtin.copy:
-        src: files/autoconfig.js
-        dest: /usr/lib/firefox/defaults/pref/autoconfig.js
-        mode: '0755'
-        owner: root
-        group: root
+- name: Create autoconfig.js for firefox
+  ansible.builtin.copy:
+    src: files/autoconfig.js
+    dest: /usr/lib/firefox/defaults/pref/autoconfig.js
+    mode: '0755'
+    owner: root
+    group: root
 
-    - name: Set global user.js
-      ansible.builtin.template:
-        src: templates/firefox.cfg.j2
-        dest: /usr/lib/firefox/defaults/firefox.cfg
-        mode: '0644'
+- name: Set global user.js
+  ansible.builtin.template:
+    src: templates/firefox.cfg.j2
+    dest: /usr/lib/firefox/defaults/firefox.cfg
+    mode: '0644'
