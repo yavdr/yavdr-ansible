@@ -9,12 +9,10 @@ Section "Device"
   Identifier  "Device0"
   Driver      "{{ intel_driver }}"
   Option      "TearFree" "true"
-{% if selected_frontend is defined and selected_frontend  == "softhdvaapi" and intel_driver == "intel" %}
-    Option      "DRI" "3"
-{% endif %}
+  Option      "DRI" "3"
 {% if xorg.secondary is defined %}
   Option      "ZaphodHeads" "{{ primary_output }}"
-  Screen      0  
+  Screen      0
 {% endif %}
 EndSection
 
@@ -23,11 +21,9 @@ Section "Device"
   Identifier  "Device1"
   Driver      "{{ intel_driver }}"
   Option      "TearFree" "true"
-{%if selected_frontend is defined and selected_frontend  == "softhdvaapi" and intel_driver == "intel" %}
-    Option      "DRI" "3"
-{% endif %}
+  Option      "DRI" "3"
   Option      "ZaphodHeads" "{{ secondary_output }}"
-  Screen      1  
+  Screen      1
 EndSection
 
 Section "ServerLayout"
