@@ -491,7 +491,7 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]])-> dict[str, Any]
 
 
 def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str, Any]):
-    result = {}
+    result: dict[str, Any] = {}
     drm = {}
     config: OutputConfig = OutputConfig()
 
@@ -682,6 +682,7 @@ if __name__ == "__main__":
         argument_spec=ARG_SPECS,
         supports_check_mode=False,
     )
+
     params = cast(dict[str, str], module.params)
     try:
         d = subprocess.check_output(
