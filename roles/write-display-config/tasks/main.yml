@@ -1,16 +1,33 @@
 - name: Update xorg, xrandr and drm variables with values from local facts if needed
   ansible.builtin.set_fact:
-    xorg: '{{ ansible_local.xorg.xorg }}'
-    xrandr: '{{ ansible_local.xrandr.xrandr }}'
-    drm: '{{ ansible_local.drm.drm }}'
+    ansible_facts:
+      xorg: '{{ ansible_local.xorg.xorg }}'
+      xrandr: '{{ ansible_local.xrandr.xrandr }}'
+      drm: '{{ ansible_local.drm.drm }}'
   when:
-    - xrandr is undefined
-    - xorg is undefined
-    - drm is undefined
+    - ansible_facts.xrandr is undefined
+    - ansible_facts.xorg is undefined
+    - ansible_facts.drm is undefined
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
+
+- name: Load display configuration
+  ansible.builtin.include_vars:
+    file: /etc/yavdr/display_config.yml
+    name: xorg_config
+
+
+- name: show xorg_config
+  debug:
+    var: xorg_config
+    verbosity: 0
+
+- name: show xrandr config
+  debug:
+    var: xrandr
+    verbosity: 0
 
 - name: Nvidia related config
   when:
@@ -22,6 +39,15 @@
         dest: /etc/X11/xorg.conf
         backup: true
         mode: '0755'
+
+# TODO: this is only useful if VDPAU works with nouveau
+# - name: Create nouveau xorg config snippet
+#   ansible.builtin.template:
+#     src: templates/20-nouveau.conf.j2
+#     dest: /etc/X11/xorg.conf.d/20-nouveau.conf
+#     mode: '0644'
+#   when:
+#     - nvidia_detected | bool and not nvidia_driver_installed
 
 - name: Intel xorg config snippet
   ansible.builtin.template:

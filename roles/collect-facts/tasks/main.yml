@@ -14,16 +14,16 @@
     msg: "{{ item }}"
     verbosity: 0
   loop:
-    - "{{ usb }}"
-    - "{{ pci }}"
-    - "{{ serial_ports }}"
-    - "{{ gpus }}"
-    - "{{ modules }}"
-    - "{{ acpi_power_modes }}"
-    - "{{ nvidia_detected }}"
-    - "{{ intel_detected }}"
-    - "{{ amd_detected }}"
-    - "{{ virtualbox_detected }}"
+    - "{{ ansible_facts.usb }}"
+    - "{{ ansible_facts.pci }}"
+    - "{{ ansible_facts.serial_ports }}"
+    - "{{ ansible_facts.gpus }}"
+    - "{{ ansible_facts.modules }}"
+    - "{{ ansible_facts.acpi_power_modes }}"
+    - "{{ ansible_facts.nvidia_detected }}"
+    - "{{ ansible_facts.intel_detected }}"
+    - "{{ ansible_facts.amd_detected }}"
+    - "{{ ansible_facts.virtualbox_detected }}"
 
 - name: Get detailed PCI device information
   pci_facts:
@@ -32,7 +32,7 @@
 
 - name: Show PCI devices
   ansible.builtin.debug:
-    var: pci_devices
+    var: ansible_facts.pci_devices
     verbosity: 1
 
 - name: Set known vdr output plugins

@@ -6,7 +6,7 @@
   block:
     - name: Check which display type we got
       ansible.builtin.set_fact:
-        imon_vfd_device: '{{ "imon_0044" if "15c2:0044" in usb else "imon_0036" }}'
+        imon_vfd_device: '{{ "imon_0044" if "15c2:0044" in ansible_facts.usb else "imon_0036" }}'
     - name: Apt | install lcdproc and vdr-plugin-lcdproc for IMON VFD
       ansible.builtin.apt:
         name: vdr-plugin-lcdproc

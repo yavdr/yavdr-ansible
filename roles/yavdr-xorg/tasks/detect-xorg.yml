@@ -66,7 +66,7 @@
   when:
     - nvidia_detected | bool
     - nvidia_driver_installed | bool
-    - '"nouveau" in modules'
+    - '"nouveau" in ansible_facts.modules'
   block:
     - name: Unbind vconsole
       ansible.builtin.shell: "echo 0 > /sys/class/vtconsole/vtcon1/bind"
@@ -128,22 +128,22 @@
 
 - name: Show primary display configuration
   ansible.builtin.debug:
-    var: xorg.primary
+    var: ansible_facts.xorg.primary
 
 - name: Show secondary display configuration
   ansible.builtin.debug:
-    var: xorg.secondary
-  when: xorg.secondary is defined
+    var: ansible_facts.xorg.secondary
+  when: ansible_facts.xorg.secondary is defined
 
 - name: Show drm data (emtpy for some nvidia cards)
   ansible.builtin.debug:
-    var: drm
-  when: drm is defined
+    var: ansible_facts.drm
+  when: ansible_facts.drm is defined
 
 - name: Show xorg_config data
   ansible.builtin.debug:
-    var: XorgConfig
-  when: XorgConfig is defined
+    var: ansible_facts.XorgConfig
+  when: ansible_facts.XorgConfig is defined
 
 - name: "Stop x-verbose@vt7.service"
   ansible.builtin.systemd:
@@ -159,10 +159,10 @@
 - name: Show result of xorg_facts
   ansible.builtin.debug:
     msg: |
-      xrandr={{ xrandr | default('undefined') }}
-      xorg={{ xorg | default('undefined') }}
-      drm={{ drm | default('undefined') }}
-      xorg_config={{ xorg_config | default('undefined') }}
+      xrandr={{ ansible_facts.xrandr | default('undefined') }}
+      xorg={{ ansible_facts.xorg | default('undefined') }}
+      drm={{ ansible_facts.drm | default('undefined') }}
+      xorg_config={{ ansible_facts.xorg_config | default('undefined') }}
 
 - name: Save results of xorg_facts module
   block:
@@ -174,25 +174,25 @@
 
     - name: Write xorg variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xorg": xorg | default({})} | to_nice_json }}'
+        content: '{{ {"xorg": ansible_facts.xorg | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg.fact
         mode: '0644'
 
     - name: Write xrandr variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xrandr": xrandr | default({})} | to_nice_json }}'
+        content: '{{ {"xrandr": ansible_facts.xrandr | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xrandr.fact
         mode: '0644'
 
     - name: Write drm variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"drm": drm | default({})} | to_nice_json }}'
+        content: '{{ {"drm": ansible_facts.drm | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/drm.fact
         mode: '0644'
 
     - name: Write xorg_config variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"xorg_config": XorgConfig | default({}) } | to_nice_json }}'
+        content: '{{ {"xorg_config": ansible_facts.XorgConfig | default({}) } | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg_config.fact
         mode: '0644'
 
@@ -204,10 +204,10 @@
     drm: '{{ ansible_local.drm.drm }}'
     xorg_config: '{{ ansible_local.xorg_config.xorg_config }}'
   when:
-    - xrandr is undefined
-    - xorg is undefined
-    - drm is undefined
-    - xorg_config is undefined
+    - ansible_facts.xrandr is undefined
+    - ansible_facts.xorg is undefined
+    - ansible_facts.drm is undefined
+    - ansible_facts.xorg_config is undefined
 
 - name: Check if nvidia-smi is installed
   ansible.builtin.command: nvidia-smi

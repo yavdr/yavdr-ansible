@@ -7,9 +7,9 @@
 
 - name: Install virtualbox X11 guest additions
   when:
-    - ansible_virtualization_type == "virtualbox"
-    - ansible_virtualization_role == "guest"
-    - ansible_distribution == "Ubuntu"
+    - ansible_facts.virtualization_type == "virtualbox"
+    - ansible_facts.virtualization_role == "guest"
+    - ansible_facts.distribution == "Ubuntu"
   block:
     - name: Install packages
       ansible.builtin.apt:
@@ -18,10 +18,10 @@
 
 - name: Install virtualbox guest dkms package
   when:
-    - ansible_virtualization_type == "virtualbox"
-    - ansible_virtualization_role == "guest"
-    - ansible_distribution == "Ubuntu"
-    - ansible_distribution_major_version == "20"
+    - ansible_facts.virtualization_type == "virtualbox"
+    - ansible_facts.virtualization_role == "guest"
+    - ansible_facts.distribution == "Ubuntu"
+    - ansible_facts.distribution_major_version == "20"
   block:
     - name: Install packages
       ansible.builtin.apt:
@@ -33,8 +33,8 @@
 # TODO: replace by a role to allow proper frontend selection
 - name: Set xineliboutput as frontend
   when:
-    - ansible_virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
-    - ansible_virtualization_role == "guest"
+    - ansible_facts.virtualization_type in ["virtualbox", "VirtualPC", "VMware"]
+    - ansible_facts.virtualization_role == "guest"
   block:
     - name: Set xineliboutput as preferred frontend
       ansible.builtin.set_fact:

@@ -6,12 +6,12 @@
 
 - name: Show satip_devices
   ansible.builtin.debug:
-    var: satip_devices
+    var: ansible_facts.satip_devices
     verbosity: 1
 
 - name: Apt | install vdr-plugin-satip if a Sat>IP server has been detected
   ansible.builtin.apt:
     name: vdr-plugin-satip
     state: present
-  when: satip_devices | length > 0
+  when: ansible_facts.satip_devices | length > 0
   notify: ['Restart VDR']
