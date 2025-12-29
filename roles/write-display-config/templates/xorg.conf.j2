@@ -1,14 +1,14 @@
 {{ ansible_managed | comment }}
 
-{% set primary_output = xrandr['Screen 0:'][xorg_config.primary.connector] %}
-{% if xorg_config.secondary is defined %}
-  {% set secondary_output = xrandr['Screen 0:'][xorg_config.secondary.connector] %}
-{% endif %}
+{% set xorg = ansible_facts.xorg %}
+{% set primary_mode = xorg_config.primary.resolution + '_' + xorg_config.primary.refreshrate | string %}
+{% set has_secondary = ansible_facts.xorg.secondary | default(false, true) | bool %}
+{% set use_secondary = has_secondary and (ansible_facts.xorg_config.secondary | default(false, true) | bool) %}
 
 Section "ServerLayout"
     Identifier     "Layout0"
     Screen         0  "Screen0" 0 0
-{% if xorg_config.secondary is defined %}
+{% if use_secondary %}
     Screen         1  "Screen1" RightOf "Screen0"
 {% endif %}
     #InputDevice    "Keyboard0" "CoreKeyboard"
@@ -24,8 +24,8 @@ EndSection
 
 Section "Monitor"
     Identifier     "Monitor0"
-    VendorName     "{{ primary_output.vendor }}"
-    ModelName      "{{ primary_output.model }}"
+    VendorName     "{{ xorg.primary.vendor }}"
+    ModelName      "{{ xorg.primary.model }}"
     Option         "DPMS"
     Option         "ExactModeTimingsDVI" "True"
 EndSection
@@ -41,13 +41,13 @@ Section "Device"
 {% else %}
     BoardName      "Unknown"
 {% endif %}
-{% if nvidia_force_dpi | default(0) > 0  %}
+{% if nvidia_force_dpi | int(0) > 0  %}
     Option         "UseEdidDpi" "FALSE"
     Option         "DPI" "{{ nvidia_force_dpi }} x {{ nvidia_force_dpi }}"
 {% endif %}
     Screen          0
-    Option         "ConnectedMonitor" "{{ primary_output.connector }}{% if xorg_config.secondary is defined %}, {{ secondary_output.connector }}{% endif %}"
-    Option         "CustomEDID" "{{ primary_output.connector }}:/etc/X11/edid.{{ primary_output.connector }}.bin{% if xorg_config.secondary is defined %};{{ secondary_output.connector }}:/etc/X11/edid.{{ secondary_output.connector }}.bin{% endif %}"
+    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if use_secondary %}, {{ xorg.secondary.connector }}{% endif %}"
+    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin{% if use_secondary %};{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin{% endif %}"
 EndSection
 
 Section "Screen"
@@ -55,9 +55,9 @@ Section "Screen"
     Device         "Device0"
     Monitor        "Monitor0"
     DefaultDepth    24
-    Option         "nvidiaXineramaInfoOrder" "{{ primary_output.connector }}"
-    Option         "UseDisplayDevice" "{{ primary_output.connector }}"
-    Option         "metamodes" "{{ primary_output.connector }}: {{ primary_output.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
+    Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
+    Option         "metamodes" "{{ xorg.primary.connector }}: {{ primary_mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"
@@ -68,7 +68,7 @@ Section "Screen"
     EndSubSection
 EndSection
 
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
 Section "Device"
     Identifier     "Device1"
     Driver         "nvidia"
@@ -85,8 +85,8 @@ EndSection
 
 Section "Monitor"
     Identifier     "Monitor1"
-    VendorName     "{{ secondary_output.vendor }}"
-    ModelName      "{{ secondary_output.model }}"
+    VendorName     "{{ xorg.secondary.vendor }}"
+    ModelName      "{{ xorg.secondary.model }}"
 EndSection
 
 Section "Screen"
@@ -94,11 +94,11 @@ Section "Screen"
     Device         "Device1"
     Monitor        "Monitor1"
     DefaultDepth    24
-    Option         "nvidiaXineramaInfoOrder" "{{ secondary_output.connector }}"
-    Option         "ConnectedMonitor" "{{ secondary_output.connector }}"
-    Option         "UseDisplayDevice" "{{ secondary_output.connector }}"
-    Option         "CustomEDID" "{{ secondary_output.connector }}:/etc/X11/edid.{{ secondary_output.connector }}.bin"
-    Option         "metamodes" "{{ secondary_output.connector }}: {{ secondary_output.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "nvidiaXineramaInfoOrder" "{{ xorg.secondary.connector }}"
+    #Option         "ConnectedMonitor" "{{ xorg.secondary.connector }}"
+    Option         "UseDisplayDevice" "{{ xorg.secondary.connector }}"
+    #Option         "CustomEDID" "{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin"
+    Option         "metamodes" "{{ xorg.secondary.connector }}: {{ xorg.secondary.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"

@@ -1,33 +1,30 @@
 {{ ansible_managed | comment }}
-
-{% set xorg = ansible_facts.xorg %}
-{% set primary_mode = xorg_config.primary.resolution + '_' + xorg_config.primary.refreshrate | string %}
-{% set has_secondary = ansible_facts.xorg.secondary | default(false, true) | bool %}
-{% set use_secondary = has_secondary and (ansible_facts.xorg_config.secondary | default(false, true) | bool) %}
-
-{% set primary_output = xorg.primary.connector|replace("-", "") %}
-{% set intel_driver = intel_driver | default("intel") %}
-{% if use_secondary %}
-  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
+{% set primary_output = xorg.primary.connector %}
+{% if xorg.secondary is defined %}
+  {% set secondary_output = xorg.secondary.connector %}
 {% endif %}
 
 Section "Device"
   Identifier  "Device0"
-  Driver      "{{ intel_driver }}"
-  Option      "TearFree" "true"
-  Option      "DRI" "3"
-{% if use_secondary %}
+  Driver      "nouveau"
+{% if xorg.primary.bus_id is defined %}
+  BusID          "{{ xorg.primary.bus_id }}"
+{% endif %}
+  Option      "GLXVBlank" "true"
+{% if xorg.secondary is defined %}
   Option      "ZaphodHeads" "{{ primary_output }}"
   Screen      0
 {% endif %}
 EndSection
 
-{% if use_secondary %}
+{% if xorg.secondary is defined %}
 Section "Device"
   Identifier  "Device1"
-  Driver      "{{ intel_driver }}"
-  Option      "TearFree" "true"
-  Option      "DRI" "3"
+  Driver      "nouveau"
+  Option      "GLXVBlank" "true"
+{% if xorg.primary.bus_id is defined %}
+  BusID          "{{ xorg.primary.bus_id }}"
+{% endif %}
   Option      "ZaphodHeads" "{{ secondary_output }}"
   Screen      1
 EndSection
@@ -54,7 +51,7 @@ Section "Screen"
   EndSubSection
 EndSection
 
-{% if use_secondary %}
+{% if xorg.secondary is defined %}
 Section "Screen"
   Identifier  "Screen1"
   Device      "Device1"
@@ -73,7 +70,9 @@ EndSection
 {% endif %}
 Section "Monitor"
   Identifier  "{{ primary_output }}"
-{% if xorg.primary.modelines %}
+{% if xrandr["Screen 0:"][xorg.primary.connector].modelines %}
+  {{ xrandr["Screen 0:"][xorg.primary.connector].modelines[xorg.primary.mode]|default("") }}
+{% elif xorg.primary.modelines %}
 {% for modeline in xorg.primary.modelines %}
   {{ modeline }}
 {% endfor %}
@@ -84,7 +83,7 @@ Section "Monitor"
 {% endif %}
 EndSection
 
-{% if use_secondary %}
+{% if xorg.secondary is defined %}
 Section "Monitor"
   Identifier  "{{ secondary_output }}"
 {% if xorg.secondary.modelines %}

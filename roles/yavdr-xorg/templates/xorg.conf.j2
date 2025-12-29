@@ -1,9 +1,14 @@
 {{ ansible_managed | comment }}
 
+{% set xorg = ansible_facts.xorg %}
+{% set primary_mode = xorg_config.primary.resolution + '_' + xorg_config.primary.refreshrate %}
+{% set has_secondary = ansible_facts.xorg.secondary | default(false, true) | bool %}
+{% set use_secondary = has_secondary and (ansible_facts.xorg_config.secondary | default(false, true) | bool) %}
+
 Section "ServerLayout"
     Identifier     "Layout0"
     Screen         0  "Screen0" 0 0
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
     Screen         1  "Screen1" RightOf "Screen0"
 {% endif %}
     #InputDevice    "Keyboard0" "CoreKeyboard"
@@ -41,8 +46,8 @@ Section "Device"
     Option         "DPI" "{{ nvidia_force_dpi }} x {{ nvidia_force_dpi }}"
 {% endif %}
     Screen          0
-    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if xorg.secondary is defined %}, {{ xorg.secondary.connector }}{% endif %}"
-    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin{% if xorg.secondary is defined %};{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin{% endif %}"
+    Option         "ConnectedMonitor" "{{ xorg.primary.connector }}{% if use_secondary %}, {{ xorg.secondary.connector }}{% endif %}"
+    Option         "CustomEDID" "{{ xorg.primary.connector }}:/etc/X11/edid.{{ xorg.primary.connector }}.bin{% if use_secondary %};{{ xorg.secondary.connector }}:/etc/X11/edid.{{ xorg.secondary.connector }}.bin{% endif %}"
 EndSection
 
 Section "Screen"
@@ -52,7 +57,7 @@ Section "Screen"
     DefaultDepth    24
     Option         "nvidiaXineramaInfoOrder" "{{ xorg.primary.connector }}"
     Option         "UseDisplayDevice" "{{ xorg.primary.connector }}"
-    Option         "metamodes" "{{ xorg.primary.connector }}: {{ xorg.primary.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "metamodes" "{{ xorg.primary.connector }}: {{ primary_mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"
@@ -63,7 +68,7 @@ Section "Screen"
     EndSubSection
 EndSection
 
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
 Section "Device"
     Identifier     "Device1"
     Driver         "nvidia"
