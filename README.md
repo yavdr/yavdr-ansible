@@ -9,35 +9,21 @@ Please note that this is still work in progress and several features of yaVDR 0.
 
 ## System Requirements and Compatiblity Notes
 - RTC must be set to UTC in order for vdr-addon-acpiwakeup to work properly
-- 32 Bit Installations on x86 systemd are only possible up to Ubuntu 18.04 focal or on Raspberry Pi 2 and 3 (armv7h)
-- You need an IGP/GPU with support for VDPAU or VAAPI if you want to use software output plugins for VDR like softhddevice or vaapidevice
+- You need an IGP/GPU with support for VDPAU, NVDEC or VAAPI if you want to use software output plugins for VDR like softhddevice or vaapidevice
 - xineliboutput/vdr-sxfe works with software rendering, too
-- Can be used in a VirtualBox VM
+- Can be used in a VM like VirtualBox
 
 ## Usage:
 
-Set up a Ubuntu Server 20.04.x Installation and install `openssh-server`.
-
-On Ubuntu Server for Raspberry PI 2 and 3 it is recommended to set the timezone-information and generate and choose the wanted locale (e.g. `de_DE.UTF-8` for german language), so the vdr can use this information:
-```shell
-sudo dpkg-reconfigure tzdata
-sudo dpkg-reconfigure locales
-```
-
-You can expand the root partition to use the free space on the sd-card as shown in https://wiki.ubuntu.com/ARM/RaspberryPi#Root_resize
-
-NOTE: Since there is no alternative server installer for Ubuntu 20.04 anymore and the new ubiquity installer has to be used, the playbook needs to deconfigure and uninstall the `cloud-init` package - depending on the drivers used you might need to reboot the pc and run the playbook again so the xorg autodetection can function properly.
-
+Set up a Ubuntu Server 26.04.x Installation and choose install `openssh-server`.
 
 ### Download yavdr-ansible
 NOTE: It is recommended to use a SSH connection to run the playbook, especially if a nvidia card is used (in order to change from the nouveau to the nvidia driver the local console output needs to be disabled temporarily).
 
-NOTE: The install script uses [mitogen for ansible](https://networkgenomics.com/ansible/) to speed up the playbook execution. The playbook directory must be readable by all users on the system, so don't put it in a directory under `/root/` or other directories with access restrictions.
-
 Run the following commands to download the current version of yavdr-ansible:
 ```
 sudo apt-get install git
-git clone -b focal https://github.com/yavdr/yavdr-ansible
+git clone -b resolute https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
 ```
 
@@ -66,7 +52,10 @@ The yaVDR VDR Package provides a systemd service `wait-for-dvb@.service` which a
 ```shell
 systemctl enable wait-for-dvb@{0..3}.service
 ```
-Please remember to adapt the enabled service instances if you change your configuration.
+
+NOTE: this won't work with Sundtek devices and other services that create dvb adapters via the userspace.
+
+Remember to adapt the enabled service instances if you change your configuration.
 
 You can set the list of tuners to be waited for by changing the variable `wait_for_dvb_devices` for the playbook, so the instances of `wait-for-dvb@.service` will be enabled automatically. Please note that the playbook will deactivate all instances from 0 to `max_num_dvb_devices` (defaults to `16`) which are not enabled in the variable `wait_for_dvb_devices`.
 
