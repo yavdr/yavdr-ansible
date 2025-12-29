@@ -12,7 +12,13 @@
         name: ubuntu-drivers-common
         state: present
 
-    - name: Use ubuntu-drivers to install additional drivers automatically
-      ansible.builtin.command: ubuntu-drivers --package-list /etc/yavdr/autoinstalled install
+    - name: Check ubuntu-drivers for recommended packages
+      ansible.builtin.command: ubuntu-drivers list --recommended
       register: ubuntu_drivers_install
-      changed_when: '"All the available drivers are already installed." not in ubuntu_drivers_install.stdout_lines[-1]'
+      changed_when: false
+
+    - name: Install recommended packages
+      apt:
+        pkg: "{{ ubuntu_drivers_install.stdout | split(' ') }}"
+        state: present
+
