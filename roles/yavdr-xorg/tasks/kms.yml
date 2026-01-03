@@ -26,5 +26,6 @@
         if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined
       %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}
       {% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}
-  when: kms_set_boot_edid | bool
+  when: kms_set_boot_edid
+  changed_when: true
   notify: ['Update Initramfs', 'Update GRUB']

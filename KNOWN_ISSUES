@@ -28,7 +28,7 @@ Package `mesa-vdpau-drivers` needs to be installed if no nvidia driver is availa
 ## ntfy Server for vdr-plugin-eventpub
 Best to integrate it with the nginx server and https certificate
 
-## Name Resolution
+## DONE Name Resolution
 
 By default local name resolution seems to be disabled in Ubuntu 26.04 (which can affect e.g. the vdr-addon-avahi-linker).
 To search certain domains when not using an FQDN, you can add them to the netplan configuration under the `nameservers` list - e.g. for `fritz.box` in `/etc/netplan/00-installer-config.yaml`:
@@ -73,8 +73,8 @@ $ resolvectl domain
 The kernel deprecates the `intr` option for NFS, so this needs to be replaced by something like `timeo=600,retrans=2` to prevents endless lockups on timeouts
 This affects the vdr-addon-avahi-linker, which uses autofs to mount the remote NFS shares in the background.
 
-## avahi-linker
-Error when the trying to update recording directories via dbus2vdr while vdr is not ready
+## TODO avahi-linker
+Error when the trying to update recording directories via dbus2vdr while vdr is not ready - make this a less servere loglevel
 
 # Background services
 ## vdr-addon-lifeguard
@@ -107,13 +107,14 @@ Dez 01 18:48:28 resolute-legacy udiskie[1610]: TypeError: DeviceCommand.__call__
 # Output
 
 ## Alsa
+<!-- the Package in Version 1.2.15 copied from Debian needs to be tested -->
 The alsa packages contains the `90-alsa-restore.rules` file that generates warnings regarding to the `alsa-restore_std` label. See Bug on Launchpad #215475 - this might be resolved with a later alsa version.
 
 ## pulseaudio
 
 When upgrading from previous yavdr-ansible version, make sure to delete `{{ vdr.home }}/.config/systemd/user/dbus-pulsectl.service` to allow the systemd unit installed by dbus-pulsectl to start the correct python script.
 
-## nvidia cards
+## WAIT nvidia cards
 Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
 
 ```xserver-xorg-video-nouveau```
@@ -123,13 +124,51 @@ Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. Th
 Problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
 https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have some extracted necessary files. So far I have not been successful in making VDPAU with those work.
 
+The nvidia driver for Ubuntu 26.04 can't currently be installed: https://bugs.launchpad.net/ubuntu/+source/linux-restricted-modules/+bug/2134356
+
 ## intel cards
 There might be some trial and error involved to find a working combination of driver, glx version and softhddevice output method.
-For old IGPs (e.g. Haswell Generation), using the `intel` driver and `vaapi` works usually best.
 
-For a 13th generation Core i3, `vaapi-glx` works best.
+For old IGPs (e.g. Haswell Generation), using the `intel` driver and `va-api` works usually best up to Ubuntu 24.04
+
+For a 13th generation Core i3, `va-api-egl` works best.
 
 The modesetting driver seems to be limited to a single display.
+
+Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods. `softhddevice_intel_output_method=software-glx` seems to be a viable fallback for DVB-T2 h265 if other settings lead to crashes resp. no visible video.
+
+`libgl1-amber-dri` needs to be installed, too
+
+### forcing connection status
+Due to changes in the intel drivers, you can't force HDMI ports to be connected anymore. However there is an udev event sent if a drm connector changes due to Hotplug - this doesn't specify the connetor nor if it's a plugged in/out event:
+```shell
+$ udevadm monitor --kernel --subsystem-match=drm
+monitor will print the received events for:
+KERNEL - the kernel uevent
+
+KERNEL[1521.180340] change   /devices/pci0000:00/0000:00:02.0/drm/card1 (drm)  # HDMI unplugged
+KERNEL[1526.345601] change   /devices/pci0000:00/0000:00:02.0/drm/card1 (drm)  # HDMI plugged in again
+```
+
+So we create an udev rule that starts a sytemd unit in that case:
+```
+ACTION=="change", SUBSYSTEM=="drm", ENV{HOTPLUG}=="1", \
+  RUN+="/usr/bin/systemctl --user start drm-hotplug.service"
+```
+
+Then we need to tell xorg to configure the display(s) (if the connectors are been connected) - e.g.:
+```shell
+/usr/bin/xrandr --output HDMI-1 --auto --primary
+```
+
+To get the Xorg connector name, we have to look at `/etc/ansible/facts.d/drm.fact`.
+
+<!-- TODO: complete handling of unconnected display -->
+This is currently partially implented in the yavdr-frontend script - Still missing:
+Prevent attaching the frontend if not connected
+Check if deta/atta is needed after running the xrandr command
+
+We also need to improve the conditions under which `update-initramfs` are called
 
 # GUI Software and Configuration
 
@@ -145,7 +184,7 @@ This could be done using the command `frontend-dbus-send quit` in the `ExecStop=
 # KODI
 The shutdown menu allows to shutdown the system - can we block this with an inhibitor?
 
-## Firefox
+## TODO Firefox
 <!-- TODO: this was implemented in the role "firefox" - needs still to be tested with a system that has an nvidia card (GT1030 or better) -->
 By default there is no Hardware acceleration for Nvidia GPUs in Firefox. For GPUs that support NVDEC and an nvidia-driver > 470 it is possible to use
 [nvidia-vaapi-driver](https://github.com/elFarto/nvidia-vaapi-driver) as a workaround.

@@ -543,7 +543,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
                 vendor: str,
                 model: str,
                 modelines: list[str],
-            ):
+            ) -> None:
                 display_dict[name] = {
                     "connector": connector,
                     "resolution": resolution,
