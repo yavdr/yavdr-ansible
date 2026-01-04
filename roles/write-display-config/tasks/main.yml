@@ -13,10 +13,29 @@
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
 
-- name: Load display configuration
-  ansible.builtin.include_vars:
-    file: /etc/yavdr/display_config.yml
-    name: xorg_config
+- name: check for /etc/yavdr/display_config.yml
+  ansible.builtin.stat:
+    path: /etc/yavdr/display_config.yml
+  register: _custom_xorg_config_stat
+
+- name: Load configuration if it exists
+  when: _custom_xorg_config_stat.stat.exists and _custom_xorg_config_stat.stat.isreg
+  block:
+    - name: Slurp /etc/yavdr/display_config.yml
+      ansible.builtin.slurp:
+        src: /etc/yavdr/display_config.yml
+      register: _custom_xorg_config
+
+    - name: Load display configuration
+      ansible.builtin.set_fact:
+        xorg_config: "{{ _custom_xorg_config.content | b64decode }}"
+
+#- name: Make sure file exists
+#  ansible.builtin.file: 
+#    path: /etc/yavdr/display_config.yml
+#    state: touch
+#    mode: "0644"
+
 
 
 - name: show xorg_config
