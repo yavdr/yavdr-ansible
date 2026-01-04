@@ -28,7 +28,11 @@
 
     - name: Load display configuration
       ansible.builtin.set_fact:
-        xorg_config: "{{ _custom_xorg_config.content | b64decode }}"
+        xorg_config: "{{ _custom_xorg_config.content | b64decode | from_yaml }}"
+
+- name: Set xorg_config from facts if it's undefined
+  ansible.builtin.set_fact:
+    xorg_config: "{{ xorg_config | default(ansible_facts.XorgConfig) }}"
 
 #- name: Make sure file exists
 #  ansible.builtin.file: 
@@ -36,6 +40,10 @@
 #    state: touch
 #    mode: "0644"
 
+- name: Show xorg_config facts
+  debug:
+    var: ansible_facts.XorgConfig
+    verbosity: 0
 
 
 - name: show xorg_config
