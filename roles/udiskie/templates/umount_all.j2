@@ -1,4 +1,4 @@
 #!/usr/bin/bash
-{{ ansible_managed | comment }}
+{{ ansible_managed.format(file=template_path) | comment }}
 
 {{ "Safely remove usb mass storage" | translate }} : echo 'svdrpsend mesg "$(udiskie-umount -a 2>&1 | grep -o "Error unmounting.*")"' | at now
