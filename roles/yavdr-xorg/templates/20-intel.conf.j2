@@ -2,7 +2,7 @@
 {% set primary_output = xorg.primary %}
 {% set intel_driver = intel_driver | default("intel") %}
 {% if xorg.secondary is defined %}
-  {% set secondary_output = xorg.secondary.connector|replace("-", "") %}
+  {% set secondary_output = xorg.secondary.connector %}
 {% endif %}
 
 Section "Device"
@@ -99,7 +99,7 @@ EndSection
     (xorg.secondary is defined and connector == xorg.secondary.connector))
  %}
 Section "Monitor"
-  Identifier "{{ connector|replace("-","") }}"
+  Identifier "{{ connector }}"
   Option "Ignore" "true"
 EndSection
 
