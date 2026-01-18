@@ -2,7 +2,7 @@
 # file roles/autoinstall-imonvfd/tasks/main
 
 - name: Set up IMON VFD
-  when: '"15c2:0036" in usb or "15c2:0044" in usb'
+  when: '"15c2:0036" in ansible_facts.usb or "15c2:0044" in ansible_facts.usb'
   block:
     - name: Check which display type we got
       ansible.builtin.set_fact:
@@ -15,9 +15,9 @@
       ansible.builtin.template:
         src: templates/92-imonvfd.rules.j2
         dest: /etc/udev/rules.d/92-imonvfd.rules
-        mode: '0644'
+        mode: "0644"
         force: true
-      notify: ['Reboot required']
+      notify: ["Reboot required"]
 
     - name: Expand template for /etc/LCDd.conf
       ansible.builtin.template:
@@ -25,7 +25,7 @@
         dest: /etc/LCDd.conf
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
         force: true
 
     - name: Enable service LCDd.service and ensure it is not masked
@@ -35,4 +35,3 @@
         enabled: true
         masked: false
         daemon_reload: true
-
