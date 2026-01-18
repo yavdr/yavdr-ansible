@@ -2,10 +2,11 @@
 # file roles/autoinstall-ubuntu-drivers/tasks/main.yml
 
 - name: Autoinstall ubuntu-drivers-common
-  when: (ansible_facts.virtualization_type != "virtualbox" and ansible_facts.virtualization_role != "guest")
-        # ubuntu-drivers-common tries to autoinstall
-        # conflicting packages for virtualbox in Ubuntu 16.04 and 18.04 :(
-        # also alternates between virtualbox-guest-dkms and virtualbox-guest-dkms-hwe on successive runs
+  when:
+    (ansible_facts.virtualization_type != "virtualbox" and ansible_facts.virtualization_role != "guest")
+    # ubuntu-drivers-common tries to autoinstall
+    # conflicting packages for virtualbox in Ubuntu 16.04 and 18.04 :(
+    # also alternates between virtualbox-guest-dkms and virtualbox-guest-dkms-hwe on successive runs
   block:
     - name: Apt | install ubuntu-drivers-common
       ansible.builtin.apt:
@@ -21,4 +22,4 @@
       apt:
         pkg: "{{ ubuntu_drivers_install.stdout | split(' ') }}"
         state: present
-
+      when: ubuntu_drivers_install.stdout | split(' ') | length > 0
