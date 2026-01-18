@@ -3,60 +3,59 @@
     name:
       # - policykit-1
       - udiskie
+      - gir1.2-notify-0.7
     state: present
 
 - name: Create ~/.config/udiskie
   ansible.builtin.file:
-    name: '{{ vdr.home }}/.config/udiskie'
+    name: "{{ vdr.home }}/.config/udiskie"
     state: directory
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0755'
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
 
 - name: Expand template for udiskie's config.yml
   ansible.builtin.template:
     src: templates/config.yml.j2
-    dest: '{{ vdr.home }}/.config/udiskie/config.yml'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0644'
-
+    dest: "{{ vdr.home }}/.config/udiskie/config.yml"
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0644"
 
 - name: Create ~/.config/systemd/user
   ansible.builtin.file:
-    name: '{{ vdr.home }}/.config/systemd/user'
+    name: "{{ vdr.home }}/.config/systemd/user"
     state: directory
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0755'
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
 
 - name: Expand template for udiskie's systemd unit
   ansible.builtin.template:
     src: templates/udiskie.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/udiskie.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0644'
+    dest: "{{ vdr.home }}/.config/systemd/user/udiskie.service"
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0644"
 
 - name: Create ~/bin
   ansible.builtin.file:
-    name: '{{ vdr.home }}/bin'
+    name: "{{ vdr.home }}/bin"
     state: directory
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0755'
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
 
 - name: Expand template for mount helper script
   ansible.builtin.template:
     src: templates/udiskie_vdr_mount_helper.j2
-    dest: '{{ vdr.home }}/bin/udiskie_vdr_mount_helper'
+    dest: "{{ vdr.home }}/bin/udiskie_vdr_mount_helper"
     owner: "{{ vdr.user }}"
     group: "{{ vdr.group }}"
-    mode: '0755'
+    mode: "0755"
 
 - name: Expand template for udiskie vdr commands
   ansible.builtin.template:
     src: templates/umount_all.j2
     dest: /usr/share/vdr/command-hooks/commands.udiskie.conf
-    mode: '0644'
-
+    mode: "0644"
