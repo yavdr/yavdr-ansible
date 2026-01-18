@@ -1,9 +1,9 @@
 - name: Update xorg, xrandr and drm variables with values from local facts if needed
   ansible.builtin.set_fact:
     ansible_facts:
-      xorg: '{{ ansible_local.xorg.xorg }}'
-      xrandr: '{{ ansible_local.xrandr.xrandr }}'
-      drm: '{{ ansible_local.drm.drm }}'
+      xorg: "{{ ansible_local.xorg.xorg }}"
+      xrandr: "{{ ansible_local.xrandr.xrandr }}"
+      drm: "{{ ansible_local.drm.drm }}"
   when:
     - ansible_facts.xrandr is undefined
     - ansible_facts.xorg is undefined
@@ -35,24 +35,23 @@
     xorg_config: "{{ xorg_config | default(ansible_facts.XorgConfig) }}"
 
 #- name: Make sure file exists
-#  ansible.builtin.file: 
+#  ansible.builtin.file:
 #    path: /etc/yavdr/display_config.yml
 #    state: touch
 #    mode: "0644"
 
 - name: Show xorg_config facts
-  debug:
+  ansible.builtin.debug:
     var: ansible_facts.XorgConfig
     verbosity: 0
 
-
-- name: show xorg_config
-  debug:
+- name: Show xorg_config
+  ansible.builtin.debug:
     var: xorg_config
     verbosity: 0
 
-- name: show xrandr config
-  debug:
+- name: Show xrandr config
+  ansible.builtin.debug:
     var: xrandr
     verbosity: 0
 
@@ -65,7 +64,7 @@
         src: templates/xorg.conf.j2
         dest: /etc/X11/xorg.conf
         backup: true
-        mode: '0755'
+        mode: "0644"
 
 # TODO: this is only useful if VDPAU works with nouveau
 # - name: Create nouveau xorg config snippet
@@ -80,7 +79,7 @@
   ansible.builtin.template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
-    mode: '0755'
+    mode: "0644"
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
@@ -88,6 +87,41 @@
   ansible.builtin.template:
     src: templates/20-amd.conf.j2
     dest: /etc/X11/xorg.conf.d/20-amd.conf
-    mode: '0755'
+    mode: "0644"
   when:
     - amd_detected | bool and not nvidia_detected | bool
+
+- name: Amd xorg config snippet for virtualbox
+  ansible.builtin.template:
+    src: templates/20-modesetting.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-modesetting.conf
+    mode: "0644"
+  when:
+    - virtualbox_detected | bool
+
+# configure language settings of the X server
+- name: Source keyboard settings
+  ansible.builtin.command: |
+    python3 -c "from dotenv import dotenv_values; import json; print(json.dumps(dotenv_values('/etc/default/keyboard')))"
+  register: keyboard_settings_content
+  changed_when: false
+
+- name: Set facts from sourced environment
+  ansible.builtin.set_fact:
+    keyboard_facts: "{{ (keyboard_settings_content.stdout | from_json) }}"
+    # XKBMODEL: "{{ (sourced_env.stdout | from_json).XKBMODEL }}"
+    # XKBLAYOUT: "{{ (sourced_env.stdout | from_json).XKBLEAYOUT }}"
+    # XKBVARIANT: "{{ (sourced_env.stdout | from_json).XKBVARIANT }}"
+    # XKBOPTIONS: "{{ (sourced_env.stdout | from_json).XKBOPTIONS }}"
+    # BACKSPACE: "{{ (sourced_env.stdout | from_json).BACKSPACE }}"
+
+- name: Show keyboard_facts
+  ansible.builtin.debug:
+    var: keyboard_facts
+    verbosity: 0
+
+- name: Write keyboard config for xorg
+  ansible.builtin.template:
+    src: templates/00-keyboard.conf.j2
+    dest: /etc/X11/xorg.conf.d/00-keyboard.conf
+    mode: "0644"
