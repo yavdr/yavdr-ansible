@@ -18,8 +18,13 @@
       register: ubuntu_drivers_install
       changed_when: false
 
+    - name: Packages to install
+      ansible.builtin.debug:
+        var: ubuntu_drivers_install.stdout | trim | split
+        verbosity: 0
+
     - name: Install recommended packages
       apt:
-        pkg: "{{ ubuntu_drivers_install.stdout | trim | split(' ') }}"
+        pkg: "{{ ubuntu_drivers_install.stdout | trim | split }}"
         state: present
-      when: ubuntu_drivers_install.stdout | trim | split(' ')| length > 0
+      when: ubuntu_drivers_install.stdout | trim | split | length > 0
