@@ -1,13 +1,13 @@
 {{ ansible_managed.format(file=template_path) | comment }}
 
 Section "Device"
-        Identifier "nvidia"
-        Driver  "nvidia"
+        Identifier "gpu"
+        Driver  "{{ 'nvidia' if nvidia_detected else ('intel' if intel_detected else ('amd' if amd_detected else 'modesetting')) }}"
         Option  "DynamicTwinView"     "true"
         Option  "NoFlip"              "false"
 EndSection
 
 Section "Screen"
         Identifier      "screen"
-        Device          "nvidia"
+        Device          "gpu"
 EndSection
