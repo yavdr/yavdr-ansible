@@ -57,7 +57,7 @@
 
 - name: Nvidia related config
   when:
-    - nvidia_detected | bool
+    - ansible_facts.nvidia_detected | bool
   block:
     - name: Create xorg.conf (for nvidia driver)
       ansible.builtin.template:
@@ -73,7 +73,7 @@
 #     dest: /etc/X11/xorg.conf.d/20-nouveau.conf
 #     mode: '0644'
 #   when:
-#     - nvidia_detected | bool and not nvidia_driver_installed
+#     - ansible_facts.nvidia_detected | bool and not ansible_facts.nvidia_driver_installed
 
 - name: Intel xorg config snippet
   ansible.builtin.template:
@@ -81,7 +81,7 @@
     dest: /etc/X11/xorg.conf.d/20-intel.conf
     mode: "0644"
   when:
-    - intel_detected | bool and not nvidia_detected | bool
+    - ansible_facts.drm.intel_detected | bool and not ansible_facts.nvidia_detected | bool
 
 - name: Amd xorg config snippet
   ansible.builtin.template:
@@ -89,7 +89,7 @@
     dest: /etc/X11/xorg.conf.d/20-amd.conf
     mode: "0644"
   when:
-    - amd_detected | bool and not nvidia_detected | bool
+    - ansible_facts.amd_detected | bool and not ansible_facts.nvidia_detected | bool
 
 - name: Amd xorg config snippet for virtualbox
   ansible.builtin.template:
@@ -97,7 +97,7 @@
     dest: /etc/X11/xorg.conf.d/20-modesetting.conf
     mode: "0644"
   when:
-    - virtualbox_detected | bool
+    - ansible_facts.virtualbox_detected | bool
 
 # configure language settings of the X server
 - name: Source keyboard settings

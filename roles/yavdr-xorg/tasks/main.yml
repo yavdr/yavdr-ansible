@@ -12,7 +12,7 @@
   ansible.builtin.apt:
     name: mesa-vdpau-drivers
     state: present
-  when: nvidia_detected and not nvidia_driver_installed or amd_detected
+  when: ansible_facts.nvidia_detected and not nvidia_driver_installed or amd_detected
 
 - name: Debug | show kms_set_boot_edid
   ansible.builtin.debug:
@@ -25,7 +25,7 @@
     state: present
     regexp: "^-v .*"
     line: "-v {{ 'nvdec-egl' if nvidia_driver_installed else 'vdpau' }}"
-  when: (nvidia_detected)
+  when: (ansible_facts.nvidia_detected)
 
 - name: KMS Settings
   ansible.builtin.include_tasks: kms.yml
