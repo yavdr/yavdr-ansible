@@ -1,0 +1,19 @@
+{{ ansible_managed.format(file=template_path) | comment }}
+
+[Unit]
+Description=yaVDR user session for %i
+After=systemd-user-sessions.service
+Wants=systemd-user-sessions.service
+
+[Service]
+Type=simple
+User=%i
+PAMName=login
+ExecStart=/bin/login -f %i
+StandardInput=tty
+TTYPath=/dev/tty7
+KillMode=control-group
+WorkingDirectory=/home/%i
+
+[Install]
+WantedBy=graphical.target
