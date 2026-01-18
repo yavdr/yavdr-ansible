@@ -1,9 +1,9 @@
 - name: Reconfigure unattended upgrades with dpkg
-  ansible.builtin.command: '/usr/sbin/dpkg-reconfigure --frontend falseninteractive unattended-upgrades'
+  ansible.builtin.command: "/usr/sbin/dpkg-reconfigure --frontend falseninteractive unattended-upgrades"
   changed_when: true
 
 - name: Trigger Udev
-  ansible.builtin.command: 'udevadm trigger'
+  ansible.builtin.command: "udevadm trigger"
   changed_when: true
 
 - name: Reload Units
@@ -66,40 +66,17 @@
 - name: Start yavdr-xorg
   ansible.builtin.systemd:
     daemon_reload: true
-    name: 'yavdr-xorg'
+    name: "yavdr-xorg"
     enabled: true
     state: started
   register: yavdr_xorg_start
 
-
 - name: Stop yavdr-xorg
   ansible.builtin.service:
-    name: yavdr-xorg
+    name: "yavdr-xorg.service"
     state: stopped
     enabled: false
   register: yavdr_xorg_stop
-
-- name: Stop xlogin
-  ansible.builtin.systemd:
-    name: xlogin@vdr.service
-    state: stopped
-    enabled: true
-  register: xlogin_stop
-
-- name: Start xlogin
-  ansible.builtin.systemd:
-    daemon_reload: true
-    name: 'xlogin@{{ vdr.user }}'
-    enabled: true
-    state: started
-  register: xlogin_start
-
-- name: Start x@vt7.service
-  ansible.builtin.systemd:
-    name: x@vt7.service
-    enabled: true
-    state: started
-  register: x_stop
 
 - name: Reboot required
   ansible.builtin.debug:

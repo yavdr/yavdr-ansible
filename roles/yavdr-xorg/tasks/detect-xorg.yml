@@ -6,38 +6,27 @@
     name: vdr.service
     state: stopped
     enabled: true
-  notify: ['Start VDR']
+  notify: ["Start VDR"]
 
 - name: Stop yavdr-xorg
   ansible.builtin.systemd:
-    name: 'yavdr-xorg'
+    name: "yavdr-xorg.service"
     state: stopped
     enabled: true
-  notify: ['Start yavdr-xorg']
-
-- name: Stop xlogin
-  ansible.builtin.systemd:
-    name: 'xlogin@{{ vdr.user }}.service'
-    state: stopped
-  notify: ['Start xlogin']
-
-- name: Stop x
-  ansible.builtin.systemd:
-    name: x@vt7.service
-    state: stopped
+  notify: ["Start yavdr-xorg"]
 
 - name: "Expand template for x-verbose@.service"
   ansible.builtin.template:
     src: "templates/systemd/system/x-verbose@.service.j2"
     dest: "/etc/systemd/system/x-verbose@.service"
-    mode: '0644'
+    mode: "0644"
   notify: ["Reload Units"]
 
 - name: "Expand template for xorg-verbose.conf"
   ansible.builtin.template:
     src: "templates/xorg-verbose.conf.j2"
     dest: "/etc/X11/xorg-verbose.conf"
-    mode: '0644'
+    mode: "0644"
 
 - name: "Remove Intel snippet"
   ansible.builtin.file:
@@ -49,18 +38,17 @@
     path: /etc/X11/xorg.conf.d/20-amd.conf
     state: absent
 
-
 - name: Check /etc/yavdr/autoinstalled if a nvidia driver has been installed
   ansible.builtin.lineinfile:
     name: /etc/yavdr/autoinstalled
-    regexp: '.*nvidia.*'
+    regexp: ".*nvidia.*"
     state: absent
   check_mode: true
   register: nvidia_driver_detected
 
 - name: Set_fact | nvidia_driver_installed
   ansible.builtin.set_fact:
-    nvidia_driver_installed: '{{ nvidia_driver_detected.changed | bool }}'
+    nvidia_driver_installed: "{{ nvidia_driver_detected.changed | bool }}"
 
 - name: Unload nouveau driver, replace with nvidia
   when:
@@ -79,7 +67,7 @@
     # unloading the drivers using the modprobe module does not work for some strange reason...
     - name: Unload kms drivers
       rmmod:
-        name: '{{ item }}'
+        name: "{{ item }}"
       loop:
         - nouveau
         - ttm
@@ -118,9 +106,9 @@
 
 - name: "Detect xorg configuration"
   xrandr_facts:
-    preferred_refreshrates: '{{ preferred_refreshrates }}'
-    preferred_resolutions: '{{ preferred_resolutions }}'
-    preferred_outputs: '{{ preferred_outputs }}'
+    preferred_refreshrates: "{{ preferred_refreshrates }}"
+    preferred_resolutions: "{{ preferred_resolutions }}"
+    preferred_outputs: "{{ preferred_outputs }}"
 
 - name: Show parsed xrandr data
   ansible.builtin.debug:
@@ -170,39 +158,38 @@
       ansible.builtin.file:
         state: directory
         path: /etc/ansible/facts.d
-        mode: '0755'
+        mode: "0755"
 
     - name: Write xorg variable as local fact
       ansible.builtin.copy:
         content: '{{ {"xorg": ansible_facts.xorg | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg.fact
-        mode: '0644'
+        mode: "0644"
 
     - name: Write xrandr variable as local fact
       ansible.builtin.copy:
         content: '{{ {"xrandr": ansible_facts.xrandr | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/xrandr.fact
-        mode: '0644'
+        mode: "0644"
 
     - name: Write drm variable as local fact
       ansible.builtin.copy:
         content: '{{ {"drm": ansible_facts.drm | default({})} | to_nice_json }}'
         dest: /etc/ansible/facts.d/drm.fact
-        mode: '0644'
+        mode: "0644"
 
     - name: Write xorg_config variable as local fact
       ansible.builtin.copy:
         content: '{{ {"xorg_config": ansible_facts.XorgConfig | default({}) } | to_nice_json }}'
         dest: /etc/ansible/facts.d/xorg_config.fact
-        mode: '0644'
-
+        mode: "0644"
 
 - name: Update xorg, xrandr and drm variables with values from local facts if needed
   ansible.builtin.set_fact:
-    xorg: '{{ ansible_local.xorg.xorg }}'
-    xrandr: '{{ ansible_local.xrandr.xrandr }}'
-    drm: '{{ ansible_local.drm.drm }}'
-    xorg_config: '{{ ansible_local.xorg_config.xorg_config }}'
+    xorg: "{{ ansible_local.xorg.xorg }}"
+    xrandr: "{{ ansible_local.xrandr.xrandr }}"
+    drm: "{{ ansible_local.drm.drm }}"
+    xorg_config: "{{ ansible_local.xorg_config.xorg_config }}"
   when:
     - ansible_facts.xrandr is undefined
     - ansible_facts.xorg is undefined
@@ -218,7 +205,6 @@
 - name: Set nvidia_driver_detected variable
   ansible.builtin.set_fact:
     nvidia_driver_installed: "{{ nvidia_smi.rc == 0 | bool | default(false) }}"
-
 
 # TODO: Expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
@@ -261,4 +247,4 @@
   ansible.builtin.template:
     src: templates/10-serverflags.conf.j2
     dest: /etc/X11/xorg.conf.d/10-serverflags.conf
-    mode: '0644'
+    mode: "0644"

@@ -1,0 +1,29 @@
+{{ ansible_managed.format(file=template_path) | comment }}
+# based on https://vincent.bernat.ch/en/blog/2021-startx-systemd
+[Unit]
+Description=X11 session for yavdr
+Conflicts=x-verbose@vt7.service
+After=graphical.target systemd-user-sessions.service plymouth.service
+
+[Service]
+User=vdr
+WorkingDirectory=~
+Environment=DISPLAY=:0
+
+PAMName=login
+Environment=XDG_SESSION_TYPE=x11
+TTYPath=/dev/tty7
+StandardInput=tty
+UnsetEnvironment=TERM
+
+UtmpIdentifier=tty7
+UtmpMode=user
+
+StandardOutput=journal
+ExecStartPre=/usr/bin/chvt 7
+ExecStart=/usr/bin/startx /usr/bin/openbox-session -- "$DISPLAY" vt7 -keeptty -terminate -nolisten tcp
+ExecStop=/usr/bin/openbox --exit
+Restart=no
+
+[Install]
+WantedBy=graphical.target
