@@ -7,18 +7,18 @@
 - name: Expand osd2web.service from template for the session
   ansible.builtin.template:
     src: templates/systemd/user/osd2web.service.j2
-    dest: '{{ vdr.home }}/.config/systemd/user/osd2web.service'
-    owner: '{{ vdr.user }}'
-    group: '{{ vdr.group }}'
-    mode: '0644'
+    dest: "{{ vdr.home }}/.config/systemd/user/osd2web.service"
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0644"
 
 - name: Activate and start systemd unit osd2web.service
   ansible.builtin.systemd:
-    name: 'osd2web.service'
+    name: "osd2web.service"
     daemon_reload: true
     enabled: true
     masked: false
-    scope: user
     state: started
+    scope: user
   become: true
   become_user: "{{ vdr.user }}"
