@@ -97,10 +97,12 @@ CONNECTOR_REGEX = re.compile(
 )
 MODE_REGEX = re.compile(r"^\s+(?P<resolution>\d{3,}x\d{3,}).*")
 
+
 class Mode(NamedTuple):
     connection: str
     resolution: str
     refreshrate: int
+
 
 # Mode = namedtuple("Mode", ["connection", "resolution", "refreshrate"])
 
@@ -174,7 +176,9 @@ def get_indentation(line: str) -> int:
     return len(line) - len(line.lstrip())
 
 
-def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, dict[str, XrandrMonitor]]:
+def parse_xrandr_verbose(
+    lines: list[str], params: dict[str, Any]
+) -> dict[str, dict[str, XrandrMonitor]]:
     """parse the output of xrandr --verbose using an iterator delivering single lines"""
     xorg: dict[str, dict[str, XrandrMonitor]] = {}
     is_connected = False
@@ -238,9 +242,19 @@ def parse_xrandr_verbose(lines: list[str], params: dict[str, Any]) -> dict[str, 
                         line = next(iterator).strip()
 
                         if line.startswith("v:"):
-                            _, _, v_height, _, v_start, _, v_end, _, v_total, _, v_clock = (
-                                line.split()
-                            )
+                            (
+                                _,
+                                _,
+                                v_height,
+                                _,
+                                v_start,
+                                _,
+                                v_end,
+                                _,
+                                v_total,
+                                _,
+                                v_clock,
+                            ) = line.split()
                             refresh_rate = ast.literal_eval(v_clock[:-2])
                             rrate = int(round(refresh_rate))
                             # if (
@@ -405,20 +419,23 @@ def collect_nvidia_data():
                 return name, bus_id
     raise ValueError
 
+
 @dataclass
 class DRM_Output:
-    edid: str = field(default='')
-    drm_connector: str = field(default='')
-    xrandr_connector: str = field(default='')
+    edid: str | None = field(default=None)
+    drm_connector: str = field(default="")
+    xrandr_connector: str = field(default="")
+
 
 @dataclass
 class DRM_Connectors:
     primary: DRM_Output = field(default_factory=DRM_Output)
     secondary: DRM_Output = field(default_factory=DRM_Output)
-    ignored_outputs: list[str] = field(default_factory=list)
+    ignored_outputs: list[str] = field(default_factory=list[str])
+    all_outputs: list[DRM_Output] = field(default_factory=list[DRM_Output])
 
 
-def find_drm_connectors(connections: dict[str, dict[str, Any]])-> dict[str, Any]:
+def find_drm_connectors(connections: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """
     returns a dict with the following schema (secondary may be empty):
     {
@@ -433,10 +450,11 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]])-> dict[str, Any]
             'xrandr_connector': 'eDP-1',
         }
         'ignored_outputs': ['HDMI-A-2', 'DP-1']
+        'all_outputs': [DRM_Output1, ...]
     }
     """
     # STATUS_GLOB = '/sys/class/drm/card[0-9]*/status'
-    CONNECTOR_RE = re.compile("card[0-9a-f]+-(?P<connector>[^/]+)/status")
+    CONNECTOR_RE = re.compile("card[0-9a-f]+-(?P<connector>[^/]+)")
 
     def read_edid_bytes(edid_file: str | Path):
         edid_bytes = b""
@@ -444,17 +462,22 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]])-> dict[str, Any]
             edid_bytes = Path(edid_file).read_bytes()
         except IOError:
             pass
-        return edid_bytes
+        return edid_bytes or None
 
     xrandr_edid_bytes = read_edid_bytes(connections.get("primary", {}).get("edid", ""))
     secondary_xrandr_edid_bytes = read_edid_bytes(
         connections.get("secondary", {}).get("edid", "")
     )
 
-    drm = {"primary": {}, "secondary": {}, "ignored_outputs": []}
+    drm: dict[str, dict[str, Any] | list[Any]] = {
+        "primary": {},
+        "secondary": {},
+        "ignored_outputs": [],
+        "all_outputs": [],
+    }
     # for status_p in glob(STATUS_GLOB):
     for status_p in Path("/sys/class/drm/").glob("card[0-9a-f]*/status"):
-        match = re.search(CONNECTOR_RE, str(status_p))
+        match = re.search(CONNECTOR_RE, status_p.parent.name)
         if match:
             drm_connector = match.group("connector")
         else:
@@ -467,8 +490,11 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]])-> dict[str, Any]
         except IOError:
             continue
 
+        edid = read_edid_bytes(status_p.parent / "edid")
+        drm["all_outputs"].append(
+            {"drm_connector": drm_connector, "connected": connected, "edid": edid}
+        )
         if connected:
-            edid = read_edid_bytes(status_p.parent / "edid")
             if edid:
                 if edid == xrandr_edid_bytes:
                     drm["primary"] = {
@@ -507,7 +533,9 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
         preferred_outputs = params["preferred_outputs"]
         # ["HDMI", "DP", "DVI", "VGA"]
         if mode.refreshrate in preferred_rrates:
-            rrate_score = len(preferred_rrates) - preferred_rrates.index(mode.refreshrate)
+            rrate_score = len(preferred_rrates) - preferred_rrates.index(
+                mode.refreshrate
+            )
         if mode.resolution in preferred_resolutions:
             resolution_score = len(preferred_resolutions) - preferred_resolutions.index(
                 mode.resolution
@@ -515,8 +543,16 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
         x_resolution, y_resolution = (int(n) for n in mode.resolution.split("x"))
         connection = mode.connection.split("-")[0]
         if connection in preferred_outputs:
-            connection_score = len(preferred_outputs) - preferred_outputs.index(connection)
-        return (rrate_score, resolution_score, x_resolution, y_resolution, connection_score)
+            connection_score = len(preferred_outputs) - preferred_outputs.index(
+                connection
+            )
+        return (
+            rrate_score,
+            resolution_score,
+            x_resolution,
+            y_resolution,
+            connection_score,
+        )
 
     if xorg_data:
         modes: list[Mode] = []
@@ -583,13 +619,15 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
             )
 
             # check if additional monitors exist
-            other_modes = [mode for mode in modes if mode.connection != primary_mode.connection]
+            other_modes = [
+                mode for mode in modes if mode.connection != primary_mode.connection
+            ]
             print(f"{other_modes=}")
             if other_modes:
-                secondary_mode: Mode = max(
-                    other_modes, key=sort_mode
+                secondary_mode: Mode = max(other_modes, key=sort_mode)
+                connector_1_edid = "/etc/X11/edid.{}.bin".format(
+                    secondary_mode.connection
                 )
-                connector_1_edid = "/etc/X11/edid.{}.bin".format(secondary_mode.connection)
                 vendor_1, model_1, modelines_1 = parse_edid_data(connector_1_edid)
                 config.secondary = MonitorConfig(
                     connector=secondary_mode.connection,
@@ -613,12 +651,8 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
             def match_drm_connectors(
                 data: dict[str, dict[str, XrandrMonitor]],
             ) -> None:
-                CONNECTOR_RE = re.compile(
-                    "card[0-9a-f]+-(?P<connector>[^/]+)/status"
-                )
-                for status_p in Path("/sys/class/drm/").glob(
-                    "card[0-9a-f]*/status"
-                ):
+                CONNECTOR_RE = re.compile("card[0-9a-f]+-(?P<connector>[^/]+)/status")
+                for status_p in Path("/sys/class/drm/").glob("card[0-9a-f]*/status"):
                     match = re.search(CONNECTOR_RE, str(status_p))
                     if match:
                         drm_connector = match.group("connector")

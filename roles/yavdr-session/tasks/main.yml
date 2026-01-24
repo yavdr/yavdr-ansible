@@ -1,0 +1,21 @@
+- name: Create yavdr-session@.service
+  ansible.builtin.template:
+    src: templates/yavdr-session@.service
+    dest: /etc/systemd/system/yavdr-session@.service
+    mode: "0644"
+
+- name: Enable login linger for {{ vdr.user }}
+  ansible.builtin.command: "loginctl enable-linger {{ vdr.user | quote }}"
+
+- name: Enable services for the user session
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    masked: false
+    enabled: true
+    scope: user
+  become: true
+  become_user: vdr
+  loop:
+    - tmux.service
+    - udiskie.service
