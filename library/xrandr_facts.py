@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from __future__ import print_function
 import ast
+import base64
 import binascii
 import csv
 import re
@@ -495,7 +496,9 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]]) -> dict[str, Any
             {
                 "drm_connector": drm_connector,
                 "connected": connected,
-                "edid": edid.hex() if edid is not None else edid,
+                "edid": base64.b64encode(edid).decode("ascii")
+                if edid is not None
+                else edid,
             }
         )
         if connected:
