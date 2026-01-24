@@ -495,7 +495,7 @@ if __name__ == "__main__":
     )
 
     params = cast(dict[str, Any], module.params)
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(filename="/tmp/graphics_facts.log", level=logging.DEBUG)
     if xrandr_verbose_output := get_xrandr_verbose_output(
         display=":0"
     ):  # params["display"]):
