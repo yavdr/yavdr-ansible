@@ -315,16 +315,16 @@ def parse_edid_bytes(edid_bytes: str):
             elif line.startswith("Modeline"):
                 # For the fields of a modeline see
                 # https://en.wikipedia.org/wiki/XFree86_Modeline
-                print(line)
+                # print(line)
                 # ignore 'Modeline "Mode N"' part of Modeline
                 _, _, line = line.split('"', 2)
                 if not line:
-                    print("no timing information")
+                    # print("no timing information")
                     continue
                 try:
                     mode = Modeline_Data(*line.split(None, 9))
                 except (ValueError, TypeError):
-                    print("invalid timing information")
+                    # print("invalid timing information")
                     continue
                 refresh = round(
                     float(mode.pixelclock)
@@ -361,16 +361,16 @@ def parse_edid_data(edid_path: str) -> tuple[str, str, list[str]]:
             elif line.startswith("Modeline"):
                 # For the fields of a modeline see
                 # https://en.wikipedia.org/wiki/XFree86_Modeline
-                print(line)
+                # print(line)
                 # ignore 'Modeline "Mode N"' part of Modeline
                 _, _, line = line.split('"', 2)
                 if not line:
-                    print("no timing information")
+                    # print("no timing information")
                     continue
                 try:
                     mode = Modeline_Data(*line.split(None, 9))
                 except (ValueError, TypeError):
-                    print("invalid timing information")
+                    # print("invalid timing information")
                     continue
                 refresh = round(
                     float(mode.pixelclock)
@@ -629,7 +629,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
             other_modes = [
                 mode for mode in modes if mode.connection != primary_mode.connection
             ]
-            print(f"{other_modes=}")
+            # print(f"{other_modes=}")
             if other_modes:
                 secondary_mode: Mode = max(other_modes, key=sort_mode)
                 connector_1_edid = "/etc/X11/edid.{}.bin".format(
