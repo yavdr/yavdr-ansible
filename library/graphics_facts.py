@@ -95,7 +95,7 @@ logger = logging.getLogger(__name__)
 class Connector(BaseModel):
     xrandr_name: str
     is_connected: bool = False
-    edid: bytes | None = None
+    edid: str | None = None
     xorg_modelines: dict[str, str] = Field(default_factory=dict[str, str])
     edid_modelines: dict[str, str] = Field(default_factory=dict[str, str])
     all_modelines: dict[str, str] = Field(default_factory=dict[str, str])
@@ -175,7 +175,7 @@ def parse_xrandr_edid(data: deque[str]) -> str:
     return "".join(edid_lines)
 
 
-def parse_edid_bytes(edid_bytes: bytes) -> tuple[str, str, dict[str, str]]:
+def parse_edid_bytes(edid_bytes: str) -> tuple[str, str, dict[str, str]]:
     vendor = "Unknown"
     model = "Unknown"
     modelines: dict[str, str] = {}
@@ -183,7 +183,7 @@ def parse_edid_bytes(edid_bytes: bytes) -> tuple[str, str, dict[str, str]]:
         data = subprocess.check_output(
             ["edid-decode", "-LnpsX"],
             errors="replace",
-            input=edid_bytes.decode(),
+            input=edid_bytes,
             universal_newlines=True,
         )
     except subprocess.CalledProcessError:
@@ -348,7 +348,8 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                 edid_modes: dict[str, str] = {}
                 if r := find_edid(edid, xorg_connector_name):
                     drm_connector, pci_id = r
-                if edid:
+                if edid is not None:
+                    edid = edid.decode()
                     vendor, model, edid_modes = parse_edid_bytes(edid)
 
                 logging.info(f"{edid=}")
