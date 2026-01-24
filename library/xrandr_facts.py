@@ -492,7 +492,11 @@ def find_drm_connectors(connections: dict[str, dict[str, Any]]) -> dict[str, Any
 
         edid = read_edid_bytes(status_p.parent / "edid")
         drm["all_outputs"].append(
-            {"drm_connector": drm_connector, "connected": connected, "edid": edid}
+            {
+                "drm_connector": drm_connector,
+                "connected": connected,
+                "edid": edid.hex() if edid is not None else edid,
+            }
         )
         if connected:
             if edid:
