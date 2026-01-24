@@ -229,12 +229,12 @@ def parse_edid_bytes(edid_bytes: str) -> tuple[str, str, dict[str, str]]:
     return vendor, model, modelines
 
 
-def find_xrandr_edid(data: deque[str]) -> bytes | None:
+def find_xrandr_edid(data: deque[str]) -> str | None:
     while data:
         line = data.popleft()
         if line.lstrip().startswith("EDID:"):
             edid = parse_xrandr_edid(data)
-            return edid.encode("ascii")
+            return edid
         elif line.lstrip().startswith("non-desktop"):
             return
 
@@ -298,12 +298,12 @@ def find_next_mode(data: deque[str]) -> tuple[str, str] | None:
                     )
 
 
-def find_edid(edid: bytes | None, xorg_connector: str) -> None | tuple[str, str]:
-    if edid:
-        edid = binascii.a2b_hex(edid)
+def find_edid(edid: str | None, xorg_connector: str) -> None | tuple[str, str]:
+    if edid is not None:
+        edid_raw = binascii.a2b_hex(edid)
         for edid_path in Path("/sys/class/drm/").glob("card*/edid"):
             # logging.debug(f"{edid=} == {edid_path.read_bytes()=}")
-            if edid == edid_path.read_bytes():
+            if edid_raw == edid_path.read_bytes():
                 card, _, drm_connector = edid_path.parent.name.partition("-")
                 # get the BusID
                 dev_path = edid_path.parent.parent / card / "dev"
@@ -349,7 +349,6 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                 if r := find_edid(edid, xorg_connector_name):
                     drm_connector, pci_id = r
                 if edid is not None:
-                    edid = edid.decode()
                     vendor, model, edid_modes = parse_edid_bytes(edid)
 
                 logging.info(f"{edid=}")
@@ -465,7 +464,7 @@ def auto_config(
         *secondary_candidates, ((primary, mode_name), _) = sorted_modes
         resolution, _, refreshrate = mode_name.partition("_")
         xorg_config.primary = MonitorConfig(
-            connector=primary.drm_name,
+            connector=primary.drm_name or primary.xrandr_name,
             resolution=resolution,
             refreshrate=int(refreshrate),
         )
@@ -478,7 +477,7 @@ def auto_config(
             *_, ((secondary, secondary_mode_name), _) = secondary_candidates
             resolution, _, refreshrate = secondary_mode_name.partition("_")
             xorg_config.secondary = MonitorConfig(
-                connector=secondary.drm_name,
+                connector=secondary.drm_name or primary.xrandr_name,
                 resolution=resolution,
                 refreshrate=int(refreshrate),
             )
