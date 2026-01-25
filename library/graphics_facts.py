@@ -515,7 +515,7 @@ def auto_config(
         *secondary_candidates, ((primary, mode_name), _) = sorted_modes
         resolution, _, refreshrate = mode_name.partition("_")
         xorg_config.primary = MonitorConfig(
-            connector=primary.drm_name or primary.xrandr_name,
+            connector=primary.xrandr_name,
             resolution=resolution,
             refreshrate=int(refreshrate),
         )
@@ -528,7 +528,7 @@ def auto_config(
             *_, ((secondary, secondary_mode_name), _) = secondary_candidates
             resolution, _, refreshrate = secondary_mode_name.partition("_")
             xorg_config.secondary = MonitorConfig(
-                connector=secondary.drm_name or primary.xrandr_name,
+                connector=secondary.xrandr_name,
                 resolution=resolution,
                 refreshrate=int(refreshrate),
             )

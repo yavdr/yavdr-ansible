@@ -1,10 +1,5 @@
 {{ ansible_managed.format(file=template_path) | comment }}
-{#
-{% set xorg = ansible_facts.xorg %}
-{% set primary_mode = xorg_config.primary.resolution + '_' + xorg_config.primary.refreshrate | string %}
-{% set has_secondary = ansible_facts.xorg.secondary | default(false, true) | bool %}
-{% set use_secondary = has_secondary and (ansible_facts.xorg_config.secondary | default(false, true) | bool) %}
-#}
+
 {%- set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
 {%- set primary_connector = ansible_facts.graphics_config.primary.connector -%}
 {%- set primary = ansible_facts.graphics_outputs[primary_connector] -%}
@@ -12,12 +7,12 @@
 {%- set primary_modelines = ansible_facts.graphics_outputs[primary_connector].all_modelines -%}
 {%- set use_secondary = ansible_facts.graphics_config.secondary is not none -%}
 {%- if use_secondary -%}
-{%- set secondary = ansible_facts.graphics_outputs[secondary_connector] -%}
 {%- set secondary_connector = graphics_config.secondary.connector -%}
+{%- set secondary = ansible_facts.graphics_outputs[secondary_connector] -%}
 {%- set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name -%}
 {%- set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
 {%- set secondary_modelines = ansible_facts.graphics_outputs[secondary_connector].all_modelines -%}
-{%- endif -%}
+{%- endif %}
 
 
 Section "ServerLayout"
@@ -90,7 +85,7 @@ Section "Device"
     VendorName     "NVIDIA Corporation"
     Option  "NoLogo"              "true"
     BoardName      "{{ secondary.card_name or "Unknown" }}"
-{% if xorg.secondary.bus_id is not none %}
+{% if secondary.bus_id is not none %}
     BusID          "{{ secondary.bus_id }}"
 {% endif %}
 {% if nvidia_force_dpi | int(0) > 0  %}
@@ -115,7 +110,7 @@ Section "Screen"
     #Option         "ConnectedMonitor" "{{ secondary.xrandr_name }}"
     Option         "UseDisplayDevice" "{{ secondary.xrandr_name }}"
     #Option         "CustomEDID" "{{ secondary.xrandr_name }}:/etc/X11/edid.{{ secondary.xrandr_name }}.bin"
-    Option         "metamodes" "{{ secondary.xrandr_name }}: {{ secondary.mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
+    Option         "metamodes" "{{ secondary.xrandr_name }}: {{ secondary_mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"
     Option         "SLI" "Off"
