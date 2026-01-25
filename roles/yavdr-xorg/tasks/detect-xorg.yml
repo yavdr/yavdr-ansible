@@ -237,9 +237,3 @@
 - name: Set nvidia_driver_detected variable
   ansible.builtin.set_fact:
     nvidia_driver_installed: "{{ nvidia_smi.rc == 0 | bool | default(false) }}"
-
-- name: Server flags config snippet to disable screen blanking
-  ansible.builtin.template:
-    src: templates/10-serverflags.conf.j2
-    dest: /etc/X11/xorg.conf.d/10-serverflags.conf
-    mode: "0644"
