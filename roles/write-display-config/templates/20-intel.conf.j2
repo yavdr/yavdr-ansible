@@ -1,16 +1,15 @@
 {{ ansible_managed.format(file=template_path) | comment }}
 
-{% set xorg = ansible_facts.xorg %}
-{% set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string %}
-{% set primary_connector = ansible_facts.graphics_config.primary.connector %}
-{% set primary_output = ansible_facts.graphics_outputs[primary_connector].xrandr_name  %}
-{% set use_secondary = ansible_facts.graphics_config.secondary is not none %}
-
-{% if use_secondary %}
-{% set secondary_connector = graphics_config.secondary.connector %}
-{% set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name %}
-{% set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string %}
-{% endif %}
+{%- set xorg = ansible_facts.xorg -%}
+{%- set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
+{%- set primary_connector = ansible_facts.graphics_config.primary.connector -%}
+{%- set primary_output = ansible_facts.graphics_outputs[primary_connector].xrandr_name  -%}
+{%- set use_secondary = ansible_facts.graphics_config.secondary is not none -%}
+{%- if use_secondary -%}
+{%- set secondary_connector = graphics_config.secondary.connector -%}
+{%- set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name -%}
+{%- set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
+{%- endif -%}
 
 {% set intel_driver = intel_driver | default("intel") %}
 
@@ -88,7 +87,7 @@ EndSection
 
 Section "Monitor"
   Identifier  "{{ secondary_output }}"
-{% if xorg.secondary.modelines %}
+{% if ansible_facts.graphics_outputs[secondary_connector].all_modelines %}
 {% for modeline in ansible_facts.graphics_outputs[secondary_connector].all_modelines.values() %}
   {{ modeline }}
 {% endfor %}
@@ -100,14 +99,17 @@ Section "Monitor"
 EndSection
 {% endif %}
 
-{% for connector, data in ansible_facts.graphics_outputs.items() | list if not (
-    data.is_connected|bool or
+{% for connector, data in ansible_facts.graphics_outputs.items() %}
+# {{ connector }} {{ data.is_connected }}
+{%- if not (
+    data.is_connected or
     data.xrandr_name == primary_output or
-    (xorg.secondary is defined and data.xrandr_name == secondary_output))
- %}
+    (use_secondary and data.xrandr_name == secondary_output)
+) -%}
 Section "Monitor"
   Identifier "{{ data.xrandr_name }}"
   Option "Ignore" "true"
 EndSection
 
+{% endif %}
 {% endfor %}
