@@ -1,25 +1,34 @@
 {{ ansible_managed.format(file=template_path) | comment }}
-{% set primary_output_data = xrandr['Screen 0:'][xorg_config.primary.connector] %}
-{% if xorg_config.secondary is defined %}
-  {% set secondary_output_data = xrandr['Screen 0:'][xorg_config.secondary.connector] %}
-{% endif %}
-{% set primary_output = xorg_config.primary.connector|replace("-", "") %}
-{% if xorg.secondary is defined %}
-  {% set secondary_output = xorg_config.secondary.connector|replace("-", "") %}
-{% endif %}
+{%- set outputs = ansible_facts.display_outputs -%}
+{%- set primary_config = custom_display_config.primary -%}
+{%- set primary_mode = primary_config.resolution + '_' + primary_config.refreshrate | string -%}
+{%- set primary_connector = primary_config.connector -%}
+{%- set primary = outputs[primary_connector] -%}
+{%- set primary_output = primary.xrandr_name  -%}
+{%- set primary_modelines = primary.all_modelines -%}
+
+{%- set use_secondary = custom_display_config.secondary is not none -%}
+{%- if use_secondary -%}
+{%- set secondary_config = custom_display_config.secondary -%}
+{%- set secondary_connector = secondary_config.connector -%}
+{%- set secondary = outputs[secondary_connector] -%}
+{%- set secondary_output = secondary.xrandr_name -%}
+{%- set secondary_mode = custom_display_config.secondary.resolution + '_' + secondary_config.refreshrate | string -%}
+{%- set secondary_modelines = secondary.all_modelines -%}
+{%- endif %}
 
 Section "Device"
   Identifier  "Device0"
   Driver      "amdgpu"
   Option      "TearFree" "true"
   Option      "VariableRefresh" "true"
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
   Option      "ZaphodHeads" "{{ primary_output }}"
   Screen      0
 {% endif %}
 EndSection
 
-{% if xorg.secondary is defined %}
+{% if xuse_secondary %}
 Section "Device"
   Identifier  "Device1"
   Driver      "amdgpu"
@@ -43,15 +52,15 @@ Section "Screen"
   DefaultDepth  24
   SubSection "Display"
     Depth       24
-{% if xorg_config.primary.resolution and xorg_config.primary.refreshrate %}
-    Modes     "{{ xorg_config.primary.resolution }}_{{ xorg_config.primary.refreshrate }}"
+{% if primary_modelines[primary_mode] | default(false) %}
+    Modes     "{{ primary_mode }}"
 {% else %}
     Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
 {% endif %}
   EndSubSection
 EndSection
 
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
 Section "Screen"
   Identifier  "Screen1"
   Device      "Device1"
@@ -59,8 +68,8 @@ Section "Screen"
   DefaultDepth  24
   SubSection "Display"
     Depth       24
-{% if xorg.secondary.mode %}
-    Modes     "{{ xorg.secondary.mode }}"
+{% if secondary_mode %}
+    Modes     "{{ secondary_mode }}"
 {% else %}
     Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
 {% endif %}
@@ -70,10 +79,8 @@ EndSection
 {% endif %}
 Section "Monitor"
   Identifier  "{{ primary_output }}"
-{% if xrandr["Screen 0:"][xorg.primary.connector].modelines %}
-  {{ xrandr["Screen 0:"][xorg.primary.connector].modelines[xorg.primary.mode]|default("") }}
-{% elif xorg.primary.modelines %}
-{% for modeline in xorg.primary.modelines %}
+{% if primary_modelines %}
+{% for modeline in primary_modelines.values() %}
   {{ modeline }}
 {% endfor %}
 {% else %}
@@ -83,11 +90,11 @@ Section "Monitor"
 {% endif %}
 EndSection
 
-{% if xorg.secondary is defined %}
+{% if use_secondary %}
 Section "Monitor"
   Identifier  "{{ secondary_output }}"
-{% if xorg.secondary.modelines %}
-{% for modeline in xorg.secondary.modelines %}
+{% if secondary_modelines %}
+{% for modeline in secondary_modelines.values() %}
   {{ modeline }}
 {% endfor %}
 {% else %}
@@ -96,16 +103,21 @@ Section "Monitor"
   Modeline    "1920x1080_60"    148.500 1920 2008 2056 2200 1080 1084 1089 1125 +hsync +vsync
 {% endif %}
 EndSection
-
 {% endif %}
-{% for connector, data in xrandr["Screen 0:"].items() | list if not (
-    data.is_connected|bool or
-    connector == xorg.primary.connector or
-    (xorg.secondary is defined and connector == xorg.secondary.connector))
- %}
+
+{# not sure if the amd driver can't ignore monitors- disable deactivation of monitors for now
+{% for connector, data in ansible_facts.graphics_outputs.items() %}
+# {{ connector }} {{ data.is_connected }}
+{% if not (
+    data.is_connected or
+    data.xrandr_name == primary_output or
+    (use_secondary and data.xrandr_name == secondary_output)
+) %}
 Section "Monitor"
-  Identifier "{{ connector|replace("-","") }}"
+  Identifier "{{ data.xrandr_name }}"
   Option "Ignore" "true"
 EndSection
 
+{% endif %}
 {% endfor %}
+#}
