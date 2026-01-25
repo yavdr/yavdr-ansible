@@ -1,6 +1,10 @@
 #!/usr/bin/dash
 {{ ansible_managed.format(file=template_path) | comment }}
 
+# this allows other users on the same machine to connect to the X-server
+# which is more consistend with the behaviour of previous yaVDR versions
+xhost +local:
+
 env | grep "DISPLAY\|DBUS_SESSION_BUS_ADDRESS\|XDG_RUNTIME_DIR\|XDG_DATA_DIRS" > ~/.session-env
 systemctl --user import-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_DATA_DIRS DBUS_SESSION_BUS_ADDRESS
 
