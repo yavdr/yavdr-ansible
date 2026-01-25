@@ -499,7 +499,7 @@ def rate_mode(
 def auto_config(
     connectors: dict[str, Connector], preferences: Preferences
 ) -> GraphicsConfig:
-    xorg_config: GraphicsConfig = GraphicsConfig()
+    monitor_config: GraphicsConfig = GraphicsConfig()
 
     scores: dict[tuple[Connector, str], Rating] = {}
     for connector in connectors.values():
@@ -514,7 +514,7 @@ def auto_config(
     if len(sorted_modes) > 0:
         *secondary_candidates, ((primary, mode_name), _) = sorted_modes
         resolution, _, refreshrate = mode_name.partition("_")
-        xorg_config.primary = MonitorConfig(
+        monitor_config.primary = MonitorConfig(
             connector=primary.xrandr_name,
             resolution=resolution,
             refreshrate=int(refreshrate),
@@ -527,7 +527,7 @@ def auto_config(
         ):
             *_, ((secondary, secondary_mode_name), _) = secondary_candidates
             resolution, _, refreshrate = secondary_mode_name.partition("_")
-            xorg_config.secondary = MonitorConfig(
+            monitor_config.secondary = MonitorConfig(
                 connector=secondary.xrandr_name,
                 resolution=resolution,
                 refreshrate=int(refreshrate),
@@ -535,7 +535,7 @@ def auto_config(
     # else:
     #     xorg_config.primary =
 
-    return xorg_config
+    return monitor_config
 
 
 if __name__ == "__main__":
