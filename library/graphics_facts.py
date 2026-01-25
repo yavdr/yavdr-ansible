@@ -400,6 +400,7 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                     model=model,
                 )
             else:
+                drm_connector = pci_id = None
                 if r := find_edid(None, xorg_connector_name):
                     drm_connector, pci_id = r
                 return Connector(
