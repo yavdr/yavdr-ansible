@@ -399,6 +399,15 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                     vendor=vendor,
                     model=model,
                 )
+            else:
+                if r := find_edid(None, xorg_connector_name):
+                    drm_connector, pci_id = r
+                return Connector(
+                    xrandr_name=xorg_connector_name,
+                    is_connected=False,
+                    drm_name=drm_connector,
+                    pci_id=pci_id,
+                )
 
 
 def parse_xrandr_verbose(data: deque[str]) -> dict[str, Connector]:
