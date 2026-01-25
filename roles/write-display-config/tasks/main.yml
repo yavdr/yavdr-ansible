@@ -9,13 +9,13 @@
 #     - ansible_facts.xorg is undefined
 #     - ansible_facts.drm is undefined
 
-- name: Update graphics_outputs and monitor_config variables with values from local facts if needed
+- name: Update display_outputs and display_config variables with values from local facts if needed
   ansible.builtin.set_fact:
     ansible_facts:
-      graphics: "{{ ansible_local.graphics.graphics_outputs }}"
+      display_outputs: "{{ ansible_local.display_output.display_outputs }}"
       monitor_config: "{{ ansible_local.display_config.display_config }}"
   when:
-    - ansible_facts.graphics_outputs is undefined
+    - ansible_facts.display_outputs is undefined
     - ansible_facts.display_config is undefined
 
 # TODO: expand template for xorg.conf (or snippets)
@@ -41,19 +41,9 @@
 
 - name: Fallback if there is no custom display config
   ansible.builtin.set_fact:
-    custom_display_config: ansible_local.monitor_config.monitor_config
+    custom_display_config: ansible_local.display_config.display_config
   when:
     - custom_display_config is undefined
-
-# - name: Set monitor_config from facts if it's undefined
-#   ansible.builtin.set_fact:
-#     xorg_config: "{{ monitor_config | default(ansible_facts.XorgConfig) }}"
-
-#- name: Make sure file exists
-#  ansible.builtin.file:
-#    path: /etc/yavdr/display_config.yml
-#    state: touch
-#    mode: "0644"
 
 - name: Show display_config facts
   ansible.builtin.debug:
