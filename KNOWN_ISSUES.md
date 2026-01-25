@@ -1,3 +1,6 @@
+This is an overview of the issues I encountered while adapting yavdr-ansible to Ubuntu 26.04 systems. Due to the ongoing development additional issues might be introduced.
+
+
 # PPAs
 The names of files for source entries in `/etc/apt/sources.list.d/` created by `add-apt-repository` and ansible's deb822 module differ: https://github.com/ansible/ansible/issues/86243
 
@@ -71,7 +74,7 @@ $ resolvectl domain
 
 ## NFS
 The kernel deprecates the `intr` option for NFS, so this needs to be replaced by something like `timeo=600,retrans=2` to prevents endless lockups on timeouts
-This affects the vdr-addon-avahi-linker, which uses autofs to mount the remote NFS shares in the background.
+This affects the `vdr-addon-avahi-linker`, which uses autofs to mount the remote NFS shares in the background.
 
 ## TODO avahi-linker
 Error when the trying to update recording directories via dbus2vdr while vdr is not ready - make this a less servere loglevel
@@ -80,7 +83,7 @@ Error when the trying to update recording directories via dbus2vdr while vdr is 
 ## vdr-addon-lifeguard
 crashes on exit - test with new package
 
-## udiskie
+## TEST udiskie
 ```
 Dez 01 18:48:28 resolute-legacy udiskie[1610]: Traceback (most recent call last):
 Dez 01 18:48:28 resolute-legacy udiskie[1610]:   File "/usr/lib/python3/dist-packages/udiskie/dbus.py", line 225, in callback
@@ -104,6 +107,8 @@ Dez 01 18:48:28 resolute-legacy udiskie[1610]: TypeError: DeviceCommand.__call__
 
 [Bug Report](https://github.com/coldfix/udiskie/issues/324#issuecomment-3638677906)
 
+Also requires `gir1.2-notify-0.7` - added to the playbook
+
 # Output
 
 ## Alsa
@@ -114,19 +119,26 @@ The alsa packages contains the `90-alsa-restore.rules` file that generates warni
 
 When upgrading from previous yavdr-ansible version, make sure to delete `{{ vdr.home }}/.config/systemd/user/dbus-pulsectl.service` to allow the systemd unit installed by dbus-pulsectl to start the correct python script.
 
-## WAIT nvidia cards
-Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04. The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
+The pulseaudio package installs an executable systemd user session unit, which generates a warning
+
+## graphical output
+### no support for multiple GPUs
+Currently the automatic configuration of Xorg is limited to using a single GPU/IGP. If you want to configure more than one graphics card, you need to adapt the configuration by hand.
+
+### old nvidia cards
+Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04 - it also seems that mesa dropped support for VDPAU entirely: https://www.phoronix.com/news/Mesa-Drops-VDPAU, so one might need to use VA-API.
+
+The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
 
 ```xserver-xorg-video-nouveau```
-```firmware-nvidia-graphics```
-```vdpau-driver-all```
+```mesa-va-drivers``` (virtual package for mesa-libgallium)
 
-Problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
-https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have some extracted necessary files. So far I have not been successful in making VDPAU with those work.
+Another problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
+https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have some extracted necessary files.
+So far I have not been successful in making VDPAU work with nouveau - if someone has a solution, I am glad to add it.
 
-The nvidia driver for Ubuntu 26.04 can't currently be installed: https://bugs.launchpad.net/ubuntu/+source/linux-restricted-modules/+bug/2134356
 
-## intel cards
+### intel cards
 There might be some trial and error involved to find a working combination of driver, glx version and softhddevice output method.
 
 For old IGPs (e.g. Haswell Generation), using the `intel` driver and `va-api` works usually best up to Ubuntu 24.04
@@ -135,12 +147,12 @@ For a 13th generation Core i3, `va-api-egl` works best.
 
 The modesetting driver seems to be limited to a single display.
 
-Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods. `softhddevice_intel_output_method=software-glx` seems to be a viable fallback for DVB-T2 h265 if other settings lead to crashes resp. no visible video.
+Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods if the dvb tuner drops out
 
 `libgl1-amber-dri` needs to be installed, too
 
 ### forcing connection status
-Due to changes in the intel drivers, you can't force HDMI ports to be connected anymore. However there is an udev event sent if a drm connector changes due to Hotplug - this doesn't specify the connetor nor if it's a plugged in/out event:
+Due to changes in the intel drivers, you can't force HDMI ports to be seen as connected by the Kernel. However there is an udev event sent if a drm connector changes due to Hotplug - this doesn't specify the connetor nor if it's a plugged in/out event:
 ```shell
 $ udevadm monitor --kernel --subsystem-match=drm
 monitor will print the received events for:
@@ -173,13 +185,13 @@ We also need to improve the conditions under which `update-initramfs` are called
 # GUI Software and Configuration
 
 ## Openbox
-The `rc.xml` points to a menu file in `/var/lib/vdr/openbox.xml` that doesn't exist in recent openbox packages
+The `rc.xml` points to a menu file in `/var/lib/vdr/openbox.xml` that file doesn't exist in recent openbox packages
 
 # yavdr-frontend
 ## vdr-sxfe
 vdr-sxfe isn't started successfully after vdr starts - still unclear why this happens
-## stopping yavdr-frontend befor the X-Server
-This could be done using the command `frontend-dbus-send quit` in the `ExecStop=` Part of `x@vt7.service`
+## stopping yavdr-frontend before the X-Server
+This is done via yavdr-frontend with the on_xorg_stop method called via dbus
 
 # KODI
 The shutdown menu allows to shutdown the system - can we block this with an inhibitor?
