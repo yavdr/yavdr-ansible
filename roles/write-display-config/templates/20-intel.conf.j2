@@ -1,17 +1,18 @@
 {{ ansible_managed.format(file=template_path) | comment }}
 
-{%- set xorg = ansible_facts.xorg -%}
 {%- set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
 {%- set primary_connector = ansible_facts.graphics_config.primary.connector -%}
 {%- set primary_output = ansible_facts.graphics_outputs[primary_connector].xrandr_name  -%}
+{%- set primary_modelines = ansible_facts.graphics_outputs[primary_connector].all_modelines -%}
 {%- set use_secondary = ansible_facts.graphics_config.secondary is not none -%}
 {%- if use_secondary -%}
 {%- set secondary_connector = graphics_config.secondary.connector -%}
 {%- set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name -%}
 {%- set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
+{%- set secondary_modelines = ansible_facts.graphics_outputs[secondary_connector].all_modelines -%}
 {%- endif -%}
 
-{% set intel_driver = intel_driver | default("intel") %}
+{% set intel_driver = ansible_facts.intel_driver | default("intel") %}
 
 Section "Device"
   Identifier  "Device0"
@@ -48,7 +49,7 @@ Section "Screen"
   DefaultDepth  24
   SubSection "Display"
     Depth       24
-{% if ansible_facts.graphics_outputs[primary_connector].all_modelines[primary_mode] | default(false) %}
+{% if primary_modelines[primary_mode] | default(false) %}
     Modes     "{{ primary_mode }}"
 {% else %}
     Modes     "1920x1080_50" "1920x1080_60" "1920x1080_24"
@@ -59,7 +60,7 @@ EndSection
 Section "Monitor"
   Identifier  "{{ primary_output }}"
 {% if xorg.primary.modelines %}
-{% for modeline in ansible_facts.graphics_outputs[primary_connector].all_modelines.values() %}
+{% for modeline in primary_modelines.values() %}
   {{ modeline }}
 {% endfor %}
 {% else %}
@@ -87,8 +88,8 @@ EndSection
 
 Section "Monitor"
   Identifier  "{{ secondary_output }}"
-{% if ansible_facts.graphics_outputs[secondary_connector].all_modelines %}
-{% for modeline in ansible_facts.graphics_outputs[secondary_connector].all_modelines.values() %}
+{% if secondary_modelines %}
+{% for modeline in secondary_modelines.values() %}
   {{ modeline }}
 {% endfor %}
 {% else %}
@@ -99,13 +100,14 @@ Section "Monitor"
 EndSection
 {% endif %}
 
+{# the intel driver can't ignore monitors, so this doesn't work - disable deactivation of monitors for now
 {% for connector, data in ansible_facts.graphics_outputs.items() %}
 # {{ connector }} {{ data.is_connected }}
-{%- if not (
+{% if not (
     data.is_connected or
     data.xrandr_name == primary_output or
     (use_secondary and data.xrandr_name == secondary_output)
-) -%}
+) %}
 Section "Monitor"
   Identifier "{{ data.xrandr_name }}"
   Option "Ignore" "true"
@@ -113,3 +115,4 @@ EndSection
 
 {% endif %}
 {% endfor %}
+#}
