@@ -93,6 +93,10 @@ Section "Device"
 {% if xorg.secondary.bus_id is not none %}
     BusID          "{{ secondary.bus_id }}"
 {% endif %}
+{% if nvidia_force_dpi | int(0) > 0  %}
+    Option         "UseEdidDpi" "FALSE"
+    Option         "DPI" "{{ ansible_facts.nvidia_force_dpi }} x {{ ansible_facts.nvidia_force_dpi }}"
+{% endif %}
     Screen          1
 EndSection
 
