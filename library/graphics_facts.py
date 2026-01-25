@@ -301,8 +301,8 @@ def find_next_mode(data: deque[str]) -> tuple[str, str] | None:
 
 def get_card_name(card: str = "card1"):
     drm_path = Path("/sys/class/drm/") / card
-    device_path = (drm_path / "device").resolve()
-    pci_addr = device_path.parent.name
+    device_path = (drm_path / "device").readlink()
+    pci_addr = device_path.name
 
     # Query lspci for a readable name
     result = subprocess.run(
