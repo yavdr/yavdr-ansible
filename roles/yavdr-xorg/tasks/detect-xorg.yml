@@ -180,7 +180,7 @@
 
     - name: Write display_config variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"display_config": ansible_facts.display_config | default({}) } | to_nice_json }}'
+        content: '{{ {"display_config": ansible_facts.display_config | default({"primary": null, "secondary": null}) } | to_nice_json }}'
         dest: /etc/ansible/facts.d/display_config.fact
         mode: "0644"
 
