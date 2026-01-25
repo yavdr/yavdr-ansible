@@ -100,13 +100,14 @@ class Connector(BaseModel):
     edid_modelines: dict[str, str] = Field(default_factory=dict[str, str])
     all_modelines: dict[str, str] = Field(default_factory=dict[str, str])
     modes: dict[str, list[int]] = Field(default_factory=dict[str, list[int]])
-    pci_id: str | None = None
+    bus_id: str | None = None
     drm_name: str | None = None
+    card_name: str | None = None
     vendor: str | None = None
     model: str | None = None
 
     def __hash__(self):
-        return hash((self.xrandr_name, self.is_connected, self.edid, self.pci_id))
+        return hash((self.xrandr_name, self.is_connected, self.edid, self.bus_id))
 
 
 class MonitorConfig(BaseModel):
@@ -298,28 +299,61 @@ def find_next_mode(data: deque[str]) -> tuple[str, str] | None:
                     )
 
 
-def find_edid(edid: str | None, xorg_connector: str) -> None | tuple[str, str]:
+def get_card_name(card: str = "card1"):
+    drm_path = Path("/sys/class/drm/") / card
+    device_path = (drm_path / "device").resolve()
+    pci_addr = device_path.parent.name
+
+    # Query lspci for a readable name
+    result = subprocess.run(
+        ["lspci", "-s", pci_addr],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        check=True,
+    )
+    _, _, name = result.stdout.strip().partition(":")
+    return name
+
+
+def get_bus_id(pci_id: str):
+    _, bus, devfunc = pci_id.split(":")
+    device, function = devfunc.split(".")
+
+    bus_dec = int(bus, 16)
+    device_dec = int(device, 16)
+    function_dec = int(function, 10)
+
+    return f"PCI:{bus_dec}:{device_dec}:{function_dec}"
+
+
+def find_edid(edid: str | None, xorg_connector: str) -> None | tuple[str, str, str]:
     if edid is not None:
         edid_raw = binascii.a2b_hex(edid)
         for edid_path in Path("/sys/class/drm/").glob("card*/edid"):
             # logging.debug(f"{edid=} == {edid_path.read_bytes()=}")
             if edid_raw == edid_path.read_bytes():
                 card, _, drm_connector = edid_path.parent.name.partition("-")
+                card_name = get_card_name(card)
+
                 # get the BusID
                 dev_path = edid_path.parent.parent / card / "dev"
                 real_dev_path = dev_path.resolve()
                 pci_id = real_dev_path.parent.parent.parent.name
-                return drm_connector, pci_id
+                bus_id = get_bus_id(pci_id)
+                return drm_connector, bus_id, card_name
 
     for edid_path in Path("/sys/class/drm/").glob("card*/edid"):
         # logging.debug(f"{edid=} == {edid_path.read_bytes()=}")
         card, _, drm_connector = edid_path.parent.name.partition("-")
+        card_name = get_card_name(card)
         if drm_connector == xorg_connector:
             # get the BusID
             dev_path = edid_path.parent.parent / card / "dev"
             real_dev_path = dev_path.resolve()
             pci_id = real_dev_path.parent.parent.parent.name
-            return drm_connector, pci_id
+            bus_id = get_bus_id(pci_id)
+            return drm_connector, bus_id, card_name
 
     return None
 
@@ -341,13 +375,13 @@ def find_next_connector(data: deque[str]) -> Connector | None:
             xorg_connector_name = m.group("connector")
             connected = m.group("connected") == "connected"
             logging.info(f"found {xorg_connector_name=}: {connected=}")
+            drm_connector = bus_id = vendor = model = card_name = None
             if connected:
                 xorg_modes: dict[str, str] = {}
                 edid = find_xrandr_edid(data)
-                drm_connector = pci_id = vendor = model = None
                 edid_modes: dict[str, str] = {}
                 if r := find_edid(edid, xorg_connector_name):
-                    drm_connector, pci_id = r
+                    drm_connector, bus_id, card_name = r
                 if edid is not None:
                     vendor, model, edid_modes = parse_edid_bytes(edid)
 
@@ -395,19 +429,20 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                     all_modelines=joined_modelines,
                     modes=sorted_modes,
                     drm_name=drm_connector,
-                    pci_id=pci_id,
+                    card_name=card_name,
+                    bus_id=bus_id,
                     vendor=vendor,
                     model=model,
                 )
             else:
-                drm_connector = pci_id = None
                 if r := find_edid(None, xorg_connector_name):
-                    drm_connector, pci_id = r
+                    drm_connector, bus_id, card_name = r
                 return Connector(
                     xrandr_name=xorg_connector_name,
                     is_connected=False,
                     drm_name=drm_connector,
-                    pci_id=pci_id,
+                    card_name=card_name,
+                    bus_id=bus_id,
                 )
 
 
