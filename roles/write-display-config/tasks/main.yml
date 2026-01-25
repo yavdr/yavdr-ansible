@@ -9,14 +9,14 @@
 #     - ansible_facts.xorg is undefined
 #     - ansible_facts.drm is undefined
 
-- name: Update graphics_outputs and graphics_config variables with values from local facts if needed
+- name: Update graphics_outputs and monitor_config variables with values from local facts if needed
   ansible.builtin.set_fact:
     ansible_facts:
       graphics: "{{ ansible_local.graphics.graphics_outputs }}"
-      graphics_config: "{{ ansible_local.graphics_config.graphics_config }}"
+      monitor_config: "{{ ansible_local.display_config.display_config }}"
   when:
-    - ansible_facts.graphics is undefined
-    - ansible_facts.graphics_config is undefined
+    - ansible_facts.graphics_outputs is undefined
+    - ansible_facts.display_config is undefined
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
@@ -41,13 +41,13 @@
 
 - name: Fallback if there is no custom display config
   ansible.builtin.set_fact:
-    custom_display_config: ansible_local.graphics_config.graphics_config
+    custom_display_config: ansible_local.monitor_config.monitor_config
   when:
     - custom_display_config is undefined
 
-# - name: Set graphics_config from facts if it's undefined
+# - name: Set monitor_config from facts if it's undefined
 #   ansible.builtin.set_fact:
-#     xorg_config: "{{ graphics_config | default(ansible_facts.XorgConfig) }}"
+#     xorg_config: "{{ monitor_config | default(ansible_facts.XorgConfig) }}"
 
 #- name: Make sure file exists
 #  ansible.builtin.file:
@@ -55,14 +55,14 @@
 #    state: touch
 #    mode: "0644"
 
-- name: Show graphics_config facts
+- name: Show display_config facts
   ansible.builtin.debug:
-    var: ansible_facts.graphics_config
+    var: ansible_facts.monitor_config
     verbosity: 0
 
 - name: Show graphics_outputs
   ansible.builtin.debug:
-    var: ansible_facts.graphics_outputs
+    var: ansible_facts.display_outputs
     verbosity: 0
 
 - name: Show custom_display_config

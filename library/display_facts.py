@@ -12,7 +12,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = """
 ---
-module: xrandr_facts
+module: display_facts
 short_description: "gather facts about connected monitors and available modelines"
 description:
      - This module needs a running x-server on a given display in
@@ -545,7 +545,7 @@ if __name__ == "__main__":
     )
 
     params = cast(dict[str, Any], module.params)
-    logging.basicConfig(filename="/tmp/graphics_facts.log", level=logging.DEBUG)
+    logging.basicConfig(filename="/tmp/display_facts.log", level=logging.DEBUG)
     if xrandr_verbose_output := get_xrandr_verbose_output(
         display=":0"
     ):  # params["display"]):
@@ -561,9 +561,9 @@ if __name__ == "__main__":
         module.exit_json(
             changed=True,
             ansible_facts={
-                "graphics_outputs": {
+                "display_outputs": {
                     key: value.model_dump() for (key, value) in connectors.items()
                 },
-                "graphics_config": xorg_config.model_dump(),
+                "display_config": xorg_config.model_dump(),
             },
         )

@@ -1,14 +1,14 @@
 {{ ansible_managed.format(file=template_path) | comment }}
 
-{%- set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
-{%- set primary_connector = ansible_facts.graphics_config.primary.connector -%}
+{%- set primary_mode = custom_display_config.primary.resolution + '_' + ansible_facts.monitor_config.primary.refreshrate | string -%}
+{%- set primary_connector = custom_display_config.primary.connector -%}
 {%- set primary_output = ansible_facts.graphics_outputs[primary_connector].xrandr_name  -%}
 {%- set primary_modelines = ansible_facts.graphics_outputs[primary_connector].all_modelines -%}
-{%- set use_secondary = ansible_facts.graphics_config.secondary is not none -%}
+{%- set use_secondary = custom_display_config.secondary is not none -%}
 {%- if use_secondary -%}
-{%- set secondary_connector = graphics_config.secondary.connector -%}
+{%- set secondary_connector = custom_display_config.secondary.connector -%}
 {%- set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name -%}
-{%- set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
+{%- set secondary_mode = custom_display_config.secondary.resolution + '_' + ansible_facts.monitor_config.secondary.refreshrate | string -%}
 {%- set secondary_modelines = ansible_facts.graphics_outputs[secondary_connector].all_modelines -%}
 {%- endif -%}
 

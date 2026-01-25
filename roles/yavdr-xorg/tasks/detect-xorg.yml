@@ -111,7 +111,7 @@
 #    preferred_outputs: "{{ preferred_outputs }}"
 
 - name: "Detect connected monitors"
-  graphics_facts:
+  display_facts:
     preferred_refreshrates: "{{ preferred_refreshrates }}"
     preferred_resolutions: "{{ preferred_resolutions }}"
     preferred_outputs: "{{ preferred_outputs }}"
@@ -161,8 +161,8 @@
 - name: Show result of graphics_facts
   ansible.builtin.debug:
     msg: |
-      graphics_outputs={{ ansible_facts.graphics_outputs | default("undefined") }}
-      graphics_config={{ ansible_facts.graphics_config | default("undefined") }}
+      display_outputs={{ ansible_facts.display_outputs | default("undefined") }}
+      display_config={{ ansible_facts.display_config | default("undefined") }}
 
 - name: Save result of graphics_facts module
   block:
@@ -172,16 +172,16 @@
         path: /etc/ansible/facts.d
         mode: "0755"
 
-    - name: Write graphics_outputs variable as local fact
+    - name: Write display_outputs variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"connectors": ansible_facts.graphics_outputs | default({})} | to_nice_json }}'
-        dest: /etc/ansible/facts.d/graphics.fact
+        content: '{{ {"connectors": ansible_facts.display_outputs | default({})} | to_nice_json }}'
+        dest: /etc/ansible/facts.d/display_outputs.fact
         mode: "0644"
 
-    - name: Write graphics_config variable as local fact
+    - name: Write display_config variable as local fact
       ansible.builtin.copy:
-        content: '{{ {"graphics_config": ansible_facts.graphics_config | default({}) } | to_nice_json }}'
-        dest: /etc/ansible/facts.d/graphics_config.fact
+        content: '{{ {"display_config": ansible_facts.display_config | default({}) } | to_nice_json }}'
+        dest: /etc/ansible/facts.d/display_config.fact
         mode: "0644"
 
 #- name: Save results of xorg_facts module
