@@ -25,19 +25,25 @@
 - name: check for /etc/yavdr/display_config.yml
   ansible.builtin.stat:
     path: /etc/yavdr/display_config.yml
-  register: _custom_graphics_config_stat
+  register: _custom_display_config_stat
 
 - name: Load configuration if it exists
-  when: _custom_graphics_config_stat.stat.exists and _custom_graphics_config_stat.stat.isreg
+  when: _custom_display_config_stat.stat.exists and _custom_display_config_stat.stat.isreg
   block:
     - name: Slurp /etc/yavdr/display_config.yml
       ansible.builtin.slurp:
         src: /etc/yavdr/display_config.yml
-      register: _custom_graphics_config
+      register: _custom_display_config
 
     - name: Load display configuration
       ansible.builtin.set_fact:
-        graphics_config: "{{ _custom_graphics_config.content | b64decode | from_yaml }}"
+        custom_display_config: "{{ _custom_display_config.content | b64decode | from_yaml }}"
+
+- name: Fallback if there is no custom display config
+  ansible.builtin.set_fact:
+    custom_display_config: ansible_local.graphics_config.graphics_config
+  when:
+    - custom_display_config is undefined
 
 # - name: Set graphics_config from facts if it's undefined
 #   ansible.builtin.set_fact:
@@ -57,6 +63,11 @@
 - name: Show graphics_outputs
   ansible.builtin.debug:
     var: ansible_facts.graphics_outputs
+    verbosity: 0
+
+- name: Show custom_display_config
+  ansible.builtin.debug:
+    var: custom_display_config
     verbosity: 0
 
 # - name: Show xrandr config

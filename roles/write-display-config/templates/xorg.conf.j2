@@ -1,16 +1,16 @@
 {{ ansible_managed.format(file=template_path) | comment }}
 
-{%- set primary_mode = ansible_facts.graphics_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
-{%- set primary_connector = ansible_facts.graphics_config.primary.connector -%}
+{%- set primary_mode = custom_display_config.primary.resolution + '_' + ansible_facts.graphics_config.primary.refreshrate | string -%}
+{%- set primary_connector = custom_display_config.primary.connector -%}
 {%- set primary = ansible_facts.graphics_outputs[primary_connector] -%}
 {%- set primary_output = ansible_facts.graphics_outputs[primary_connector].xrandr_name  -%}
 {%- set primary_modelines = ansible_facts.graphics_outputs[primary_connector].all_modelines -%}
-{%- set use_secondary = ansible_facts.graphics_config.secondary is not none -%}
+{%- set use_secondary = custom_display_config.secondary is not none -%}
 {%- if use_secondary -%}
 {%- set secondary_connector = graphics_config.secondary.connector -%}
 {%- set secondary = ansible_facts.graphics_outputs[secondary_connector] -%}
 {%- set secondary_output = ansible_facts.graphics_outputs[secondary_connector].xrandr_name -%}
-{%- set secondary_mode = ansible_facts.graphics_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
+{%- set secondary_mode = custom_display_config.secondary.resolution + '_' + ansible_facts.graphics_config.secondary.refreshrate | string -%}
 {%- set secondary_modelines = ansible_facts.graphics_outputs[secondary_connector].all_modelines -%}
 {%- endif %}
 
@@ -51,7 +51,7 @@ Section "Device"
 {% else %}
     BoardName      "Unknown"
 {% endif %}
-{% if nvidia_force_dpi | int(0) > 0  %}
+{% if (ansible_facts.nvidia_force_dpi | default(0)) > 0  %}
     Option         "UseEdidDpi" "FALSE"
     Option         "DPI" "{{ ansible_facts.nvidia_force_dpi }} x {{ ansible_facts.nvidia_force_dpi }}"
 {% endif %}
@@ -88,7 +88,7 @@ Section "Device"
 {% if secondary.bus_id is not none %}
     BusID          "{{ secondary.bus_id }}"
 {% endif %}
-{% if nvidia_force_dpi | int(0) > 0  %}
+{% if (ansible_facts.nvidia_force_dpi | default(0)) > 0  %}
     Option         "UseEdidDpi" "FALSE"
     Option         "DPI" "{{ ansible_facts.nvidia_force_dpi }} x {{ ansible_facts.nvidia_force_dpi }}"
 {% endif %}
