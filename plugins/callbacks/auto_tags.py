@@ -43,6 +43,5 @@ class CallbackModule(CallbackBase):
         # I don't know why they do that.
         for role in roles:
             role_name = role._role_name
-            #safe_role_name = role_name.encode("utf-8", "replace").decode("utf-8")
             if role_name not in role.tags:
-                role.tags.append(role_name)
+                role.tags += [role_name]
