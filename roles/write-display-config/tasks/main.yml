@@ -12,8 +12,8 @@
 - name: Update display_outputs and display_config variables with values from local facts if needed
   ansible.builtin.set_fact:
     ansible_facts:
-      display_outputs: "{{ ansible_local.display_output.display_outputs }}"
-      monitor_config: "{{ ansible_local.display_config.display_config }}"
+      display_outputs: "{{ ansible_local.display_outputs.display_outputs }}"
+      display_config: "{{ ansible_local.display_config.display_config }}"
   when:
     - ansible_facts.display_outputs is undefined
     - ansible_facts.display_config is undefined
@@ -41,7 +41,7 @@
 
 - name: Fallback if there is no custom display config
   ansible.builtin.set_fact:
-    custom_display_config: "{{ ansible_local.display_config }}"
+    custom_display_config: "{{ display_config }}"
   when:
     - custom_display_config is undefined
 
