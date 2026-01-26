@@ -26,12 +26,16 @@
     mode: "0644"
   notify: ["Reload Units"]
 
-- name: Systemd-Drop-In | add dependency to X-server for vdr.service
-  ansible.builtin.template:
-    src: templates/vdr-xorg.conf
-    dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
-    mode: "0644"
-  notify: ["Reload Units"]
+# - name: Systemd-Drop-In | add dependency to X-server for vdr.service
+#   ansible.builtin.template:
+#     src: templates/vdr-xorg.conf
+#     dest: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+#     mode: "0644"
+#   notify: ["Reload Units"]
+- name: Remove existing /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+  ansible.builtin.file:
+    path: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
+    state: absent
 
 - name: VDR-config | create softhddevice.conf if it doesn't exist yet
   ansible.builtin.lineinfile:
