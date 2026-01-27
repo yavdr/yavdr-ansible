@@ -20,14 +20,6 @@
     var: kms_set_boot_edid
     verbosity: 0
 
-- name: VDR-config | set nvidia video output method for softhddevice
-  ansible.builtin.lineinfile:
-    path: /etc/vdr/conf.avail/softhddevice.conf
-    state: present
-    regexp: "^-v .*"
-    line: "-v {{ 'nvdec-egl' if nvidia_driver_installed else softhddevice_vaapi_output_method }}"
-  when: (ansible_facts.nvidia_detected and nvidia_driver_installed)
-
 - name: KMS Settings
   ansible.builtin.include_tasks: kms.yml
   tags: [xorg.detect, install]

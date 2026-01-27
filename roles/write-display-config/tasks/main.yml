@@ -76,14 +76,13 @@
         backup: true
         mode: "0644"
 
-# TODO: this is only useful if VDPAU works with nouveau
-# - name: Create nouveau xorg config snippet
-#   ansible.builtin.template:
-#     src: templates/20-nouveau.conf.j2
-#     dest: /etc/X11/xorg.conf.d/20-nouveau.conf
-#     mode: '0644'
-#   when:
-#     - ansible_facts.nvidia_detected | bool and not ansible_facts.nvidia_driver_installed
+- name: Create nouveau xorg config snippet
+  ansible.builtin.template:
+    src: templates/20-nouveau.conf.j2
+    dest: /etc/X11/xorg.conf.d/20-nouveau.conf
+    mode: "0644"
+  when:
+    - ansible_facts.nvidia_detected | bool and not ansible_facts.nvidia_driver_installed
 
 - name: Intel xorg config snippet
   ansible.builtin.template:
