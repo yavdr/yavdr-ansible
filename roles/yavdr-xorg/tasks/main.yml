@@ -8,11 +8,12 @@
   ansible.builtin.import_tasks: detect-xorg.yml
   tags: [xorg.detect, install]
 
-- name: Install mesa vdpau drivers
-  ansible.builtin.apt:
-    name: mesa-vdpau-drivers
-    state: present
-  when: ansible_facts.nvidia_detected and not nvidia_driver_installed or amd_detected
+# TODO: what packages do we really need?
+# - name: Install mesa vdpau drivers
+#   ansible.builtin.apt:
+#     name: mesa-va-drivers
+#     state: present
+#   when: ansible_facts.nvidia_detected and not nvidia_driver_installed or amd_detected
 
 - name: Debug | show kms_set_boot_edid
   ansible.builtin.debug:
@@ -24,8 +25,8 @@
     path: /etc/vdr/conf.avail/softhddevice.conf
     state: present
     regexp: "^-v .*"
-    line: "-v {{ 'nvdec-egl' if nvidia_driver_installed else 'vdpau' }}"
-  when: (ansible_facts.nvidia_detected)
+    line: "-v {{ 'nvdec-egl' if nvidia_driver_installed else softhddevice_vaapi_output_method }}"
+  when: (ansible_facts.nvidia_detected and nvidia_driver_installed)
 
 - name: KMS Settings
   ansible.builtin.include_tasks: kms.yml

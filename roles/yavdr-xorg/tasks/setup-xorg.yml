@@ -58,8 +58,8 @@
     path: /etc/vdr/conf.avail/softhddevice.conf
     state: present
     regexp: "^-v .*"
-    line: "-v {{ softhddevice_intel_output_method | default('va-api') }}"
-  when: (intel_detected and not nvidia_detected)
+    line: "-v {{ softhddevice_vaapi_output_method | default('va-api-egl') }}"
+  when: (intel_detected or (nvidia_detected and not nvidia_driver_detected))
 
 - name: Add a login shell for the user vdr
   ansible.builtin.user:
@@ -120,7 +120,6 @@
 - name: Apt | install packages for AMD GPUs
   ansible.builtin.apt:
     name:
-      - mesa-vdpau-drivers
       - mesa-va-drivers
     state: present
   when: amd_detected | bool and not nvidia_detected | bool
