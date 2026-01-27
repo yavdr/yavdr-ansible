@@ -24,7 +24,7 @@ If plugins invalidate device pointers, the plugin will crash when dereferencing 
 FTBS - needs patches
 
 ### vdr-plugin-softhddevice
-Package `mesa-vdpau-drivers` needs to be installed if no nvidia driver is available
+
 
 # Networking
 
@@ -126,28 +126,29 @@ The pulseaudio package installs an executable systemd user session unit, which g
 Currently the automatic configuration of Xorg is limited to using a single GPU/IGP. If you want to configure more than one graphics card, you need to adapt the configuration by hand.
 
 ### old nvidia cards
-Most nvidia drivers for older cards aren't supported anymore on Ubuntu 26.04 - it also seems that mesa dropped support for VDPAU entirely: https://www.phoronix.com/news/Mesa-Drops-VDPAU, so one might need to use VA-API.
+Ubuntu 26.04 only has nvidia drivers version 580 and later - this excludes a lot of older nvidia cards.
 
-The best I can do is to allow to use the noveau driver. This will at least result in worse deinterlacing capabilities (no temporal-spatial) and might have other side effects.
+Mesa also dropped support for VDPAU: https://www.phoronix.com/news/Mesa-Drops-VDPAU, so the only option is to user VAAPI with them.
 
-```xserver-xorg-video-nouveau```
-```mesa-va-drivers``` (virtual package for mesa-libgallium)
+So far I haven't been successful get any usable playback without artifacts, color distortion or kernel errors (tested with G210 and a GT630 Kepler card).
 
-Another problem for GT630 cards is to get the Firmware - https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/NVC0_Firmware.html might be an option
-https://archlinux.pkgs.org/rolling/chaotic-aur-x86_64/nouveau-fw-340.108-1.1-any.pkg.tar.zst.html seems to have some extracted necessary files.
-So far I have not been successful in making VDPAU work with nouveau - if someone has a solution, I am glad to add it.
+In case you find a usable player, you probably want to raise the performance profile of the card:
 
+```shell
+echo 0f | sudo tee /sys/kernel/debug/dri/1/pstate
+```
+Using `Option "DRI" "2"` could also help in case there are problems with gle.
 
 ### intel cards
 There might be some trial and error involved to find a working combination of driver, glx version and softhddevice output method.
 
 For old IGPs (e.g. Haswell Generation), using the `intel` driver and `va-api` works usually best up to Ubuntu 24.04
 
-For a 13th generation Core i3, `va-api-egl` works best.
+For a 13th generation Core i3, `va-api-egl` works best. Under Ubuntu 26.04 va-api-egl seems to be the best default choice.
 
 The modesetting driver seems to be limited to a single display.
 
-Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods if the dvb tuner drops out
+Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods if the dvb tuner drops out.
 
 `libgl1-amber-dri` needs to be installed, too
 
