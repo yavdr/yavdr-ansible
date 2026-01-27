@@ -13,6 +13,11 @@
     var: kms_set_boot_edid
     verbosity: 0
 
+- name: Get nouveau firmwares
+  ansible.builtin.include_role:
+    name: nouveau-firmware
+  when: nvidia_detected and not nvidia_driver_installed
+
 - name: KMS Settings
   ansible.builtin.include_tasks: kms.yml
   tags: [xorg.detect, install]
