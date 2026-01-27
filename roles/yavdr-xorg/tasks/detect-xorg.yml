@@ -237,3 +237,35 @@
 - name: Set nvidia_driver_detected variable
   ansible.builtin.set_fact:
     nvidia_driver_installed: "{{ nvidia_smi.rc == 0 | bool | default(false) }}"
+
+- name: VDR-config | create softhddevice.conf if it doesn't exist yet
+  ansible.builtin.lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    create: true
+    state: present
+    line: "[softhddevice]"
+
+- name: VDR-config | start softhddevice detached and set audio to pulseaudio
+  ansible.builtin.lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    line: "{{ item }}"
+  loop:
+    - "-D"
+    - "-w alsa-driver-broken"
+    # - '-a pulse' # do we need this with our existing asound.conf?
+
+- name: VDR-config | set vaapi video output method for softhddevice
+  ansible.builtin.lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    state: present
+    regexp: "^-v .*"
+    line: "-v {{ softhddevice_vaapi_output_method | default('va-api-egl') }}"
+  when: (intel_detected or amd_detected or (nvidia_detected and not nvidia_driver_installed))
+
+- name: VDR-config | set nvdec-egl video output method for softhddevice
+  ansible.builtin.lineinfile:
+    path: /etc/vdr/conf.avail/softhddevice.conf
+    state: present
+    regexp: "^-v .*"
+    line: "-v nvdec-egl"
+  when: (ansible_facts.nvidia_detected and nvidia_driver_installed)

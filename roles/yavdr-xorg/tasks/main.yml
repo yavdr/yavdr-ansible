@@ -2,18 +2,11 @@
 # file: roles/yavdr-xorg/tasks/main.yml
 - name: Import setup-xorg.yml
   ansible.builtin.import_tasks: setup-xorg.yml
-  tags: [install, update]
+  # tags: [install, update]
 
 - name: Detect and apply Xorg configuration
   ansible.builtin.import_tasks: detect-xorg.yml
-  tags: [xorg.detect, install]
-
-# TODO: what packages do we really need?
-# - name: Install mesa vdpau drivers
-#   ansible.builtin.apt:
-#     name: mesa-va-drivers
-#     state: present
-#   when: ansible_facts.nvidia_detected and not nvidia_driver_installed or amd_detected
+  # tags: [xorg.detect, install]
 
 - name: Debug | show kms_set_boot_edid
   ansible.builtin.debug:
