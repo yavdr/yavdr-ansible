@@ -1,5 +1,7 @@
 from enum import StrEnum
 import json
+from pprint import pprint
+import jsonref
 from collections.abc import Callable, Mapping
 from pathlib import Path, PosixPath
 from typing import Annotated, Any, Self
@@ -17,7 +19,6 @@ from pydantic import (
     IPvAnyNetwork,
     model_validator,
 )
-from pydantic.json_schema import GenerateJsonSchema
 
 from ruamel import yaml
 
@@ -95,9 +96,7 @@ def make_default_adder(
 
 
 class StreamdevConfig(BaseModel):
-    client_remote_ip: LocalHostname | IPvAnyAddress | EmptyString | None = Field(
-        default=None
-    )
+    client_remote_ip: LocalHostname | IPvAnyAddress | EmptyString = Field(default="")
 
     client_remote_port: Annotated[
         NonNegativeInt, Field(description="Port for streamdev")
@@ -152,7 +151,7 @@ class yaVDRConfig(BaseModel):
         FileUrl | HttpUrl | FtpUrl | None,
         BeforeValidator(prefix_paths),
         Field(
-            description="channels.conf file to import if VDR has none, use a http(s)://, ftp:// or file:// URL or a path",
+            description="channels.conf file to import if VDR has none, use a http(s)://, ftp:// or file:// URL",
         ),
     ] = None  # TODO: update playbook for this
     wait_for_dvb_devices: Annotated[
@@ -180,33 +179,42 @@ class yaVDRConfig(BaseModel):
 
     vdr_allowed_hosts: Annotated[
         list[IPvAnyNetwork | IPvAnyAddress],
-        Field(description="List of allowed TCP clients - IP addresses or ranges"),
-    ] = []
+        Field(
+            description="List of allowed TCP clients - IP addresses or ranges",
+            default=[],
+        ),
+    ]
 
     vdr_svdrphosts: Annotated[
-        list[IPvAnyNetwork | IPvAnyAddress] | None,
-        Field(description="List of allowed SVDRP TCP clients - IP addresses or ranges"),
-    ] = None
+        list[IPvAnyNetwork | IPvAnyAddress],
+        Field(
+            description="List of allowed SVDRP TCP clients - IP addresses or ranges",
+            default=[],
+        ),
+    ]
 
     xineliboutput_allowed_hosts: Annotated[
-        list[IPvAnyNetwork | IPvAnyAddress] | None,
+        list[IPvAnyNetwork | IPvAnyAddress],
         Field(
-            description="List of allowed xineliboutput TCP clients - IP addresses or ranges"
+            description="List of allowed xineliboutput TCP clients - IP addresses or ranges",
+            default=[],
         ),
-    ] = None
+    ]
 
     vnsiserver_allowed_hosts: Annotated[
-        list[IPvAnyNetwork | IPvAnyAddress] | None,
+        list[IPvAnyNetwork | IPvAnyAddress],
         Field(
-            description="List of allowed vnsiserver TCP clients - IP addresses or ranges"
+            description="List of allowed vnsiserver TCP clients - IP addresses or ranges",
+            default=[],
         ),
-    ] = None
+    ]
     streamdev_server_allowed_hosts: Annotated[
-        list[IPvAnyNetwork | IPvAnyAddress] | None,
+        list[IPvAnyNetwork | IPvAnyAddress],
         Field(
-            description="List of allowed streamdev TCP clients - IP addresses or ranges"
+            description="List of allowed streamdev TCP clients - IP addresses or ranges",
+            default=[],
         ),
-    ] = None
+    ]
 
     media_dirs: Annotated[
         dict[str, PosixPath],
@@ -249,6 +257,7 @@ class yaVDRConfig(BaseModel):
         WakeupEnum,
         Field(
             description="Wakeup method for the system",
+            json_schema_extra={"enum": [e.value for e in WakeupEnum]},
         ),
     ] = WakeupEnum.ACPIWAKEUP
     wakeup_start_ahead: PositiveInt = 5
@@ -282,7 +291,7 @@ class yaVDRConfig(BaseModel):
     ]
     preferred_refreshrates: Annotated[
         list[int], Field(description="list of preferred refresh rates")
-    ] = [100, 50, 60]
+    ] = [50, 60]
 
     softhddevice_vaapi_output_method: Annotated[
         str, Field(description="output method for vdr-plugin-softhddevice")
@@ -351,19 +360,44 @@ class yaVDRConfig(BaseModel):
         return self
 
 
-class InlineSchemaGenerator(GenerateJsonSchema):
-    def ref_template(self) -> str:
-        # Disable $ref usage
-        return "{model}"
+# schema_entry = dict[str, Any] | list["schema_entry"]
+
+# TODO: resolve $refs and $defs
+
+# def inline_defs(schema: dict[str, schema_entry]) -> dict[str, Any]:
+#     defs = schema.get("$defs", {})
+
+#     def resolve(node: schema_entry):
+#         if isinstance(node, dict):
+#             if "$ref" in node:
+#                 ref = node["$ref"]
+#                 if ref.startswith("#/$defs/"):
+#                     key = ref.split("/", 2)[-1]
+#                     return resolve(copy.deepcopy(defs[key]))
+#             return {k: resolve(v) for k, v in node.items() if k != "$defs"}
+#         elif isinstance(node, list):
+#             return [resolve(i) for i in node]
+#         return node
+
+#     return resolve(schema)
+
+
+# class InlineSchemaGenerator(GenerateJsonSchema):
+#     def ref_template(self) -> str:
+#         # Disable $ref usage
+#         return "{model}"
 
 
 if __name__ == "__main__":
     schema = yaVDRConfig.model_json_schema()
-    Path("yaVDRConfig.schema.json").write_text(json.dumps(schema, indent=2))
+    # yaVDRConfig.model_json_schema()
+    expanded_schema = jsonref.replace_refs(schema, proxies=False)
 
-    yaml_instance = yaml.YAML(typ="unsafe", pure=True)
-    vdr_config = VDRConfig()
-    print(VDRConfig.model_json_schema(schema_generator=InlineSchemaGenerator))
-    print(vdr_config.model_dump_json())
+    Path("yaVDRConfig.schema.json").write_text(json.dumps(expanded_schema, indent=2))
+    pprint(expanded_schema, indent=2)
+
+    # yaml_instance = yaml.YAML(typ="unsafe", pure=True)
+    # vdr_config = VDRConfig()
+    # # print(vdr_config.model_dump_json())
     yavdr_config = yaVDRConfig()
-    print(yavdr_config.model_dump_json())
+    Path("yaVDRConfig.json").write_text(yavdr_config.model_dump_json())
