@@ -9,8 +9,8 @@ Please note that this is still work in progress and several features of yaVDR 0.
 
 ## System Requirements and Compatiblity Notes
 - RTC must be set to UTC in order for vdr-addon-acpiwakeup to work properly
-- You need an IGP/GPU with support for VDPAU, NVDEC or VAAPI if you want to use software output plugins for VDR like softhddevice or vaapidevice
-- xineliboutput/vdr-sxfe works with software rendering, too
+- You need an IGP/GPU with support for NVDEC (that works with nvidia-580 - e.g. GTX 950, GT 1030 or higher) or VAAPI (so far only tested with Intel IGPs - the lower end is probably a Core i5 Haswell CPU) if you want to use software output plugins for VDR like softhddevice or vaapidevice
+- xineliboutput/vdr-sxfe and softhddevice work with software rendering, too - this requires a fast enough CPU
 - Can be used in a VM like VirtualBox
 
 ## Usage:
