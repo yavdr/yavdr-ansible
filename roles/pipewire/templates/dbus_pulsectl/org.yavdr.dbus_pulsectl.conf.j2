@@ -1,0 +1,16 @@
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+  <!-- Only user vdr can own the dbus-service -->
+  <policy user="{{ vdr.user }}">
+    <allow own="org.yavdr.PulseDBusCtl"/>
+  </policy>
+
+  <!-- allow everyone to call to call the dbus methods -->
+  <policy context="default">
+    <allow send_destination="org.yavdr.PulseDBusCtl"/>
+    <allow receive_sender="org.yavdr.PulseDBusCtl"/>
+  </policy>
+
+</busconfig>
