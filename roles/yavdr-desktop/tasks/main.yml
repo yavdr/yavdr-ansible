@@ -167,10 +167,11 @@
     - "udiskie.service"
     - "tmux.service"
     - "yavdr-frontend.service"
-    - "pulseaudio.socket"
-    - "pulseaudio.service"
-    - "dbus-pulsectl.service"
     - "irexec.service"
+    - "dbus-pulsectl.service"
+    - "pipewire.service"
+    - "pipewire-pulse.service"
+    - "wireplumber.service"
 
 - name: Disable Systemd Units for the user session
   ansible.builtin.systemd:
@@ -181,4 +182,6 @@
     scope: user
   become: true
   become_user: "{{ vdr.user }}"
-  loop: []
+  loop:
+    - "pulseaudio.socket"
+    - "pulseaudio.service"
