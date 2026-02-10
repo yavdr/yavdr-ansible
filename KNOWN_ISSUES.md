@@ -111,6 +111,9 @@ Also requires `gir1.2-notify-0.7` - added to the playbook
 
 # Output
 
+## Console
+With the default font settings the Unicode characters used by systemd can't be shown properly on the TTY in late shutdown and replacement chars are rendered for things like progress bars instead. Changing to a font like Terminus (`sudo dpkg-reconfigure console-setup`) seems to fix this.
+
 ## Alsa
 <!-- the Package in Version 1.2.15 copied from Debian needs to be tested -->
 The alsa packages contains the `90-alsa-restore.rules` file that generates warnings regarding to the `alsa-restore_std` label. See Bug on Launchpad #215475 - this might be resolved with a later alsa version.
