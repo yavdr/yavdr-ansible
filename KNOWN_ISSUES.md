@@ -124,6 +124,36 @@ When upgrading from previous yavdr-ansible version, make sure to delete `{{ vdr.
 
 The pulseaudio package installs an executable systemd user session unit, which generates a warning
 
+## pipewire
+Replacing pulseaudio with pipewire has huge advantages. The dynamic switching between output devices and profiles is easy - this is used by the webfrontend.
+
+### Bluetooth headphones
+
+Install the following packages:
+```shell
+sudo apt install bluez pipewire-audio-client-libraries
+```
+
+Pairing bluetooth headphones:
+Start the system with the bluetooth adapter or make sure that bluetooth.service is running after it was plugged in
+
+Use bluetoothctl to pair the bluetooth devices:
+
+```shell
+$ bluetoothctl
+[bluetooth]# power on
+[bluetooth]# agent NoInputNoOutput
+[bluetooth]# default-agent
+[bluetooth]# scan on
+# make the device you want to pair visible and wait for it to show up
+# use the ID for further steps, in this example for a pair of headphones with DE:AD:BE:EF:BE:AF
+[bluetooth]# pair DE:AD:BE:EF:BE:AF
+[bluetooth]# trust DE:AD:BE:EF:BE:AF
+[bluetooth]# connect DE:AD:BE:EF:BE:AF
+```
+
+Then use pavucontrol, the vdr-plugin-pulsectl or the webfrontend to switch to it
+
 ## graphical output
 ### no support for multiple GPUs
 Currently the automatic configuration of Xorg is limited to using a single GPU/IGP. If you want to configure more than one graphics card, you need to adapt the configuration by hand.
