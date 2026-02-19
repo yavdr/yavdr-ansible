@@ -1,5 +1,4 @@
 ---
-
 - name: Install nginx
   apt:
     name: nginx
@@ -9,3 +8,9 @@
   ansible.builtin.template:
     src: templates/nginx.j2
     dest: /etc/nginx/sites-available/defaut
+
+- name: Unpack yavdr-webfrontend
+  ansible.builtin.unarchive:
+    src: https://github.com/seahawk1986/yavdr-webfrontend/releases/latest/download/yavdr-webfrontend.zip
+    dest: /var/www/html/
+    remote_src: yes
