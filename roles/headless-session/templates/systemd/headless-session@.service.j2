@@ -6,9 +6,17 @@ Conflicts=getty@tty7.service
 [Service]
 User=%i
 WorkingDirectory=~
-TTYPath=/dev/tty7
 PAMName=login
+TTYPath=/dev/tty7
+UtmpIdentifier=tty7
+UtmpMode=user
+StandardInput=tty
+StandardOutput=journal
+Environment=XDG_SESSION_CLASS=user
+Environment=XDG_SESSION_TYPE=tty
+Environment=XDG_SEAT=seat0
 ExecStart=/bin/bash -l .config/headless-session
+
 
 [Install]
 WantedBy=graphical.target
