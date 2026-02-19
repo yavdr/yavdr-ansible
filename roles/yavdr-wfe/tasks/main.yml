@@ -4,13 +4,22 @@
     name: nginx
     state: present
 
-- name: Add configuration for nginx
+- name: Expand configuration for nginx
   ansible.builtin.template:
     src: templates/nginx.j2
     dest: /etc/nginx/sites-available/defaut
+
+- name: Reload nginx configuration
+  command: nginx -s reload
+
+- name: Install packages
+  ansible.builtin.apt:
+  pkg:
+    - unzip
+    - yavdr-backend
 
 - name: Unpack yavdr-webfrontend
   ansible.builtin.unarchive:
     src: https://github.com/seahawk1986/yavdr-webfrontend/releases/latest/download/yavdr-webfrontend.zip
     dest: /var/www/html/
-    remote_src: yes
+    remote_src: true
