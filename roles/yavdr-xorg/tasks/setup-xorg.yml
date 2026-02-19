@@ -84,6 +84,12 @@
     key: vdr.attach_on_startup
     str_value: "{{ yavdr_frontend.attach_on_startup }}"
 
+- name: Set the detached background for yaVDR Frontend
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: backgrounds.detached.path
+    str_value: "{{ yavdr_frontend.backgrounds_detached_path | default('/usr/share/yavdr/images/yaVDR_background_detached.jpg') }}"
+
 - name: Apt | install packages for Intel IGP
   ansible.builtin.apt:
     name:

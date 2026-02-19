@@ -2,16 +2,16 @@
 # file roles/autoinstall-satip/tasks/main.yml
 
 - name: "Detect SAT>IP Server(s) on the network"
-  action: satip_facts
+  satip_facts:
 
 - name: Show satip_devices
   ansible.builtin.debug:
-    var: ansible_facts.satip_devices
-    verbosity: 1
+    msg: "{{ ansible_facts.get('satip_devices', 'no devices found') }}"
+    verbosity: 0
 
 - name: Apt | install vdr-plugin-satip if a Sat>IP server has been detected
   ansible.builtin.apt:
     name: vdr-plugin-satip
     state: present
-  when: ansible_facts.satip_devices | length > 0
-  notify: ['Restart VDR']
+  when: ansible_facts.get("satip_devices", []) | length > 0
+  notify: ["Restart VDR"]

@@ -1,19 +1,19 @@
 #!/usr/bin/python3
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: satip_facts
 short_description: "check if at least one SAT>IP server responds on the network"
 description:
      - This script sends a multicast message and awaits responses by Sat>IP servers.
        Returns a list of detected SAT>IP servers with their name and capabilites.
-'''
-EXAMPLES = '''
+"""
+EXAMPLES = """
 - name: "detect SAT>IP Server on the network"
   action: satip_facts
 
 - ansible.builtin.debug:
     var: satip_devices
-'''
+"""
 
 import socket
 import time
@@ -31,19 +31,25 @@ SSDP_PORT = 1900
 SSDP_MX = 2
 SSDP_ST = "urn:ses-com:device:SatIPServer:1"
 
-ssdpRequest = "\r\n".join((
-    "M-SEARCH * HTTP/1.1",
-    "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
-    "MAN: \"ssdp:discover\"",
-    "MX: %d" % (SSDP_MX),
-    "ST: %s" % (SSDP_ST),
-    "\r\n")).encode('utf-8')
+ssdpRequest = "\r\n".join(
+    (
+        "M-SEARCH * HTTP/1.1",
+        "HOST: %s:%d" % (SSDP_ADDR, SSDP_PORT),
+        'MAN: "ssdp:discover"',
+        "MX: %d" % (SSDP_MX),
+        "ST: %s" % (SSDP_ST),
+        "\r\n",
+    )
+).encode("utf-8")
+
 
 @contextmanager
-def socket_manager(family: socket.AddressFamily | int = -1,
+def socket_manager(
+    family: socket.AddressFamily | int = -1,
     type: socket.SocketKind | int = -1,
     proto: int = -1,
-    fileno: int | None = None):
+    fileno: int | None = None,
+):
     """provide a context manager for socket"""
     sock = socket.socket(family, type, proto, fileno)
     sock.setblocking(False)
@@ -61,21 +67,21 @@ def socket_manager(family: socket.AddressFamily | int = -1,
         sock.close()
 
 
-def parse_satip_xml(data: str)-> dict[str, Any]:
-    """ Parse SAT>IP XML data.
+def parse_satip_xml(data: str) -> dict[str, Any]:
+    """Parse SAT>IP XML data.
     Args:
         data (str): XML input data..
     Returns:
         dict: Parsed SAT>IP device name and frontend information.
     """
-    result: dict[str, Any] = {'name': '', 'frontends': {}}
+    result: dict[str, Any] = {"name": "", "frontends": {}}
     if data:
         root = ET.fromstring(data)
-        name = root.find('.//*/{urn:schemas-upnp-org:device-1-0}friendlyName')
+        name = root.find(".//*/{urn:schemas-upnp-org:device-1-0}friendlyName")
         if name is None or name.text is None:
             raise ValueError("Invalid SAT>UP device name")
-        result['name'] = name.text
-        satipcap = root.find('.//*/{urn:ses-com:satip}X_SATIPCAP')
+        result["name"] = name.text
+        satipcap = root.find(".//*/{urn:ses-com:satip}X_SATIPCAP")
         if satipcap is None or satipcap.text is None:
             raise ValueError("Invalid SAT>IP device description")
         caps: dict[str, int] = {}
@@ -86,14 +92,19 @@ def parse_satip_xml(data: str)-> dict[str, Any]:
                 if cap[0] in caps:
                     count: int = count + caps[cap[0]]
                 caps[cap[0]] = count
-        result['frontends'] = caps
+        result["frontends"] = caps
     return result
 
 
 def main():
     description_urls: list[str] = []
     device_list: list[dict[str, Any]] = []
-    module = AnsibleModule(argument_spec={}, supports_check_mode=True,)
+    module = AnsibleModule(
+        argument_spec={},
+        supports_check_mode=True,
+    )
+    if module.check_mode:
+        module.exit_json(changed=False, ansible_facts={"satip_devices": device_list})
     with socket_manager(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         # according to Sat>IP Specification 1.2.2, p. 20
         # a client should send three requests within 100 ms with a ttl of 2
@@ -112,11 +123,12 @@ def main():
                             info = requests.get(url, timeout=2)
                             device_list.append(parse_satip_xml(info.text))
             else:
-                raise ValueError('No satip server detected')
+                raise ValueError("No satip server detected")
         except (socket.timeout, ValueError, ET.ParseError):
             pass
 
-    module.exit_json(changed=False, ansible_facts={'satip_devices': device_list})
+    module.exit_json(changed=False, ansible_facts={"satip_devices": device_list})
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

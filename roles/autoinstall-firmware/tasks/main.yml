@@ -1,5 +1,4 @@
 ---
-
 # This role provides easyily downloadable firmware files
 
 - name: Firmware dvb-demod-si2168-b40-01.fw for Hauppauge WinTV HD Solo/Duo, PCTV 292e
@@ -7,77 +6,77 @@
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-b40-01.fw
     checksum: sha256:d25c7deb9f69dca232ce25ab108da8ff5013d6d39088e0ec3475d97ded8af718
     dest: /lib/firmware/dvb-demod-si2168-b40-01.fw
-    mode: '0644'
-  when: '(hauppauge_wintv_hd_usb_ids | intersect(ansible_facts.usb)) | length > 0 or (hauppauge_wintv_hd_pci_ids | intersect(ansible_facts.pci)) | length > 0'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '(hauppauge_wintv_hd_usb_ids | intersect(ansible_facts["usb"])) | length > 0 or (hauppauge_wintv_hd_pci_ids | intersect(ansible_facts["pci"])) | length > 0'
+  notify: ["Reboot required"]
 
 - name: Firmware dvb-demod-si2168-02.fw for Hauppauge WinTV quadHD
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-demod-si2168-02.fw
     checksum: sha256:5bbcfee4a0dbd55ea9d88d6b7d618afed5937a1f02962f14cdf707e108895cf7
     dest: /lib/firmware/dvb-demod-si2168-02.fw
-    mode: '0644'
-  when: '"14f1:8852" in ansible_facts.pci'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '"14f1:8852" in ansible_facts["pci"]'
+  notify: ["Reboot required"]
 
 - name: Firmware dvb-fe-xc5000-1.6.114.fw for Hauppauge WinTV-HVR-930C
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-fe-xc5000-1.6.114.fw
     checksum: sha256:7104bda8df301fe1bd4c09de1708aeb6d0d8e1f9d55505449fecfad82639235f
     dest: /lib/firmware/dvb-fe-xc5000-1.6.114.fw
-    mode: '0644'
-  when: '"2040:1605" in ansible_facts.usb'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '"2040:1605" in ansible_facts["usb"]'
+  notify: ["Reboot required"]
 
 - name: Firmware dvb-demod-m88rs6000.fw for Hauppauge WinTV HVR-5525, DVBSky S952 V3
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-demod-m88rs6000.fw
     checksum: sha256:9ac84583d83a4222909cb568236b7786e436f27dc050e60a31df404bb1be19dc
     dest: /lib/firmware/dvb-demod-m88rs6000.fw
-    mode: '0644'
-  when: '(m88rs6000_pci_ids | intersect(ansible_facts.pci)) | length > 0'
+    mode: "0644"
+  when: '(m88rs6000_pci_ids | intersect(ansible_facts["pci"])) | length > 0'
 
 - name: Firmware dvb-demod-m88ds3103.fw for DVBSky S952 V2
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-demod-m88ds3103.fw
     checksum: sha256:4767ab80ceba4a66315cbec2a07ae1f7ebbd19c5758fd098b932e02c9108eff9
     dest: /lib/firmware/dvb-demod-m88ds3103.fw
-    mode: '0644'
-  when: '(m88ds3103_pci_ids | intersect(ansible_facts.pci)) | length > 0'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '(m88ds3103_pci_ids | intersect(ansible_facts["pci"])) | length > 0'
+  notify: ["Reboot required"]
 
 - name: Firmware ngenge_18.fw for ngene cards
   ansible.builtin.get_url:
     url: https://linux4media.de/official_downloads/drivers/ngene_18.fw
     checksum: sha256:213d98ec2cd575eba15d82ee79fed7098e670de43792f8aa773a95cfb7c32060
     dest: /lib/firmware/ngene_18.fw
-    mode: '0644'
-  when: '"ngene" in ansible_facts.modules'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '"ngene" in ansible_facts["modules"]'
+  notify: ["Reboot required"]
 
 - name: Firmware drxk_a3.mc for drxk
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/drxk_a3.mc
     checksum: sha256:f8956ad6f92a4ce90a6ab94ed23e2f9a27e9317e936fd3e0119778dd28e7e294
     dest: /lib/firmware/drxk_a3.mc
-    mode: '0644'
-  when: '"ngene" in ansible_facts.modules or "drxk" in ansible_facts.modules'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '"ngene" in ansible_facts["modules"] or "drxk" in ansible_facts["modules"]'
+  notify: ["Reboot required"]
 
 - name: Firmware for Hauppauge Win-TV HVR-4000. NOVA-HD-S2 and Tevii S460
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-fe-cx24116.fw
     checksum: sha256:8fa49be12cf332b4c9b0379ef997be9ab6e193ae03aae55b39e033ae31e35da0
     dest: /lib/firmware/dvb-fe-cx24116.fw
-    mode: '0644'
-  when: '"14f1:8802" in ansible_facts.pci or "d460:9022" in ansible_facts.pci'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '"14f1:8802" in ansible_facts["pci"] or "d460:9022" in ansible_facts["pci"]'
+  notify: ["Reboot required"]
 
 - name: Firmware for Tevii S464/470/471/660
   ansible.builtin.get_url:
     url: https://github.com/LibreELEC/dvb-firmware/raw/master/firmware/dvb-fe-ds3000.fw
     checksum: sha256:ad8c23bfb51642f48d31fe4f797182352bb13a4d4b7247b25aea18e208e0e882
     dest: /lib/firmware/dvb-fe-ds3000.fw
-    mode: '0644'
-  when: '(ds3000_pci_ids | intersect(ansible_facts.pci)) | length > 0 or (ds3000_usb_ids | intersect(ansible_facts.usb)) | length > 0'
-  notify: ['Reboot required']
+    mode: "0644"
+  when: '(ds3000_pci_ids | intersect(ansible_facts["pci"])) | length > 0 or (ds3000_usb_ids | intersect(ansible_facts["usb"])) | length > 0'
+  notify: ["Reboot required"]
