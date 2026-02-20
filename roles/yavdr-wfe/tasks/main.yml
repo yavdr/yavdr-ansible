@@ -1,8 +1,12 @@
 ---
-- name: Install nginx
-  apt:
-    name: nginx
-    state: present
+
+- name: Install required packages
+  ansible.builtin.apt:
+    pkg:
+      - nginx
+      - rsync
+      - unzip
+      - yavdr-backend
 
 - name: Expand configuration for nginx
   ansible.builtin.template:
@@ -12,14 +16,45 @@
 - name: Reload nginx configuration
   command: nginx -s reload
 
-- name: Install packages
-  ansible.builtin.apt:
-    pkg:
-      - unzip
-      - yavdr-backend
+- name: create a local clone of the yavdr-ansible git repo
+  ansible.builtin.git:
+    repo: "{{ yavdr_ansible_git_repo }}"
+    dest: "{{ yavdr_ansible_path }}"
+    single_branch: yes
+    version: "{{ yavdr_ansible_git_branch }}"
+    force: yes
+
+- name: Create the folder for the overrride
+  ansible.builtin.file:
+    dest: "/etc/systemd/system/yavdr-system-backend.service.d"
+    state: directoly
+
+- name: Create the override file to set environment variables
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/yavdr-system-backend.service.d/environment.conf"
+    content: |
+      [Service]
+      Env=ANSIBLE_DIR={{ yavdr_ansible_path | basename }}
+
+
+- name: Create ansible.cfg for the backend
+  ansible.builtin.copy:
+    dest: "{{ yavdr_ansible_path }}/ansible.cfg"
+    content: |
+      [defaults]
+      roles_path = ./roles
+      library = ./library
+      filter_plugins = ./filter_plugins
+      inventory = ../inventory/hosts
+      # Verhindert SSH-Probleme bei lokalen Läufen
+      transport = local
 
 - name: Unpack yavdr-webfrontend
   ansible.builtin.unarchive:
     src: https://github.com/seahawk1986/yavdr-webfrontend/releases/latest/download/yavdr-webfrontend.zip
     dest: /var/www/html/
     remote_src: true
+
+# TODO: configure /etc/needrestart/needrestart.conf
+#       to avid restarts of services we need to run continously
+#       for example: vdr.service yavdr-xorg.service yavdr-backend.service yavdr-system-backend.service
