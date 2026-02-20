@@ -7,7 +7,7 @@ import ruamel.yaml
 from ansible.module_utils.basic import AnsibleModule
 
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: yaml_edit
 short_description: "change the value of a key in a yaml file"
@@ -16,12 +16,12 @@ description:
        to the given value and type (choose one of the <type>_value arguments). You can set formatting options to get the desired
        layout, so the change is non-intrusive.
 options:
-    path: 
+    path:
         required: True
         type: path
         description:
             - the path of the yaml file you want to edit
-    
+
     key:
         required: True
         type: str
@@ -58,7 +58,7 @@ options:
         description:
             - set a float value
 
-    float_value:
+    dict_value:
         required: False
         type: dict
         description:
@@ -106,20 +106,20 @@ options:
         default=2
         description:
             - set the indentation offset - se ruaml.yaml documentation for details
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: set vdr instance id for yavdr-frontend
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: vdr.id
     int_value: "{{ vdr.instance_id }}"
-'''
+"""
 
 debug_output = []
 
 
-class yamlInPlaceEditor():
+class yamlInPlaceEditor:
     def __init__(
         self,
         filename: Path,
@@ -135,11 +135,11 @@ class yamlInPlaceEditor():
         self.yaml = ruamel.yaml.YAML()
         self.yaml.preserve_quotes = preserve_quotes
         self.yaml.explicit_start = explicit_start
-        self.yaml.boolean_representation = ["False", "True"] if not boolean_representation else boolean_representation
+        self.yaml.boolean_representation = (
+            ["False", "True"] if not boolean_representation else boolean_representation
+        )
         self.yaml.indent(
-            mapping=mapping_indent,
-            sequence=sequence_indent,
-            offset=offset_indent
+            mapping=mapping_indent, sequence=sequence_indent, offset=offset_indent
         )
         self.load_file(self.filename)
 
@@ -153,7 +153,7 @@ class yamlInPlaceEditor():
     def set_dict_value(self, key: str, value: Any) -> None:
         d = copy.deepcopy(self.data)
         w = d
-        parts = key.split('.')
+        parts = key.split(".")
         debug_output.append(f"called set_dict_value with {key=}, {value=}")
         debug_output.append(f"{type(self.data)=}: {self.data}")
         for p in parts[:-1]:  # the last part of the key is the value we want to change
@@ -178,62 +178,63 @@ class yamlInPlaceEditor():
 def run_module():
     changed = False
     module_args = dict(
-        path=dict(type='path', required=True),
-        key=dict(type='str', required=True),
-        str_value=dict(type='str'),
-        int_value=dict(type='int'),
-        bool_value=dict(type='bool'),
-        list_value=dict(type='list'),
-        float_value=dict(type='float'),
-        dict_value=dict(type='dict'),
-        
-        preserve_quotes=dict(type='bool', default=True),
-        explicit_start=dict(type='bool', default=True),
-        boolean_representation=dict(type='list', elements='str', default=[]),
-        mapping_indent=dict(type='int', default=4),
-        sequence_indent=dict(type='int', default=4),
-        offset_indent=dict(type='int', default=2),
+        path=dict(type="path", required=True),
+        key=dict(type="str", required=True),
+        str_value=dict(type="str"),
+        int_value=dict(type="int"),
+        bool_value=dict(type="bool"),
+        list_value=dict(type="list"),
+        float_value=dict(type="float"),
+        dict_value=dict(type="dict"),
+        preserve_quotes=dict(type="bool", default=True),
+        explicit_start=dict(type="bool", default=True),
+        boolean_representation=dict(type="list", elements="str", default=[]),
+        mapping_indent=dict(type="int", default=4),
+        sequence_indent=dict(type="int", default=4),
+        offset_indent=dict(type="int", default=2),
     )
     module = AnsibleModule(
         module_args,
-        required_one_of=[[
-            'str_value',
-            'int_value',
-            'bool_value',
-            'list_value',
-            'float_value',
-            'json_value',
-            'dict_value',
-        ]],
+        required_one_of=[
+            [
+                "str_value",
+                "int_value",
+                "bool_value",
+                "list_value",
+                "float_value",
+                "json_value",
+                "dict_value",
+            ]
+        ],
         supports_check_mode=False,
     )
     try:
         with yamlInPlaceEditor(
-                filename=module.params['path'],
-                preserve_quotes=module.params['preserve_quotes'],
-                explicit_start=module.params['explicit_start'],
-                boolean_representation=module.params['boolean_representation'],
-                mapping_indent=module.params['mapping_indent'],
-                sequence_indent=module.params['sequence_indent'],
-                offset_indent=module.params['offset_indent'],
-           ) as e:
+            filename=module.params["path"],
+            preserve_quotes=module.params["preserve_quotes"],
+            explicit_start=module.params["explicit_start"],
+            boolean_representation=module.params["boolean_representation"],
+            mapping_indent=module.params["mapping_indent"],
+            sequence_indent=module.params["sequence_indent"],
+            offset_indent=module.params["offset_indent"],
+        ) as e:
             for k, v in module.params.items():
-                if not k.endswith('_value'):
+                if not k.endswith("_value"):
                     continue
                 if v is not None:  # only one of the *_value variables must be not None
-                    e.set_dict_value(module.params['key'], v)
+                    e.set_dict_value(module.params["key"], v)
                     break
             changed = e.changed or changed
     except Exception as err:
         changed = False
-        module.fail_json(msg=str(err) + '\n' + "\n".join(debug_output))
+        module.fail_json(msg=str(err) + "\n" + "\n".join(debug_output))
     else:
         module.exit_json(changed=changed)
-    
+
 
 def main():
     run_module()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
