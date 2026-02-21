@@ -46,20 +46,24 @@ server {
         server_name _;
 
         location /api/ {
-	    proxy_http_version 1.1;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /api;
+            proxy_pass http://unix:/run/yavdr-backend/uvicorn.sock:/;
+        }
 
-	    proxy_set_header Host $host;
-	    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-	    proxy_set_header X-Forwarded-Proto $scheme;
-
-	    proxy_redirect off;
-	    proxy_pass http://unix:/run/yavdr-backend/uvicorn.sock:/;
-	}
+        location /assets/ {
+            expires max;
+            add_header Cache-Control "public, must-revalidate, proxy-revalidate";
+        }
 
         location / {
                 # First attempt to serve request as file, then
                 # as directory, then fall back to displaying a 404.
-                try_files $uri $uri/ =404;
+                try_files $uri $uri/ /index.html;
         }
 
 
