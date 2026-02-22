@@ -160,9 +160,9 @@
     dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
     mode: '0644'
 
-- name: Create dict for yavdr-frontend configuration
+- name: Prepare dict for yavdr-frontend configuration
   ansible.builtin.set_fact:
-    drm_config:
+    drm_config_pre:
       primary: >-
         {% if custom_display_config.primary is defined and custom_display_config.primary %}
         {{ {
@@ -185,13 +185,13 @@
           null
         {% endif %}
 
-- name: Konvertiere Strings in echte Dicts
+- name: Define drm_config for yavdr-frontend
   ansible.builtin.set_fact:
     drm_config:
-      primary: '{{ drm_config.primary | from_yaml }}'
-      secondary: '{{ drm_config.secondary | from_yaml }}'
+      primary: '{{ drm_config_pre.primary | from_yaml }}'
+      secondary: '{{ drm_config_pre.secondary | from_yaml }}'
 
-- name: Update drm config for yavdr-frontend
+- name: Set drm config for yavdr-frontend
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: drm
