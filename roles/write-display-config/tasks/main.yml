@@ -10,9 +10,9 @@
 #     - ansible_facts.drm is undefined
 
 - name: Gather only local facts
-  gather_facts:
-    gather_subset: "!all,!min,local"
-    filter: "ansible_local"
+  ansible.builtin.gather_facts:
+    gather_subset: '!all,!min,local'
+    filter: 'ansible_local'
 
 - name: Print all available facts
   ansible.builtin.debug:
@@ -35,7 +35,7 @@
 #       with respect for the available graphics card driver
 #       nvidia, noveau, intel, radeon
 
-- name: check for /etc/yavdr/display_config.yml
+- name: Check for /etc/yavdr/display_config.yml
   ansible.builtin.stat:
     path: /etc/yavdr/display_config.yml
   register: _custom_display_config_stat
@@ -50,11 +50,11 @@
 
     - name: Load display configuration
       ansible.builtin.set_fact:
-        custom_display_config: "{{ _custom_display_config.content | b64decode | from_yaml }}"
+        custom_display_config: '{{ _custom_display_config.content | b64decode | from_yaml }}'
 
 - name: Fallback if there is no custom display config
   ansible.builtin.set_fact:
-    custom_display_config: "{{ display_config }}"
+    custom_display_config: '{{ display_config }}'
   when:
     - custom_display_config is undefined
 
@@ -87,13 +87,13 @@
         src: templates/xorg.conf.j2
         dest: /etc/X11/xorg.conf
         backup: true
-        mode: "0644"
+        mode: '0644'
 
 - name: Create nouveau xorg config snippet
   ansible.builtin.template:
     src: templates/20-nouveau.conf.j2
     dest: /etc/X11/xorg.conf.d/20-nouveau.conf
-    mode: "0644"
+    mode: '0644'
   when:
     - nvidia_detected | bool and not nvidia_driver_installed
 
@@ -101,7 +101,7 @@
   ansible.builtin.template:
     src: templates/20-intel.conf.j2
     dest: /etc/X11/xorg.conf.d/20-intel.conf
-    mode: "0644"
+    mode: '0644'
   when:
     - intel_detected | bool and not nvidia_detected | bool
 
@@ -109,7 +109,7 @@
   ansible.builtin.template:
     src: templates/20-amd.conf.j2
     dest: /etc/X11/xorg.conf.d/20-amd.conf
-    mode: "0644"
+    mode: '0644'
   when:
     - amd_detected | bool and not nvidia_detected | bool
 
@@ -117,7 +117,7 @@
   ansible.builtin.template:
     src: templates/20-modesetting.conf.j2
     dest: /etc/X11/xorg.conf.d/20-modesetting.conf
-    mode: "0644"
+    mode: '0644'
   when:
     - virtualbox_detected | bool
 
@@ -130,7 +130,7 @@
 
 - name: Set facts from sourced environment
   ansible.builtin.set_fact:
-    keyboard_facts: "{{ (keyboard_settings_content.stdout | from_json) }}"
+    keyboard_facts: '{{ (keyboard_settings_content.stdout | from_json) }}'
     # XKBMODEL: "{{ (sourced_env.stdout | from_json).XKBMODEL }}"
     # XKBLAYOUT: "{{ (sourced_env.stdout | from_json).XKBLEAYOUT }}"
     # XKBVARIANT: "{{ (sourced_env.stdout | from_json).XKBVARIANT }}"
@@ -146,22 +146,53 @@
   ansible.builtin.template:
     src: templates/00-keyboard.conf.j2
     dest: /etc/X11/xorg.conf.d/00-keyboard.conf
-    mode: "0644"
+    mode: '0644'
 
 - name: Server flags config snippet to disable screen blanking
   ansible.builtin.template:
     src: templates/10-serverflags.conf.j2
     dest: /etc/X11/xorg.conf.d/10-serverflags.conf
-    mode: "0644"
+    mode: '0644'
 
 - name: Add snippet to ignore eventlircd devices in xorg
   ansible.builtin.template:
     src: templates/xorg-ignore-eventlircd.conf.j2
     dest: /etc/X11/xorg.conf.d/40-ignore-eventlircd.conf
-    mode: "0644"
+    mode: '0644'
+
+- name: Create dict for yavdr-frontend configuration
+  ansible.builtin.set_fact:
+    drm_config:
+      primary: >-
+        {% if custom_display_config.primary is defined and custom_display_config.primary %}
+        {{ {
+          'drm_connector': display_outputs[custom_display_config.primary.connector].drm_name,
+          'xrandr_connector': display_outputs[custom_display_config.primary.connector].xrandr_name,
+          'edid_name': display_outputs[custom_display_config.primary.connector].model
+        } | to_yaml }}
+        {% else %}
+          null
+        {% endif %}
+
+      secondary: >-
+        {% if custom_display_config.secondary is defined and custom_display_config.secondary %}
+        {{ {
+          'drm_connector': display_outputs[custom_display_config.secondary.connector].drm_name,
+          'xrandr_connector': display_outputs[custom_display_config.secondary.connector].xrandr_name,
+          'edid_name': display_outputs[custom_display_config.secondary.connector].model
+        } | to_yaml }}
+        {% else %}
+          null
+        {% endif %}
+
+- name: Konvertiere Strings in echte Dicts
+  ansible.builtin.set_fact:
+    drm_config:
+      primary: '{{ drm_config.primary | from_yaml }}'
+      secondary: '{{ drm_config.secondary | from_yaml }}'
 
 - name: Update drm config for yavdr-frontend
   yaml_edit:
     path: /etc/yavdr-frontend/config.yml
     key: drm
-    dict_value: "{{ custom_display_config }}"
+    dict_value: '{{ drm_config }}'
