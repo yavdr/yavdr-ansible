@@ -20,6 +20,13 @@
     dest: /etc/systemd/system/headless-session@.service
     mode: '0644'
 
+- name: Disable yavdr-xorg
+  ansible.builtin.systemd:
+    name: yavdr-xorg
+    state: masked
+    enabled: false
+  failed_when: false
+
 - name: Start headless-session@.service for vdr user
   ansible.builtin.systemd:
     name: "headless-session@{{ vdr.user }}.service"

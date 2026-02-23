@@ -123,3 +123,10 @@
       - xterm
       - kiosk-browser
     state: present
+
+- name: Disable headless-session@{{vdr.user}}
+  ansible.builtin.systemd:
+    name: headless-session@{{vdr.user}}
+    state: disabled
+    masked: true
+  failed_when: false
