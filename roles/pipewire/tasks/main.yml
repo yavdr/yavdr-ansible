@@ -67,15 +67,3 @@
     group: "{{ vdr.group }}"
     mode: "0755"
     # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?
-
-- name: Avoid resampling
-  ansible.builtin.lineinfile:
-    path: /etc/pulse/daemon.conf
-    regexp: "(; )?{{ item.split()[0] }} =.*"
-    line: "{{ item }}"
-  loop:
-    - "resample-method = {{ pulseaudio_resample_method }}"
-    - "default-sample-format = {{ pulseaudio_default_sample_format }}"
-    - "avoid-resampling = yes"
-    - "default-sample-rate = 48000"
-    - "alternate-sample-rate = 44100"
