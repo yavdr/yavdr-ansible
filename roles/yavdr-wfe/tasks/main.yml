@@ -6,7 +6,50 @@
       - nginx
       - rsync
       - unzip
+      - python3-cryptography
       - yavdr-backend
+
+- name: Verzeichnis für SSL-Key sicherstellen
+  file:
+    path: "{{ nginx_ssl_key_path | dirname }}"
+    state: directory
+    mode: '0700'
+
+- name: Copy certificates (if provided)
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "{{ custom_ssl_cert_local_path }}", dest: "{{ nginx_ssl_cert_path }}", mode: '0644' }
+    - { src: "{{ custom_ssl_key_local_path }}", dest: "{{ nginx_ssl_key_path }}", mode: '0600' }
+  when: custom_ssl_cert_local_path != "" and custom_ssl_key_local_path != ""
+  notify: reload nginx
+
+- name: Generate a self-signed certificate as a fallback
+  block:
+    - name: gnerate private crypto key
+      community.crypto.openssl_privatekey:
+        path: "{{ nginx_ssl_key_path }}"
+        size: 2048
+        mode: '0600'
+
+    - name: Generate csr
+      community.crypto.openssl_csr:
+        path: "{{ nginx_ssl_key_path }}.csr"
+        privatekey_path: "{{ nginx_ssl_key_path }}"
+        common_name: "{{ ansible_fqdn | default(ansible_hostname) }}.local"
+        subject_alt_name: "DNS:{{ ansible_hostname }}.local,IP:{{ ansible_default_ipv4.address }}"
+
+    - name: Generate self-signed certificate
+      community.crypto.x509_certificate:
+        path: "{{ nginx_ssl_cert_path }}"
+        csr_path: "{{ nginx_ssl_key_path }}.csr"
+        privatekey_path: "{{ nginx_ssl_key_path }}"
+        provider: selfsigned
+        selfsigned_not_after: "+365d"
+      notify: reload nginx
+  when: custom_ssl_cert_local_path == ""
 
 - name: Expand configuration for nginx
   ansible.builtin.template:
@@ -48,6 +91,20 @@
       inventory = ../inventory/hosts
       # Verhindert SSH-Probleme bei lokalen Läufen
       transport = local
+
+- name: Create avahi announcement for the yavdr-webfrontend
+  ansible.builtin.copy:
+    dest: "/etc/avahi/services/http.service"
+    content: |
+      <?xml version="1.0" standalone='no'?>
+      <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+      <service-group>
+        <name replace-wildcards="yes">yaVDR Webfrontend on %h</name>
+        <service>
+          <type>_http._tcp</type>
+          <port>80</port>
+        </service>
+      </service-group>
 
 - name: Unpack yavdr-webfrontend
   ansible.builtin.unarchive:
