@@ -55,9 +55,7 @@
   ansible.builtin.template:
     src: templates/nginx.j2
     dest: /etc/nginx/sites-available/default
-
-- name: Reload nginx configuration
-  command: nginx -s reload
+  notify: reload nginx
 
 - name: create a local clone of the yavdr-ansible git repo
   ansible.builtin.git:
