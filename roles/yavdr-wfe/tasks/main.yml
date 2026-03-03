@@ -10,13 +10,13 @@
       - yavdr-backend
 
 - name: Verzeichnis für SSL-Key sicherstellen
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_ssl_key_path | dirname }}"
     state: directory
     mode: '0700'
 
 - name: Copy certificates (if provided)
-  copy:
+  ansible.builtin.copy:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
     mode: "{{ item.mode }}"
@@ -28,7 +28,7 @@
 
 - name: Generate a self-signed certificate as a fallback
   block:
-    - name: gnerate private crypto key
+    - name: Generate private crypto key
       community.crypto.openssl_privatekey:
         path: "{{ nginx_ssl_key_path }}"
         size: 2048
@@ -55,20 +55,22 @@
   ansible.builtin.template:
     src: templates/nginx.j2
     dest: /etc/nginx/sites-available/default
+    mode: '0644'
   notify: reload nginx
 
 - name: create a local clone of the yavdr-ansible git repo
   ansible.builtin.git:
     repo: "{{ yavdr_ansible_git_repo }}"
     dest: "{{ yavdr_ansible_path }}"
-    single_branch: yes
+    single_branch: true
     version: "{{ yavdr_ansible_git_branch }}"
-    force: yes
+    force: true
 
 - name: Create the folder for the overrride
   ansible.builtin.file:
     dest: "/etc/systemd/system/yavdr-system-backend.service.d"
     state: directory
+    mode: "0755"
 
 - name: Create the override file to set environment variables
   ansible.builtin.copy:
@@ -76,6 +78,7 @@
     content: |
       [Service]
       Environment=ANSIBLE_DIR={{ yavdr_ansible_path }}
+    mode: '0644'
 
 
 - name: Create ansible.cfg for the backend
@@ -89,6 +92,7 @@
       inventory = ../inventory/hosts
       # Verhindert SSH-Probleme bei lokalen Läufen
       transport = local
+    mode: "0755"
 
 - name: Create avahi announcement for the yavdr-webfrontend
   ansible.builtin.copy:
@@ -103,6 +107,7 @@
           <port>80</port>
         </service>
       </service-group>
+    mode: "0755"
 
 - name: Unpack yavdr-webfrontend
   ansible.builtin.unarchive:
