@@ -8,6 +8,11 @@ This can lead to problems when updating packages after adding a repository twice
 
 The custom add_ppa module should hopefully work like add-apt-repository and avoid conflicts
 
+To switch between VDR PPAs use the following procedure:
+
+- Add the new PPA using `add-apt-repository`
+- purge the old one using `ppa-purge`
+
 # Systemd
 
 On slow systems, systemd units can time out when starting. You can give them more time by adding an override like this:
@@ -212,7 +217,7 @@ The modesetting driver seems to be limited to a single display.
 
 Under Ubuntu 26.04 there is a problem with German DVB-T2 for vaapi and cpu render methods if the dvb tuner drops out.
 
-`libgl1-amber-dri` needs to be installed, too
+`libgl1-mesa-dri` needs to be installed, too
 
 ### forcing connection status
 
@@ -247,6 +252,8 @@ To get the Xorg connector name, we have to look at `/etc/ansible/facts.d/drm.fac
 This is currently partially implented in the yavdr-frontend script - Still missing:
 Prevent attaching the frontend if not connected
 Check if deta/atta is needed after running the xrandr command
+
+TODO: in VMs (like VirtualBox) the association between DRM and XRANDR Monitor names as well as EDID data is incomplete. The yavdr-frontend should be able to handle this.
 
 We also need to improve the conditions under which `update-initramfs` are called
 
