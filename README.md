@@ -23,7 +23,7 @@ NOTE: It is recommended to use a SSH connection to run the playbook, especially 
 Run the following commands to download the current version of yavdr-ansible:
 ```
 sudo apt-get install git
-git clone -b resolute https://github.com/yavdr/yavdr-ansible
+git clone -b devel https://github.com/yavdr/yavdr-ansible
 cd yavdr-ansible
 ```
 
