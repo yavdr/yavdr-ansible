@@ -1,7 +1,9 @@
 import binascii
 from collections import defaultdict, deque
 import logging
+import os
 from pathlib import Path
+import tempfile
 from pydantic import BaseModel, Field
 import re
 import subprocess
@@ -328,7 +330,7 @@ def get_bus_id(pci_id: str):
 
 
 def find_edid(
-    edid: str | None, xorg_connector: str
+    edid: str | None, xorg_connector: str, module: AnsibleModule
 ) -> None | tuple[str | None, str, str]:
     if edid is not None:
         edid_raw = binascii.a2b_hex(edid)
@@ -342,6 +344,19 @@ def find_edid(
                 real_dev_path = dev_path.resolve()
                 pci_id = real_dev_path.parent.parent.parent.name
                 bus_id = get_bus_id(pci_id)
+
+                # write the edid to /etc/X11
+                new_edid_path = Path(f"/etc/X11/edid.{xorg_connector}.bin")
+                try:
+                    if not new_edid_path.is_file() or new_edid_path.read_bytes() != edid_raw:
+                        fd, tmp_dest = tempfile.mkstemp(dir=new_edid_path.parent)
+                        os.write(fd, edid_raw)
+                        os.close(fd)
+                        module.atomic_move(tmp_dest, new_edid_path)
+                except:
+                    pass
+
+
                 return drm_connector, bus_id, card_name
 
     # for edid_path in Path("/sys/class/drm/").glob("card*/edid"):
@@ -364,7 +379,7 @@ def sort_by_resolution(item: tuple[str, set[int]]) -> tuple[int, int]:
     return (int(x), int(y))
 
 
-def find_next_connector(data: deque[str]) -> Connector | None:
+def find_next_connector(data: deque[str], module: AnsibleModule) -> Connector | None:
     while data:
         line = data.popleft()
         if m := re.match(
@@ -380,7 +395,7 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                 xorg_modes: dict[str, str] = {}
                 edid = find_xrandr_edid(data)
                 edid_modes: dict[str, str] = {}
-                if r := find_edid(edid, xorg_connector_name):
+                if r := find_edid(edid, xorg_connector_name, module):
                     drm_connector, bus_id, card_name = r
                 if edid is not None:
                     vendor, model, edid_modes = parse_edid_bytes(edid)
@@ -449,10 +464,10 @@ def find_next_connector(data: deque[str]) -> Connector | None:
                 )
 
 
-def parse_xrandr_verbose(data: deque[str]) -> dict[str, Connector]:
+def parse_xrandr_verbose(data: deque[str], module: AnsibleModule) -> dict[str, Connector]:
     connectors: dict[str, Connector] = {}
     while data:
-        if connector := find_next_connector(data):
+        if connector := find_next_connector(data, module):
             logging.debug(
                 f"got connector {connector.xrandr_name=}, {connector.drm_name=}"
             )
@@ -549,7 +564,7 @@ if __name__ == "__main__":
     if xrandr_verbose_output := get_xrandr_verbose_output(
         display=":0"
     ):  # params["display"]):
-        connectors = parse_xrandr_verbose(xrandr_verbose_output)
+        connectors = parse_xrandr_verbose(xrandr_verbose_output, module)
         xorg_config = auto_config(
             connectors,
             Preferences(
