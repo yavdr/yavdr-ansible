@@ -16,16 +16,47 @@
     var: kms_set_boot_edid
     verbosity: 0
 
+- name: Show display configuration
+  ansible.builtin.debug:
+    var: ansible_facts['display_config']
+    verbosity: 0
+
+- name: Show display configuration
+  ansible.builtin.debug:
+    var: ansible_facts['display_outputs'][ansible_facts['display_config']['primary']['connector']]
+    verbosity: 0
+
+- name: Boot options
+  ansible.builtin.debug:
+    msg: >-
+      {% if ansible_facts['display_config']['primary'] %}
+      {% set primary = ansible_facts['display_config']['primary']['connector'] %}
+      {% set secondary = ansible_facts['display_config']['secondary']['connector'] %}
+      {% set primary_data = ansible_facts['display_outputs'][primary] %}
+      video={{ primary_data['drm_name'] }}:eD{%
+        if secondary
+      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:eD{% endif %}
+      drm.edid_firmware={{ primary_data.drm_name }}:edid/{{ primary_data.xrandr_name }}.edid{%
+        if secondary and secondary_data['drm_name'] is defined and secondary_data['edid'] is defined
+      %},{{ secondary_data.drm_name }}:edid/{{ secondary_data.xrandr_name }}.edid{% endif %}
+      {% endif %}
+
+
 - name: "Set kms_boot_options variable"
   ansible.builtin.set_fact: # the formatting is important to get the correct spaces in the result
     kms_boot_options: >-
-      video={{ drm.primary.drm_connector }}:D{%
-        if drm.secondary is defined and drm.secondary.drm_connector is defined
-      %},{{ drm.secondary.drm_connector }}:D{% endif %}
-      drm.edid_firmware={{ drm.primary.drm_connector }}:edid/{{ drm.primary.edid }}{%
-        if drm.secondary is defined and drm.secondary.drm_connector is defined and drm.secondary.edid is defined
-      %},{{ drm.secondary.drm_connector }}:edid/{{ drm.secondary.edid }}{% endif %}
-      {% for ignored_c in drm.ignored_outputs %} video={{ ignored_c }}:d{% endfor %}
+      {% if ansible_facts['display_config']['primary'] %}
+      {% set primary = ansible_facts['display_config']['primary']['connector'] %}
+      {% set secondary = ansible_facts['display_config']['secondary']['connector'] %}
+      {% set primary_data = ansible_facts['display_outputs'][primary] %}
+      video={{ primary_data['drm_name'] }}:eD{%
+        if secondary
+      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:eD{% endif %}
+      drm.edid_firmware={{ primary_data.drm_name }}:edid/{{ primary_data.xrandr_name }}.edid{%
+        if secondary and secondary_data['drm_name'] is defined and secondary_data['edid'] is defined
+      %},{{ secondary_data.drm_name }}:edid/{{ secondary_data.xrandr_name }}.edid{% endif %}
+      {% endif %}
+
   when: kms_set_boot_edid
   changed_when: true
   notify: ['Update Initramfs', 'Update GRUB']
