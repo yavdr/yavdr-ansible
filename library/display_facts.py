@@ -455,7 +455,7 @@ def find_next_connector(data: deque[str], module: AnsibleModule) -> Connector | 
                     model=model,
                 )
             else:
-                if r := find_edid(None, xorg_connector_name):
+                if r := find_edid(None, xorg_connector_name, module):
                     drm_connector, bus_id, card_name = r
 
                 logging.debug(f"return Connector {xorg_connector_name}: {connected}")
