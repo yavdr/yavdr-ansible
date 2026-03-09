@@ -27,6 +27,7 @@
   notify: reload nginx
 
 - name: Generate a self-signed certificate as a fallback
+  when: custom_ssl_cert_local_path == ""
   block:
     - name: Generate private crypto key
       community.crypto.openssl_privatekey:
@@ -38,8 +39,8 @@
       community.crypto.openssl_csr:
         path: "{{ nginx_ssl_key_path }}.csr"
         privatekey_path: "{{ nginx_ssl_key_path }}"
-        common_name: "{{ ansible_fqdn | default(ansible_hostname) }}.local"
-        subject_alt_name: "DNS:{{ ansible_hostname }}.local,IP:{{ ansible_default_ipv4.address }}"
+        common_name: "{{ ansible_facts['fqdn'] | default(ansible_facts['hostname']) }}.local"
+        subject_alt_name: "DNS:{{ ansible_facts['hostname'] }}.local,IP:{{ ansible_facts['default_ipv4']['address'] }}"
 
     - name: Generate self-signed certificate
       community.crypto.x509_certificate:
@@ -49,7 +50,6 @@
         provider: selfsigned
         selfsigned_not_after: "+365d"
       notify: reload nginx
-  when: custom_ssl_cert_local_path == ""
 
 - name: Expand configuration for nginx
   ansible.builtin.template:

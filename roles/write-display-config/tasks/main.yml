@@ -21,15 +21,15 @@
 
 - name: Update display_outputs and display_config variables with values from local facts if needed
   ansible.builtin.set_fact:
-    display_outputs: "{{ ansible_facts['display_outputs'] | default(ansible_local['display_outputs']['connectors']) }}"
-    display_config: "{{ ansible_facts['display_config'] | default(ansible_local['display_config']) }}"
+    display_outputs: "{{ ansible_facts['display_outputs'] | default(ansible_facts['ansible_local']['display_outputs']['connectors']) }}"
+    display_config: "{{ ansible_facts['display_config'] | default(ansible_facts['ansible_local']['display_config']) }}"
 
 - name: Set gpu facts
   ansible.builtin.set_fact:
-    nvidia_detected: "{{ ansible_facts['nvidia_detected'] | default(ansible_local['hardware_detected']['nvidia_detected']) }}"
-    nvidia_driver_installed: "{{ nvidia_driver_installed | default(ansible_local['hardware_detected']['nvidia_driver_installed']) }}"
-    intel_detected: "{{ ansible_facts['intel_detected'] | default(ansible_local['hardware_detected']['intel_detected']) }}"
-    amd_detected: "{{ ansible_facts['amd_detected'] | default(ansible_local['hardware_detected']['amd_detected']) }}"
+    nvidia_detected: "{{ ansible_facts['nvidia_detected'] | default(ansible_facts['ansible_local']['hardware_detected']['nvidia_detected']) }}"
+    nvidia_driver_installed: "{{ nvidia_driver_installed | default(ansible_facts['ansible_local']['hardware_detected']['nvidia_driver_installed']) }}"
+    intel_detected: "{{ ansible_facts['intel_detected'] | default(ansible_facts['ansible_local']['hardware_detected']['intel_detected']) }}"
+    amd_detected: "{{ ansible_facts['amd_detected'] | default(ansible_facts['ansible_local']['hardware_detected']['amd_detected']) }}"
 
 # TODO: expand template for xorg.conf (or snippets)
 #       with respect for the available graphics card driver
