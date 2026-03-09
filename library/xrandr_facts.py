@@ -522,7 +522,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
         modes: list[Mode] = []
         for _, screen_data in xorg_data.items():
             for connector, connection_data in screen_data.items():
-                if connection_data.edid:
+                if connection_data.binary_edid:
                     connection_data.edid_file.write_bytes(connection_data.binary_edid)
                 for resolution, refreshrates in connection_data.modes.items():
                     for refreshrate in refreshrates:
