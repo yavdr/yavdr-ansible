@@ -494,6 +494,7 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
     result: dict[str, Any] = {}
     drm = {}
     config: OutputConfig = OutputConfig()
+    edids_written: list[str] = []
 
     def sort_mode(mode: Mode):
         """rate modes by several criteria"""
@@ -522,8 +523,9 @@ def output_data(xorg_data: dict[str, dict[str, XrandrMonitor]], params: dict[str
         modes: list[Mode] = []
         for _, screen_data in xorg_data.items():
             for connector, connection_data in screen_data.items():
-                if connection_data.binary_edid:
+                if connection_data.edid:
                     connection_data.edid_file.write_bytes(connection_data.binary_edid)
+                    edids_written.append(str(connection_data.edid_file))
                 for resolution, refreshrates in connection_data.modes.items():
                     for refreshrate in refreshrates:
                         modes.append(Mode(connector, resolution, refreshrate))
