@@ -350,10 +350,14 @@ def find_edid(
                 try:
                     if not new_edid_path.is_file() or new_edid_path.read_bytes() != edid_raw:
                         fd, tmp_dest = tempfile.mkstemp(dir=new_edid_path.parent)
-                        os.write(fd, edid_raw)
-                        os.close(fd)
+                        try:
+                            os.write(fd, edid_raw)
+                            os.close(fd)
+                        except Exception as e:
+                            os.unlink(tmp_dest)
+                            module.fail_json(msg=str(e))
                         module.atomic_move(tmp_dest, new_edid_path)
-                except:
+                except Exception:
                     pass
 
 
