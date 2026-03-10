@@ -29,9 +29,9 @@
 - name: Boot options
   ansible.builtin.debug:
     msg: >-
-      {% if ansible_facts['display_config']['primary'] %}
-      {% set primary = ansible_facts['display_config']['primary']['connector'] %}
-      {% set secondary = ansible_facts['display_config']['secondary']['connector'] %}
+      {% if ansible_facts['display_config']['primary'] | default(false) %}
+      {% set primary = ansible_facts['display_config']['primary']['connector'] | default(false) %}
+      {% set secondary = ansible_facts['display_config']['secondary']['connector'] | default(false) %}
       {% set primary_data = ansible_facts['display_outputs'][primary] %}
       video={{ primary_data['drm_name'] }}:eD{%
         if secondary
@@ -45,9 +45,9 @@
 - name: "Set kms_boot_options variable"
   ansible.builtin.set_fact: # the formatting is important to get the correct spaces in the result
     kms_boot_options: >-
-      {% if ansible_facts['display_config']['primary'] %}
-      {% set primary = ansible_facts['display_config']['primary']['connector'] %}
-      {% set secondary = ansible_facts['display_config']['secondary']['connector'] %}
+      {% if ansible_facts['display_config']['primary'] | default(false) %}
+      {% set primary = ansible_facts['display_config']['primary']['connector'] | default(false) %}
+      {% set secondary = ansible_facts['display_config']['secondary']['connector'] | default(false) %}
       {% set primary_data = ansible_facts['display_outputs'][primary] %}
       video={{ primary_data['drm_name'] }}:eD{%
         if secondary
