@@ -348,7 +348,10 @@ def find_edid(
                 # write the edid to /etc/X11
                 new_edid_path = Path(f"/etc/X11/edid.{xorg_connector}.bin")
                 try:
-                    if not new_edid_path.is_file() or new_edid_path.read_bytes() != edid_raw:
+                    if (
+                        not new_edid_path.is_file()
+                        or new_edid_path.read_bytes() != edid_raw
+                    ):
                         fd, tmp_dest = tempfile.mkstemp(dir=new_edid_path.parent)
                         try:
                             os.write(fd, edid_raw)
@@ -359,7 +362,6 @@ def find_edid(
                         module.atomic_move(tmp_dest, new_edid_path)
                 except Exception:
                     pass
-
 
                 return drm_connector, bus_id, card_name
 
@@ -387,7 +389,7 @@ def find_next_connector(data: deque[str], module: AnsibleModule) -> Connector | 
     while data:
         line = data.popleft()
         if m := re.match(
-            r"(?P<output>(?P<connector>\S+-?\d)\s(?P<connected>(connected|disconnected)))",
+            r"(?P<output>(?P<connector>\S+)\s(?P<connected>(connected|disconnected)))",
             line,
         ):
             # parse the connector data
@@ -468,7 +470,9 @@ def find_next_connector(data: deque[str], module: AnsibleModule) -> Connector | 
                 )
 
 
-def parse_xrandr_verbose(data: deque[str], module: AnsibleModule) -> dict[str, Connector]:
+def parse_xrandr_verbose(
+    data: deque[str], module: AnsibleModule
+) -> dict[str, Connector]:
     connectors: dict[str, Connector] = {}
     while data:
         if connector := find_next_connector(data, module):
