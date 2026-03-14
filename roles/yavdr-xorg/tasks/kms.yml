@@ -33,9 +33,9 @@
       {% set primary = ansible_facts['display_config']['primary']['connector'] | default(false) %}
       {% set secondary = ansible_facts['display_config']['secondary']['connector'] | default(false) %}
       {% set primary_data = ansible_facts['display_outputs'][primary] %}
-      video={{ primary_data['drm_name'] }}:ansible_facts['display_config']['primary']['resolution']}}@{{ansible_facts['display_config']['primary']['refreshrate']:eD {%
+      video={{ primary_data['drm_name'] }}:ansible_facts['display_config']['primary']['resolution']}}@{{ansible_facts['display_config']['primary']['refreshrate']}}:eD {%
         if secondary
-      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:ansible_facts['display_config']['secondary']['resolution']}}@{{ansible_facts['display_config']['secondary']['refreshrate']:eD{% endif %}
+      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:ansible_facts['display_config']['secondary']['resolution']}}@{{ansible_facts['display_config']['secondary']['refreshrate']}}:eD{% endif %}
       drm.edid_firmware={{ primary_data.drm_name }}:edid/{{ primary_data.xrandr_name }}.edid{%
         if secondary and secondary_data['drm_name'] is defined and secondary_data['edid'] is defined
       %},{{ secondary_data.drm_name }}:edid/{{ secondary_data.xrandr_name }}.edid{% endif %}
@@ -49,9 +49,9 @@
       {% set primary = ansible_facts['display_config']['primary']['connector'] | default(false) %}
       {% set secondary = ansible_facts['display_config']['secondary']['connector'] | default(false) %}
       {% set primary_data = ansible_facts['display_outputs'][primary] %}
-      video={{ primary_data['drm_name'] }}:ansible_facts['display_config']['primary']['resolution']}}@{{ansible_facts['display_config']['primary']['refreshrate']:eD {%
+      video={{ primary_data['drm_name'] }}:ansible_facts['display_config']['primary']['resolution']}}@{{ansible_facts['display_config']['primary']['refreshrate']}}:eD {%
         if secondary
-      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:ansible_facts['display_config']['secondary']['resolution']}}@{{ansible_facts['display_config']['secondary']['refreshrate']:eD{% endif %}
+      %}{% set secondary_data = ansible_facts['display_outputs'][secondary] %},{{ secondary_data['drm_name'] }}:ansible_facts['display_config']['secondary']['resolution']}}@{{ansible_facts['display_config']['secondary']['refreshrate']}}:eD{% endif %}
       drm.edid_firmware={{ primary_data.drm_name }}:edid/{{ primary_data.xrandr_name }}.edid{%
         if secondary and secondary_data['drm_name'] is defined and secondary_data['edid'] is defined
       %},{{ secondary_data.drm_name }}:edid/{{ secondary_data.xrandr_name }}.edid{% endif %}
