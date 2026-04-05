@@ -15,6 +15,25 @@
     enabled: true
   notify: ["Start yavdr-xorg"]
 
+- name: Check if /etc/yavdr/display_config exists
+  ansible.builtin.stat:
+    path: /etc/yavdr/display_config
+  register: custom_display_config
+
+- name: Backup /etc/yavdr/display_config
+  ansible.builtin.copy:
+    src: /etc/yavdr/display_config
+    dest: /etc/yavdr/display_config.backup
+    mode: "0644"
+    remote_src: true
+  when: custom_display_config.exists
+
+- name: Remove /etc/yavdr/display_config
+  ansible.builtin.file:
+    path: /etc/yavdr/display_config
+    state: absent
+  when: custom_display_config.exists
+
 - name: "Expand template for x-verbose@.service"
   ansible.builtin.template:
     src: "templates/systemd/system/x-verbose@.service.j2"
