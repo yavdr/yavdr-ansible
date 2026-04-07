@@ -12,6 +12,18 @@
     group: "{{ vdr.group }}"
     mode: "0644"
 
+- name: Disable websocket-status.service
+  ansible.builtin.systemd:
+    name: "websocket-status.service"
+    daemon_reload: true
+    state: stopped
+    enabled: false
+    masked: false
+    scope: user
+  become: true
+  become_user: "{{ vdr.user }}"
+  failed_when: false
+
 - name: Activate and start systemd unit osd2web.service
   ansible.builtin.systemd:
     name: "osd2web.service"
