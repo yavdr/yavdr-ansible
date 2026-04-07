@@ -18,7 +18,7 @@
 - name: Check if /etc/yavdr/display_config exists
   ansible.builtin.stat:
     path: /etc/yavdr/display_config
-  register: custom_display_config
+  register: custom_display_config_file
 
 - name: Backup /etc/yavdr/display_config
   ansible.builtin.copy:
@@ -26,13 +26,13 @@
     dest: /etc/yavdr/display_config.backup
     mode: "0644"
     remote_src: true
-  when: custom_display_config.exists
+  when: custom_display_config_file.stat.exists
 
 - name: Remove /etc/yavdr/display_config
   ansible.builtin.file:
     path: /etc/yavdr/display_config
     state: absent
-  when: custom_display_config.exists
+  when: custom_display_config_file.stat.exists
 
 - name: "Expand template for x-verbose@.service"
   ansible.builtin.template:
