@@ -1,0 +1,18 @@
+{{ ansible_managed.format(file=template_path) | comment }}
+[Unit]
+Description=Start a kiosk browser on the second DISPLAY if it exists
+After=detect-second-display.service openbox-second.service
+Wants=detect-second-display.service openbox-second.service
+ConditionFileNotEmpty=%h/.second_display
+
+[Service]
+EnvironmentFile=%h/.second_display
+Environment=URL="http://localhost:6742/"
+Environment=BROWSER="kiosk-browser"
+Environment=BROWSER_ARGS=
+EnvironmentFile=-%h/.config/websocket-status/config
+ExecStart=/usr/bin/on_vdr -o -c '${BROWSER} ${BROWSER_ARGS} "${URL}"'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=yavdr-desktop.target

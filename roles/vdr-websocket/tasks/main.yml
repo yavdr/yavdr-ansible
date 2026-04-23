@@ -1,0 +1,49 @@
+---
+- name: Apt | install vdr-plugin-websocket
+  ansible.builtin.apt:
+    name: vdr-plugin-websocket
+    state: present
+
+- name: Expand websocket-status.service from template for the session
+  ansible.builtin.template:
+    src: templates/systemd/user/websocket-status.service.j2
+    dest: "{{ vdr.home }}/.config/systemd/user/websocket-status.service"
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0644"
+
+- name: Disable osd2web.service
+  ansible.builtin.systemd:
+    name: "osd2web.service"
+    daemon_reload: true
+    state: stopped
+    enabled: false
+    masked: false
+    scope: user
+  become: true
+  become_user: "{{ vdr.user }}"
+  failed_when: false
+
+
+- name: Activate and start systemd unit websocket-status.service
+  ansible.builtin.systemd:
+    name: "websocket-status.service"
+    daemon_reload: true
+    state: started
+    enabled: true
+    masked: false
+    scope: user
+  become: true
+  become_user: "{{ vdr.user }}"
+
+- name: Make sure folder for webfrontend exists
+  ansible.builtin.file:
+    name: /var/lib/vdr/plugins/websocket/web/
+    state: directory
+    mode: "0755"
+
+- name: Unpack webfrontend for vdr-plugin-websocket
+  ansible.builtin.unarchive:
+    src: https://github.com/seahawk1986/vdr-websocket-status/releases/latest/download/vdr-websocket-status.zip
+    dest: /var/lib/vdr/plugins/websocket/web/
+    remote_src: true
