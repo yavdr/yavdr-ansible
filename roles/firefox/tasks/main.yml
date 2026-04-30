@@ -67,3 +67,9 @@
     src: templates/firefox.cfg.j2
     dest: /usr/lib/firefox/defaults/firefox.cfg
     mode: '0644'
+
+- name: Set name of desktop file for yavdr-frontend
+  yaml_edit:
+    path: /etc/yavdr-frontend/config.yml
+    key: applications.firefox.app_name
+    str_value: "{{ 'firefox.desktop' if ansible_facts.firefox_as_deb else 'firefox_firefox.desktop' }}"
