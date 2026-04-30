@@ -1,0 +1,20 @@
+[Unit]
+Description=Kodi GBM
+After=systemd-user-sessions.service
+Conflicts=getty@tty{{ kodi_tty }}.service
+
+[Service]
+Type=simple
+User=vdr
+SupplementaryGroups=tty video render audio
+PAMName=login
+TTYPath=/dev/tty{{ kodi_tty }}
+StandardInput=tty-force
+StandardOutput=journal
+TTYReset=no
+TTYVHangup=yes
+ExecStartPre=+/usr/bin/chvt {{ kodi_tty }}
+ExecStart={{ kodi_as_flatpak | ternary("/usr/bin/flatpak run --device=all --command=kodi tv.kodi.Kodi", "/usr/bin/kodi") }} --standalone --windowing=gbm
+ExecStop=/bin/bash -c "[ -n \"$MAINPID\"  ] || exit 0; {{ kodi_as_flatpak | ternary("/usr/bin/flatpak run --command=kodi-send tv.kodi.Kodi", "/usr/bin/kodi-send")  }} --action=QUIT; while ps -p $MAINPID -o comm=; do sleep .25; done"
+ExecStopPost=+/usr/bin/chvt 7
+Restart=on-failure

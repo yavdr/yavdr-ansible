@@ -7,6 +7,31 @@
       group: '{{ vdr.group }}'
       mode: '0644'
 
+- name: Create kodi.service for the system session
+  ansible.builtin.template:
+      src: 'templates/kodi-system.service.j2'
+      dest: '/etc/systemd/system/kodi.service'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+
+- name: Allow system service for kodi be controlled by the user '{{ vdr.user }}'
+  ansible.builtin.template:
+      src: 'templates/polkit-kodi.rules.j2'
+      dest: '/etc/polkit-1/rules.d/yavdr-kodi-gbm.rules'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+
+- name: Configure yavdr-frontend to use system or session kodi.service
+  yaml_edit:
+      path: /etc/yavdr-frontend/config.yml
+      key: applications.kodi
+      dict_value:
+          unit_name: kodi.service
+          bus: '{{ "SystemBus" if kodi_use_gbm | default(false) else "SessionBus" }}'
+          use_pwsuspend: true
+
 - name: Create kodi user directory
   ansible.builtin.file:
       dest: '{{ kodi_config_dir }}/userdata/keymaps'
