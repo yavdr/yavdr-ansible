@@ -42,6 +42,27 @@
     state: directory
     mode: "0755"
 
+- name: "VDR configuration | allowed_hosts.conf for vdr-plugin-websocket"
+  ansible.builtin.template:
+    src: templates/generic_allowed_hosts.conf.j2
+    dest: "/etc/vdr/plugins/{{ vdr_service }}/allowed_hosts.conf"
+    mode: "0644"
+  vars:
+    allowed_hosts: "{{ websocket_allowed_hosts | default(vdr_allowed_hosts) }}"
+    vdr_service: websocket
+
+- name: Make sure at least localhost has access
+  ansible.builtin.lineinfile:
+    path: '/etc/vdr/plugins/websocket/allowed_hosts.conf'
+    mode: "0664"
+    owner: "root"
+    group: "root"
+    line: "{{ item }}"
+  loop:
+    - "127.0.0.1"
+
+
+
 - name: Unpack webfrontend for vdr-plugin-websocket
   ansible.builtin.unarchive:
     src: https://github.com/seahawk1986/vdr-websocket-status/releases/latest/download/vdr-websocket-status.zip
