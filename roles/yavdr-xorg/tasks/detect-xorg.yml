@@ -205,6 +205,25 @@
     line: "-v nvdec-egl"
   when: (ansible_facts.nvidia_detected and nvidia_driver_installed)
 
+
+- name: Configure vdr-plugin-vaapivideo
+  when: (ansible_facts.selected_frontend | default("softhddevice") == "vaapivideo")
+  block:
+    - name: VDR-config | create vaapivideo.conf if it doesn't exist yet
+      ansible.builtin.lineinfile:
+        path: /etc/vdr/conf.avail/vaapivideo.conf
+        create: true
+        state: present
+        mode: "0644"
+        line: "[vaapivideo]"
+
+    - name: VDR-config | start vaapivideo detached
+      ansible.builtin.lineinfile:
+        path: /etc/vdr/conf.avail/vaapivideo.conf
+        line: "{{ item }}"
+      loop:
+        - "-D"
+
 - name: Write variables for detected hardware
   ansible.builtin.copy:
     content: '{{ {"nvidia_detected": ansible_facts.nvidia_detected, "nvidia_driver_installed": nvidia_driver_installed, "intel_detected": ansible_facts.intel_detected, "amd_detected": ansible_facts.amd_detected} | to_nice_json }}'
