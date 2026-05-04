@@ -31,6 +31,7 @@
           unit_name: kodi.service
           bus: '{{ "SystemBus" if kodi_use_gbm | default(false) else "SessionBus" }}'
           use_pwsuspend: true
+          is_xorg_client: '{{ "false" if kodi_use_gbm | default(false) else "true" }}'
 
 - name: Create kodi user directory
   ansible.builtin.file:
