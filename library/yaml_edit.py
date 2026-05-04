@@ -2,7 +2,8 @@
 import copy
 import sys
 from pathlib import Path
-from typing import List, IO, Any, Optional
+import traceback
+from typing import Any, TextIO
 import ruamel.yaml
 from ansible.module_utils.basic import AnsibleModule
 
@@ -116,7 +117,7 @@ EXAMPLES = """
     int_value: "{{ vdr.instance_id }}"
 """
 
-debug_output = []
+debug_output: list[str] = []
 
 
 class yamlInPlaceEditor:
@@ -125,7 +126,7 @@ class yamlInPlaceEditor:
         filename: Path,
         preserve_quotes: bool = True,
         explicit_start: bool = True,
-        boolean_representation: Optional[List[str]] = None,
+        boolean_representation: list[str] | None = None,
         mapping_indent: int = 4,
         sequence_indent: int = 4,
         offset_indent: int = 2,
@@ -146,7 +147,7 @@ class yamlInPlaceEditor:
     def __enter__(self) -> "yamlInPlaceEditor":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Exception, exc_val: Any, exc_tb: Any) -> None:
         if self.changed:
             self.dump_file(self.filename)
 
@@ -162,16 +163,16 @@ class yamlInPlaceEditor:
                 self.changed = True
             else:
                 w = t
-        if w[parts[-1]] != value:
+        if w.get(parts[-1]) != value:
             self.changed = True
         w[parts[-1]] = value
         self.data.update(d)
         print(f"{self.changed=}")
 
-    def load_file(self, fd: IO) -> None:
-        self.data = self.yaml.load(fd)
+    def load_file(self, fd: Path | TextIO) -> None:
+        self.data: dict[str, Any] = self.yaml.load(fd)
 
-    def dump_file(self, fd: IO = sys.stdout):
+    def dump_file(self, fd: Path | TextIO = sys.stdout) -> None:
         self.yaml.dump(self.data, fd)
 
 
@@ -227,7 +228,9 @@ def run_module():
             changed = e.changed or changed
     except Exception as err:
         changed = False
-        module.fail_json(msg=str(err) + "\n" + "\n".join(debug_output))
+        module.fail_json(
+            msg=f"{err=}:{traceback.format_exc()}\n{'\n'.join(debug_output)}"
+        )
     else:
         module.exit_json(changed=changed)
 
