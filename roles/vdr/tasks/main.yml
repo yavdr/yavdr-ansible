@@ -290,6 +290,12 @@
     mode: "0644"
   notify: ["Reload Units"]
 
+- name: "Add snippet to give tty9 to the /var/lib/vdr"
+  ansible.builtin.template:
+    src: "templates/vdr-console-output.conf.j2"
+    dest: "/etc/systemd/system/vdr.service.d/console-output.conf"
+    mode: "0644"
+
 - name: Create snippet with yavdr commands
   ansible.builtin.template:
     src: templates/command-hooks/commands.yavdr.conf.j2
