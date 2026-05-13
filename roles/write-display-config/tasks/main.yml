@@ -202,9 +202,8 @@
 - name: VDR-config | set ouput for vdr-plugin-vaapivideo
   ansible.builtin.lineinfile:
     path: /etc/vdr/conf.avail/vaapivideo.conf
-    line: "{{ item }}"
-  loop:
-    - "-c {{  display_outputs[custom_display_config.primary.connector].drm_name }}"
+    regexp: "^(-c|--connector=)"
+    line: "-c {{  display_outputs[custom_display_config.primary.connector].drm_name }}"
   when:
-    - custom_display_config.primary is defined and custom_display_config.primary
+    - custom_display_config.primary is defined and custom_display_config.primary is truthy
     - selected_frontend == "vaapivideo"
