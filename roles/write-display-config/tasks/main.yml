@@ -199,29 +199,24 @@
   when: not virtualbox_detected
 
 
-- name: VDR-config | set ouput for vdr-plugin-vaapivideo
-  ansible.builtin.lineinfile:
-    path: /etc/vdr/conf.avail/vaapivideo.conf
-    regexp: "^(-c|--connector=)"
-    line: "-c {{  display_outputs[custom_display_config.primary.connector].drm_name }}"
-  when:
-    - custom_display_config.primary is defined and custom_display_config.primary is truthy
-    - selected_frontend == "vaapivideo"
+- name: Set Options for vdr-plugin-vaapivideo
+  when: selected_frontend == "vaapivideo"
+  block:
+    - name: VDR-config | set ouput for vdr-plugin-vaapivideo
+      ansible.builtin.lineinfile:
+        path: /etc/vdr/conf.avail/vaapivideo.conf
+        regexp: "^(-c|--connector=)"
+        line: "-c {{  display_outputs[custom_display_config.primary.connector].drm_name }}"
+      when: custom_display_config.primary is defined and custom_display_config.primary is truthy
 
-- name: VDR-config | set audio output for vdr-plugin-vaapivideo
-  ansible.builtin.lineinfile:
-    path: /etc/vdr/conf.avail/vaapivideo.conf
-    regexp: "^(-a|--audio=)"
-    line: "-a {{ vaapivideo_audio_output }}"
-  when:
-    - custom_display_config.primary is defined and custom_display_config.primary is truthy
-    - selected_frontend == "vaapivideo"
+    - name: VDR-config | set audio output for vdr-plugin-vaapivideo
+      ansible.builtin.lineinfile:
+        path: /etc/vdr/conf.avail/vaapivideo.conf
+        regexp: "^(-a|--audio=)"
+        line: "-a {{ vaapivideo_audio_output }}"
 
-- name: Set pwsuspend for vaapivideo in yavdr-frontend
-  yaml_edit:
-    path: /etc/yavdr-frontend/config.yml
-    key: vdr.frontends.vaapivideo.use_pwsuspend
-    bool_value: '{{ False if vaapivideo_audio_output == "pipewire" else True }}'
-  when:
-    - custom_display_config.primary is defined and custom_display_config.primary is truthy
-    - selected_frontend == "vaapivideo"
+    - name: Set pwsuspend for vaapivideo in yavdr-frontend
+      yaml_edit:
+        path: /etc/yavdr-frontend/config.yml
+        key: vdr.frontends.vaapivideo.use_pwsuspend
+        bool_value: '{{ False if vaapivideo_audio_output == "pipewire" else True }}'
