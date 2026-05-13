@@ -197,3 +197,14 @@
     key: drm
     dict_value: '{{ drm_config }}'
   when: not virtualbox_detected
+
+
+- name: VDR-config | set ouput for vdr-plugin-vaapivideo
+  ansible.builtin.lineinfile:
+    path: /etc/vdr/conf.avail/vaapivideo.conf
+    line: "{{ item }}"
+  loop:
+    - "-c {{  display_outputs[custom_display_config.primary.connector].drm_name }}"
+  when:
+    - custom_display_config.primary is defined and custom_display_config.primary
+    - selected_frontend == "vaapivideo"
