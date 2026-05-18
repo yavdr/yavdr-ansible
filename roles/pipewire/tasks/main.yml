@@ -68,3 +68,17 @@
     group: "{{ vdr.group }}"
     mode: "0755"
     # TODO: better way to enable unit than in openbox autostart set by yavdr-desktop?
+
+- name: Allow alsamixer to work by extending the apparmor rules
+  ansible.builtin.blockinfile:
+    path: /etc/apparmor.d/local/alsamixer
+    create: true
+    mode: '0644'
+    block: |
+          # allow accessing asound.conf to make alsamixer work
+          /etc/asound.conf r,
+  notify: Reload AppArmor
+
+- name: Hint that the pipewire role was enabled
+  ansible.builtin.set_fact:
+    pipewire_installed: true
