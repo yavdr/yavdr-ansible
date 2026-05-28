@@ -220,3 +220,12 @@
         path: /etc/yavdr-frontend/config.yml
         key: vdr.frontends.vaapivideo.use_pwsuspend
         bool_value: '{{ False if vaapivideo_audio_output == "pipewire" else True }}'
+
+    - name: Enable nulldevice for dbus2vdr
+      ansible.builtin.lineinfile:
+        path: /etc/vdr/conf.avail/dbus2vdr.conf
+        regexp: '^--nulldevice'
+        line: '--nulldevice=force'
+        owner: root
+        group: root
+        mode: '0644'
