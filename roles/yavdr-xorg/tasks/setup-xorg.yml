@@ -19,6 +19,12 @@
     - "/etc/X11/xorg.conf.d/"
     - "{{ vdr.home }}/.config/systemd/user/"
 
+- name: Create custom openbox-session script
+  ansible.builtin.template:
+    src: templates/openbox-session.j2
+    dest: "/usr/local/bin/openbox-session"
+    mode: "0755"
+
 - name: Create yavdr-xorg
   ansible.builtin.template:
     src: templates/systemd/system/yavdr-xorg.service.j2
