@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 source <(systemctl --user show-environment)
 SECOND_DISPLAY="${DISPLAY%\.[0-9]*}.1"
-if xrandr -d "$SECOND_DISPLAY" -q | grep -V "disconnected" | grep -q "connected"; then
+if xrandr -d "$SECOND_DISPLAY" | grep -v "disconnected" | grep -q "connected"; then
     [ "$DISPLAY" != "$SECOND_DISPLAY" ] && d="DISPLAY=$SECOND_DISPLAY" || d="DISPLAY=$DISPLAY"
     echo "$d" > ~/.second_display;
 else
