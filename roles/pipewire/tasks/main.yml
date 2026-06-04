@@ -60,6 +60,24 @@
     state: directory
     mode: "0755"
 
+- name: Ensure ~/.config exists for vdr user
+  ansible.builtin.file:
+    path: "{{ vdr.home }}/.config"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
+    recurse: false
+
+- name: Ensure ~/.config/systemd exists for vdr user
+  ansible.builtin.file:
+    path: "{{ vdr.home }}/.config/systemd"
+    state: directory
+    owner: "{{ vdr.user }}"
+    group: "{{ vdr.group }}"
+    mode: "0755"
+    recurse: false
+
 - name: Ensure ~/.config/systemd/user exists for vdr user
   ansible.builtin.file:
     path: "{{ vdr.home }}/.config/systemd/user"
