@@ -346,7 +346,27 @@ def find_edid(
                 bus_id = get_bus_id(pci_id)
 
                 # write the edid to /etc/X11
-                new_edid_path = Path(f"/etc/X11/edid.{xorg_connector}.bin")
+                # new_edid_path = Path(f"/etc/X11/edid.{xorg_connector}.bin")
+                # try:
+                #     if (
+                #         not new_edid_path.is_file()
+                #         or new_edid_path.read_bytes() != edid_raw
+                #     ):
+                #         fd, tmp_dest = tempfile.mkstemp(dir=new_edid_path.parent)
+                #         try:
+                #             os.write(fd, edid_raw)
+                #             os.close(fd)
+                #         except Exception as e:
+                #             os.unlink(tmp_dest)
+                #             module.fail_json(msg=str(e))
+                #         module.atomic_move(tmp_dest, new_edid_path)
+                # except Exception:
+                #     pass
+
+                # write the edid to /lib/firmware/edid
+                basepath = Path("/lib/firmware/edid")
+                basepath.mkdir(parents=True, exist_ok=True)
+                new_edid_path = basepath / f"edid.{xorg_connector}.bin"
                 try:
                     if (
                         not new_edid_path.is_file()

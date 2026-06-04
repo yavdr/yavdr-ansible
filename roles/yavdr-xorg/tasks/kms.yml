@@ -1,7 +1,19 @@
-- name: Create initramfs hook to copy EDID files
+# - name: Create initramfs hook to copy EDID files
+#   ansible.builtin.template:
+#     src: templates/include-edid-data.sh.j2
+#     dest: '/etc/initramfs-tools/hooks/include-edid-data'
+#     mode: '0755'
+#     force: true
+
+- name: Remove old initramfs hook script
+  ansible.builtin.file:
+    path: '/etc/initramfs-tools/hooks/include-edid-data'
+    state: absent
+
+- name: Add edid files to dracut configuration
   ansible.builtin.template:
-    src: templates/include-edid-data.sh.j2
-    dest: '/etc/initramfs-tools/hooks/include-edid-data'
+    src: templates/dracut/99-edid.conf.j2
+    dest: '/etc/dracut.conf.d/99-edid.conf'
     mode: '0755'
     force: true
 

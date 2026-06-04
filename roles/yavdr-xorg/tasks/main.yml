@@ -18,11 +18,12 @@
     name: nouveau-firmware
   when: nvidia_detected and not nvidia_driver_installed
 
+- name: Include write-display-config role
+  ansible.builtin.include_role:
+    name: write-display-config
+  # tags: [xorg.detect, install]
+
 - name: KMS Settings
   ansible.builtin.include_tasks: kms.yml
   tags: [xorg.detect, install]
   when: kms_set_boot_edid
-
-- name: Include write-display-config role
-  ansible.builtin.include_role:
-    name: write-display-config

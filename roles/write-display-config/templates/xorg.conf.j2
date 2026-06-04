@@ -61,7 +61,7 @@ Section "Device"
 {% endif %}
     Screen          0
     Option         "ConnectedMonitor" "{{ primary.xrandr_name }}{% if use_secondary %}, {{ secondary.xrandr_name }}{% endif %}"
-    Option         "CustomEDID" "{{ primary.xrandr_name }}:/etc/X11/edid.{{ primary.xrandr_name }}.bin{% if use_secondary %};{{ secondary.xrandr_name }}:/etc/X11/edid.{{ secondary.xrandr_name }}.bin{% endif %}"
+    Option         "CustomEDID" "{{ primary.xrandr_name }}:/lib/firmware/edid/edid.{{ primary.xrandr_name }}.bin{% if use_secondary %};{{ secondary.xrandr_name }}:/lib/firmware/edid/edid.{{ secondary.xrandr_name }}.bin{% endif %}"
 EndSection
 
 Section "Screen"
@@ -113,7 +113,6 @@ Section "Screen"
     Option         "nvidiaXineramaInfoOrder" "{{ secondary.xrandr_name }}"
     #Option         "ConnectedMonitor" "{{ secondary.xrandr_name }}"
     Option         "UseDisplayDevice" "{{ secondary.xrandr_name }}"
-    #Option         "CustomEDID" "{{ secondary.xrandr_name }}:/etc/X11/edid.{{ secondary.xrandr_name }}.bin"
     Option         "metamodes" "{{ secondary.xrandr_name }}: {{ secondary_mode }} +0+0 {ForceCompositionPipeline=Off, ForceFullCompositionPipeline=Off}"
     Option         "AllowIndirectGLXProtocol" "off"
     Option         "TripleBuffer" "on"

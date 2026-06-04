@@ -1,0 +1,16 @@
+{% if ansible_facts['display_config']['primary'] | default(false)
+%}{% set primary = ansible_facts['display_config']['primary']['connector'] | default(false)
+%}{% set primary_resolution = ansible_facts['display_config']['primary']['resolution'] | default(omit)
+%}{% set primary_refreshrate = ansible_facts['display_config']['primary']['refreshrate'] | default(60)
+%}{% set primary_data = ansible_facts['display_outputs'][primary]
+%}{% set primary_xrandr = primary_data['xrandr_name']
+%}{% set primary_drm = primary_data['drm_name']
+%}{% set secondary = ansible_facts['display_config']['secondary']['connector'] | default(false)
+%}{% if secondary
+%}{% set secondary_data = ansible_facts['display_outputs'][secondary]
+%}{% set secondary_resolution = ansible_facts['display_config']['secondary']['resolution'] | default(omit)
+%}{% set secondary_refreshrate = ansible_facts['display_config']['secondary']['refreshrate'] | default(60)
+%}{% set secondary_data = ansible_facts['display_outputs'][secondary]
+%}{% set secondary_xrandr = secondary_data['xrandr_name']
+%}{% set secondary_drm = secondary_data['drm_name']
+%}{% endif %}install_items+=" {% if primary %}/lib/firmware/edid/edid.{{ primary_xrandr }}.bin {% endif %}{% if secondary %} /lib/firmware/edid/edid.{{ secondary_xrandr }}.bin {% endif %}"{% endif %}
