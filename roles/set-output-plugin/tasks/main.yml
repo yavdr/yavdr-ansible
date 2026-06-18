@@ -11,7 +11,10 @@
 
 - name: Set actual vdr output plugin
   ansible.builtin.set_fact:
-    vdr_output_plugin: '{{ vdr_output_plugin | default(automatically_installed_output_plugin | default("vdr-plugin-softhddevice")) }}'
+    vdr_output_plugin: '{{ vdr_output_plugin |
+      default(automatically_installed_output_plugin |
+        default("vdr-plugin-softhddevice-cuvid" if (nvidia_driver_installed |
+          default(false)) else "vdr-plugin-softhddevice")) }}'
 
 - name: Set selected_frontend
   ansible.builtin.set_fact:
