@@ -3,9 +3,23 @@
     name: vdr-addon-lifeguard-ng
     state: present
 
+- name: Convert process/port list to dictionary
+  ansible.builtin.set_fact:
+    lifeguardng_tcp_connections: >-
+      {{
+        lifeguardng_tcp_connections | default({}) |
+        combine({
+          item.split()[0]: (
+            lifeguardng_tcp_connections[item.split()[0]] | default([])
+            + (item.split()[1:] | map('int') | list)
+          )
+        })
+      }}
+  loop: '{{ lifeguard_tcp }}'
+
 - name: Expand template for vdr-addon-lifeguard-ng configuration file
   ansible.builtin.template:
-    src: templates/lifeguard.conf.j2
-    dest: /etc/lifeguard.conf
+    src: templates/lifeguard.yaml.j2
+    dest: /etc/lifeguard.yml
     mode: '0644'
   notify: Restart vdr-addon-lifeguard-ng
