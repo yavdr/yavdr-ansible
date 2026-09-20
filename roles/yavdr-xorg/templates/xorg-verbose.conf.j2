@@ -2,7 +2,7 @@
 
 Section "Device"
         Identifier "gpu"
-        Driver  "{{ 'nvidia' if nvidia_detected else ('intel' if intel_detected else ('amd' if amd_detected else 'modesetting')) }}"
+        Driver  "{{ 'nvidia' if nvidia_detected else ('intel' if (intel_detected and intel_driver == 'intel') else ('amd' if amd_detected else 'modesetting')) }}"
         Option  "DynamicTwinView"     "true"
         Option  "NoFlip"              "false"
 EndSection
