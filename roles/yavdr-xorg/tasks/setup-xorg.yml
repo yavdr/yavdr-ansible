@@ -43,6 +43,16 @@
     path: /etc/systemd/system/vdr.service.d/vdr-xorg.conf
     state: absent
 
+- name: Disable existing units for x@vt7.service and xlogin@{{ vdr.user }}
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    masked: true
+  ignore_errors: true
+  loop:
+    - "xlogin@{{ vdr.user }}"
+    - x@vt7.service
+
 - name: Add a login shell for the user vdr
   ansible.builtin.user:
     name: "{{ vdr.user }}"
@@ -131,9 +141,9 @@
       - kiosk-browser
     state: present
 
-- name: Disable headless-session@{{vdr.user}}
+- name: Disable headless-session@{{ vdr.user }}
   ansible.builtin.systemd:
-    name: headless-session@{{vdr.user}}
-    state: disabled
+    name: headless-session@{{ vdr.user }}
+    state: stopped
     masked: true
   failed_when: false
